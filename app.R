@@ -7,7 +7,7 @@
 #    https://shiny.posit.co/
 #
 
-library(shiny)
+source("R/global.R")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
