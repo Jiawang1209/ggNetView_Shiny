@@ -54,6 +54,7 @@ library(ggradar2)
 library(treemap)
 library(markdown)
 library(datasets)
+library(fresh)
 
 font_families()
 showtext_auto()

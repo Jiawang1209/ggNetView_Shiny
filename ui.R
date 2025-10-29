@@ -8,29 +8,47 @@ ui <- bs4DashPage(
       title = "ggNetView",
       color = "pink",
       href  = "https://github.com/Jiawang1209/ggNetView",
-      image = "https://github.com/Jiawang1209/ggNetView/tree/main/man/figures/logo.png"     # 放在 www/logo.png
+      image = "logo.png"     # 放在 www/logo.png
     )
   ),
   sidebar = bs4DashSidebar(
     width = 220,
     bs4SidebarUserPanel(
-      image = "https://github.com/Jiawang1209/ggNetView/tree/main/man/figures/logo.png",
+      image = "logo.png",
       name  = "Welcome ggNetView!"
     ),
     bs4SidebarMenu(
       id = "sidebarmenu",
-      bs4SidebarMenuItem("Home Page",   tabName = "home_page",   icon = icon("house")),
+      bs4SidebarMenuItem("Home Page", tabName = "home_page", icon = icon("house")),
       bs4SidebarMenuItem("Introduction", tabName = "introduction", icon = icon("question")),
-      bs4SidebarMenuItem("Microbial Network Analysis", tabName = "MNA", icon = icon("bacteria")),
-      bs4SidebarMenuItem("Protein Network Analysis", tabName = "PPI", icon = icon("dna")),
-      bs4SidebarMenuItem("WGCNA", tabName = "WGCNA", icon = icon("circle-nodes"))
+      bs4SidebarMenuItem("Microbial Network", tabName = "MNA", icon = icon("bacteria")),
+      bs4SidebarMenuItem("Protein Network", tabName = "PPI", icon = icon("dna")),
+      bs4SidebarMenuItem("WGCNA", tabName = "WGCNA", icon = icon("circle-nodes")),
+      bs4SidebarMenuItem("Env-Link", tabName = "EnvLink", icon = icon("earth-americas")),
+      bs4SidebarMenuItem("Citation", tabName = "Citation", icon = icon("copyright"))
     )
   ),
   body = bs4DashBody(
     bs4TabItems(
       bs4TabItem(
         tabName = "home_page",
-        h3("Home works.")
+        # 把你在 server 中写的所有 UI 元素粘回这里
+        fluidRow(
+          column(
+            width = 12, align = "center",
+            tags$br(),
+            img(src = "logo.png", width = "400px", height = "450px"),
+            tags$br(), tags$br(),
+            h1("ggNetView : an R package for network analysis and visualization."),
+            h3("It provides flexible and publication-ready tools for exploring complex biological and ecological networks.")
+          )
+        ),
+        tags$br(), tags$hr(),
+        # ... 后面所有的 UI 内容 ...
+      ),
+      bs4TabItem(
+        tabName = "introduction",
+        fluidRow(column(1), column(10, includeMarkdown("README.md")), column(1))
       ),
       bs4TabItem(
         tabName = "introduction",
@@ -55,5 +73,5 @@ ui <- bs4DashPage(
     ),
     right = "2025",
     fixed = TRUE
-  )
+  ) 
 )

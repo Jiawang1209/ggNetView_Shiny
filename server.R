@@ -7,14 +7,14 @@ server <-  function(input, output, session) {
         width = 12,
         align = "center",
         tags$br(),
-        img(src = "BGCViewer.png", 
+        img(src = "./www/logo.png", 
             width = "400px", 
             height = "450px"
         ),
         tags$br(),
         tags$br(),
-        h1("BGCViewer: a web-tool for data visualization"),
-        h3("BGCViewer is an interactive visualization platform developed based on web technology for data visualization in ecology, soil science, microbiology and bioinformatics.")
+        h1("ggNetView is an R package for network analysis and visualization."),
+        h3("It provides flexible and publication-ready tools for exploring complex biological and ecological networks.")
       ),
     ),
     tags$br(),
