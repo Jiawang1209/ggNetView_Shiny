@@ -1,224 +1,186 @@
-# Server function
-server <-  function(input, output, session) {
-  tabItem(
-    tabName = "home_page",
-    fluidRow(
-      column(
-        width = 12,
-        align = "center",
-        tags$br(),
-        img(src = "./www/logo.png", 
-            width = "400px", 
-            height = "450px"
-        ),
-        tags$br(),
-        tags$br(),
-        h1("ggNetView is an R package for network analysis and visualization."),
-        h3("It provides flexible and publication-ready tools for exploring complex biological and ecological networks.")
-      ),
-    ),
-    tags$br(),
-    tags$hr(),
-    fluidRow(
-      column(
-        width = 12,
-        align = "center",
-        # slickROutput("myCarousel", width = "50%", height = "250px")
-        tags$br(),
-        h2("Plot Preview"),
-        tags$br(),
-        # myCarousel_UI("myCarousel")
-      )
-    ),
-    tags$br(),
-    tags$hr(),
-    fluidRow(
-      column(
-        width = 12,
-        align = "center",
-        box(
-          title = "Function Preview",
-          status = "info",
-          width = 8,
-          #background = "gray",
-          solidHeader = TRUE,
-          fluidRow(
-            infoBox(
-              title = "Basic Plot", value = 15, icon = icon("bar-chart"),
-              color = "orange", fill = FALSE, width = 4
-            ),
-            infoBox(
-              title = "Advance Plot", value = 16, icon = icon("area-chart"),
-              color = "orange", fill = FALSE, width = 4
-            ),
-            infoBox(
-              title = "Statistical Analysis", value = 7, icon = icon("calculator"),
-              color = "orange", fill = FALSE, width = 4
-            )
-          ),
-          fluidRow(
-            infoBox(
-              title = "Time-Series", value = 2, icon = icon("line-chart"),
-              color = "info", fill = FALSE,width = 4
-            ),
-            infoBox(
-              title = "Map", value = 2, icon = icon("globe"),
-              color = "info", fill = FALSE, width = 4
-            ),
-            infoBox(
-              title = "Bioinformatics", value = 6, icon = icon("dna"),
-              color = "info", fill = FALSE, width = 4
-            )
-          ),
-          fluidRow(
-            infoBox(
-              title = "Microbiome", value = 3, icon = icon("bacteria"),
-              color = "success", fill = FALSE, width = 4
-            ),
-            infoBox(
-              title = "isotope", value = 3, icon = icon("atom"),
-              color = "success", fill = FALSE, width = 4
-            ),
-            infoBox(
-              title = "Agriculture", value = 3, icon = icon("pagelines"),
-              color = "success", fill = FALSE, width = 4
-            )
-          ),
-          fluidRow(
-            infoBox(
-              title = "Highcharter", value = 7, icon = icon("uncharted"),
-              color = "success", fill = FALSE, width = 4
-            ),
-            infoBox(
-              title = "Data Transformation", value = 7, icon = icon("table"),
-              color = "success", fill = FALSE, width = 4
-            ),
-            infoBox(
-              title = "Developer", value = 5, icon = icon("user"),
-              color = "success", fill = FALSE, width = 4
-            )
-          )
-        )
-      )
-    ),
-    tags$br(),
-    tags$hr(),
-
+server <- function(input, output, session){
+  
+  # ---- Upload modules (reactive data.frames) ----
+  mna_dat   <- uploadBoxServer("up_mna")
+  ppi_dat   <- uploadBoxServer("up_ppi")
+  wgcna_dat <- uploadBoxServer("up_wgcna")
+  env_dat   <- uploadBoxServer("up_env")
+  
+  # ---- Helper: df -> numeric matrix (samples in rows, variables in columns) ----
+  as_numeric_matrix <- function(df, transpose = FALSE) {
+    req(df)
+    # If the first column is non-numeric and unique, use it as rownames
+    if (ncol(df) >= 2 && !is.numeric(df[[1]])) {
+      if (anyDuplicated(df[[1]]) == 0) {
+        rn <- as.character(df[[1]])
+        df <- df[,-1, drop = FALSE]
+        rownames(df) <- rn
+      }
+    }
+    num <- suppressWarnings(as.data.frame(lapply(df, function(x) as.numeric(as.character(x)))))
+    mat <- as.matrix(num)
+    # Drop columns that are all NA or all zeros
+    keep <- colSums(!is.na(mat)) > 0 & colSums(abs(mat), na.rm = TRUE) > 0
+    mat  <- mat[, keep, drop = FALSE]
+    # Replace non-finite with 0
+    mat[!is.finite(mat)] <- 0
+    if (transpose) mat <- t(mat)
+    validate(need(nrow(mat) > 1 && ncol(mat) > 1, "Insufficient valid data dimensions."))
+    mat
+  }
+  
+  # ---------------------------------------------------------------------------
+  # Microbial Network (MNA): Build network (button-triggered)
+  # ---------------------------------------------------------------------------
+  
+  # Initial UI states for plotting section
+  shinyjs::disable("mna_do_plot")
+  output$mna_plot_status <- renderText("Waiting for graph. Build the network first.")
+  
+  mna_graph <- eventReactive(input$mna_build, {
+    df <- mna_dat()
+    validate(need(!is.null(df), "Please complete the file 'Upload' step above before building the network."))
     
-    fluidRow(
-      column(
-        width = 12,
-        align = "center",
-        h2("User Guide")
-      )
-    ),
-    tags$br(),
-    tags$hr(),
-    fluidRow(
-      align = "center",
-      column(
-        width = 12,
-        h2("Contact")
-      )
-    ),
-    
-    fluidRow(
-      width = 12,
-      tags$head(
-        tags$style(
-          HTML("
-        .scrolling-text-container {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          overflow: hidden;
-          height: 50px;
-          padding: 10px;
-          background-color: #fcc5c0;
-        }
-        
-        .scrolling-text {
-          white-space: nowrap;
-          animation: scrolling-text 30s linear infinite;
-        }
-        
-        @keyframes scrolling-text {
-          0% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
-        }
-      ")
-        )
-      ),
-      fluidRow(
-        column(
-          width = 12,
-          align = "center",
-          
-          div(
-            class = "scrolling-text-container",
-            div(
-              class = "scrolling-text",
-              "目前 BGCViewer 仍然处于持续开发和维护阶段，各位用户可以添加开发团队的联系方式，与开发者进行实时的交流和互动，以便对BGCViewer进行共同的维护和新功能的开发。
-               您的支持和鼓励是BGCViewer团队开发的动力，祝您科研顺利，一切如意！
-              "
-            )
-          )
-        )
-      )
+    withProgress(message = "Building network...", value = 0, {
+      incProgress(0.25, detail = "Preprocessing data")
+      mat <- as_numeric_matrix(df, transpose = isTRUE(input$mna_transpose))
       
-    ),
-    tags$br(),
-    tags$br(),
-    fluidRow(
-      width = 12,
-      align = "center",
-      column(
-        width = 4,
-        align = "center",
-        # imageOutput("BGCViewer_wechat")
-        img(src = "BGCViewer_wechat.jpeg", 
-            width = "300px", 
-            height = "400px"
-        ),
-      ),
-      column(
-        width = 4,
-        align = "center",
-        # imageOutput("wechat_liuyue")
-        img(src = "liuyue_wechat.jpeg", 
-            width = "300px", 
-            height = "400px"
-        ),
-      ),
-      column(
-        width = 4,
-        align = "center",
-        # imageOutput("wechat_gongzhonghao")
-        img(src = "wechat_gongzhonghao.jpeg", 
-            width = "300px", 
-            height = "400px"
-        ),
-      )
-    ),
-    tags$br(),
-    tags$hr(),
-    fluidPage(
-      fluidRow(
-        column(
-          width = 3
-        ),
-        column(
-          width = 6,
-          align = "center",
-          h2("Live Statistics"),
-          tags$br(),
-          HTML('<script type="text/javascript" src="//rf.revolvermaps.com/0/0/7.js?i=5sbhdlkfthp&amp;m=0&amp;c=ff0000&amp;cr1=ffffff&amp;sx=0" async="async"></script>')
-        ),
-        column(
-          width = 3
+      incProgress(0.6, detail = "Correlation / network inference")
+      # Direct call to your ggNetView API. Make sure build_graph_from_mat supports 'SPARCC' internally.
+      gobj <- try({
+        ggNetView::build_graph_from_mat(
+          mat                = mat,
+          transfrom.method   = input$mna_transfrom,   # note: 'transfrom' per your function signature
+          r.threshold        = input$mna_r,
+          p.threshold        = input$mna_p,
+          method             = input$mna_method,
+          cor.method         = input$mna_cor_method,
+          proc               = input$mna_proc,
+          module.method      = input$mna_module,
+          SpiecEasi.method   = input$mna_spieceasi,
+          node_annotation    = NULL,                  # hook a second uploader here if needed
+          top_modules        = input$mna_topk,
+          seed               = 1115
         )
-      )
-    )
+      }, silent = TRUE)
+      
+      validate(need(!inherits(gobj, "try-error"), paste0("Network construction failed: ", as.character(gobj))))
+      incProgress(1)
+      gobj
+    })
+  }, ignoreInit = TRUE)
+  
+  # Build status
+  output$mna_status <- renderText({
+    req(input$mna_build)
+    g <- mna_graph()
+    if (is.null(g)) "Building or failed."
+    else paste0("Graph ready: ", igraph::gorder(g), " nodes; ", igraph::gsize(g), " edges.")
+  })
+  
+  # After graph is ready, enable Plot button and prompt user to click it
+  observeEvent(mna_graph(), {
+    req(mna_graph())
+    shinyjs::enable("mna_do_plot")
+    output$mna_plot_status <- renderText("Graph ready. Click 'Plot' to render.")
+    # Optionally clear old plot:
+    # output$mna_plot <- renderPlot(NULL)
+  })
+  
+  # Any visualization parameter change: do NOT auto-redraw; just prompt to click Plot
+  observeEvent(
+    list(input$mna_layout, input$mna_layout_module, input$mna_orientation,
+         input$mna_angle, input$mna_label, input$mna_add_outer,
+         input$mna_remove_others, input$mna_mapping_line, input$mna_pointsize),
+    {
+      if (!is.null(mna_graph())) {
+        output$mna_plot_status <- renderText("Parameters changed. Click 'Plot' to update.")
+      }
+    },
+    ignoreInit = TRUE
   )
   
+  # Plot (button-triggered)
+  mna_plot_obj <- eventReactive(input$mna_do_plot, {
+    g <- mna_graph()
+    validate(need(!is.null(g), "Build the network first."))
+    
+    withProgress(message = "Rendering plot...", value = 0, {
+      incProgress(0.4, detail = "Laying out modules")
+      p <- ggNetView::ggNetView(
+        graph_obj     = g,
+        layout        = input$mna_layout,
+        layout.module = input$mna_layout_module,
+        orientation   = input$mna_orientation,
+        angle         = input$mna_angle,
+        label         = isTRUE(input$mna_label),
+        add_outer     = isTRUE(input$mna_add_outer),
+        remove        = isTRUE(input$mna_remove_others),
+        mapping_line  = isTRUE(input$mna_mapping_line),
+        pointsize     = input$mna_pointsize,
+        seed          = 1115
+      )
+      incProgress(1)
+      p
+    })
+  }, ignoreInit = TRUE)
+  
+  output$mna_plot <- renderPlot({
+    p <- mna_plot_obj(); req(p)
+    output$mna_plot_status <- renderText("Plot rendered.")
+    p
+  })
+  
+  # ---------------------------------------------------------------------------
+  # Downloads (MNA)
+  # ---------------------------------------------------------------------------
+  
+  output$mna_dl_nodes <- downloadHandler(
+    filename = function() sprintf("MNA_nodes_%s.csv", Sys.Date()),
+    content  = function(file){
+      g <- mna_graph(); req(g)
+      v <- igraph::as_data_frame(g, what = "vertices")
+      readr::write_csv(v, file)
+    }
+  )
+  
+  output$mna_dl_edges <- downloadHandler(
+    filename = function() sprintf("MNA_edges_%s.csv", Sys.Date()),
+    content  = function(file){
+      g <- mna_graph(); req(g)
+      e <- igraph::as_data_frame(g, what = "edges")
+      readr::write_csv(e, file)
+    }
+  )
+  
+  output$mna_dl_png <- downloadHandler(
+    filename = function() sprintf("MNA_plot_%s.png", Sys.Date()),
+    content  = function(file){
+      p <- mna_plot_obj()
+      validate(need(!is.null(p), "Please click 'Plot' before downloading."))
+      ggplot2::ggsave(filename = file, plot = p, width = 9, height = 7, dpi = 300, bg = "white")
+    }
+  )
+  
+  output$mna_dl_pdf <- downloadHandler(
+    filename = function() sprintf("MNA_plot_%s.pdf", Sys.Date()),
+    content  = function(file){
+      p <- mna_plot_obj()
+      validate(need(!is.null(p), "Please click 'Plot' before downloading."))
+      use_cairo <- isTRUE(capabilities("cairo"))
+      ggplot2::ggsave(
+        filename = file, plot = p,
+        device   = if (use_cairo) grDevices::cairo_pdf else "pdf",
+        width    = 9, height = 7, bg = "white"
+      )
+    }
+  )
+  
+  # ---------------------------------------------------------------------------
+  # Debug echoes for other tabs (optional)
+  # ---------------------------------------------------------------------------
+  observeEvent(mna_dat(),   { d <- mna_dat();   if(!is.null(d)) cat("[MNA]   ", nrow(d), "x", ncol(d), "\n") })
+  observeEvent(ppi_dat(),   { d <- ppi_dat();   if(!is.null(d)) cat("[PPI]   ", nrow(d), "x", ncol(d), "\n") })
+  observeEvent(wgcna_dat(), { d <- wgcna_dat(); if(!is.null(d)) cat("[WGCNA] ", nrow(d), "x", ncol(d), "\n") })
+  observeEvent(env_dat(),   { d <- env_dat();   if(!is.null(d)) cat("[Env]   ", nrow(d), "x", ncol(d), "\n") })
 }

@@ -192,5 +192,5 @@ If you use ggNetView in your research, please cite:
 
 <h4 align="center">
 
-©微信公众号 RPython
+©ggNetView
 </h5>
