@@ -41,6 +41,7 @@ ui <- bs4DashPage(
             img(src = "logo.png", width = "400px", height = "450px"),
             tags$br(), tags$br(),
             h1("ggNetView: An R package for network analysis and visualization"),
+            
             h3("Providing flexible and publication-ready tools for exploring complex biological and ecological networks.")
           )
         ),
