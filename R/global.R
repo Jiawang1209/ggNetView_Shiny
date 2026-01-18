@@ -149,6 +149,8 @@ uploadBoxServer <- function(id){
       output$status <- renderText("Preview displayed (first 20 rows).")
     }, ignoreInit = TRUE)
     
+    
+    
     # Reactive data output
     return(reactive(dat()))
   })
