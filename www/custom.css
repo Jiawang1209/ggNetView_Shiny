@@ -1,0 +1,220 @@
+.content-wrapper {
+  background: #f4f6f9;
+}
+
+.card {
+  border-radius: 0.75rem !important;
+}
+
+.card .card-header {
+  font-weight: 600;
+}
+
+.main-sidebar {
+  border-right: 1px solid #e5e7eb;
+  background-color: #fde0dd !important;
+}
+
+.main-sidebar .sidebar {
+  background-color: #fde0dd !important;
+}
+
+.main-sidebar .brand-link {
+  background-color: #fde0dd !important;
+  background-image: none !important;
+  height: 56px !important;
+  padding: 0.35rem 0.7rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.main-sidebar .nav-sidebar > .nav-item > .nav-link.active,
+.main-sidebar .nav-treeview > .nav-item > .nav-link.active {
+  background-color: #dd3497 !important;
+  color: #ffffff !important;
+}
+
+.main-sidebar .nav-sidebar > .nav-item > .nav-link.active p,
+.main-sidebar .nav-treeview > .nav-item > .nav-link.active p,
+.main-sidebar .nav-sidebar > .nav-item > .nav-link.active i,
+.main-sidebar .nav-treeview > .nav-item > .nav-link.active i {
+  color: #ffffff !important;
+}
+
+.main-sidebar .brand-link img {
+  display: block;
+  height: 34px !important;
+  max-height: 34px !important;
+  width: auto !important;
+  max-width: 90% !important;
+  object-fit: contain;
+}
+
+.btn-success {
+  font-weight: 600;
+}
+
+.btn,
+.btn-default {
+  border-radius: 8px !important;
+}
+
+/* Ensure default Shiny buttons are colorful instead of gray. */
+.btn-default,
+.btn-secondary {
+  background-color: #3c8dbc !important;
+  border-color: #3c8dbc !important;
+  color: #ffffff !important;
+}
+
+.btn-default:hover,
+.btn-default:focus,
+.btn-secondary:hover,
+.btn-secondary:focus {
+  background-color: #2f7ca6 !important;
+  border-color: #2f7ca6 !important;
+  color: #ffffff !important;
+}
+
+/* Semantic button palette */
+.btn-sem-preview {
+  background-color: #f0ad4e !important;
+  border-color: #f0ad4e !important;
+  color: #ffffff !important;
+}
+
+.btn-sem-preview:hover,
+.btn-sem-preview:focus {
+  background-color: #ec9b2d !important;
+  border-color: #ec9b2d !important;
+  color: #ffffff !important;
+}
+
+.btn-sem-build {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: #ffffff !important;
+}
+
+.btn-sem-build:hover,
+.btn-sem-build:focus {
+  background-color: #0069d9 !important;
+  border-color: #0062cc !important;
+  color: #ffffff !important;
+}
+
+.btn-sem-visualize {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+  color: #ffffff !important;
+}
+
+.btn-sem-visualize:hover,
+.btn-sem-visualize:focus {
+  background-color: #218838 !important;
+  border-color: #1e7e34 !important;
+  color: #ffffff !important;
+}
+
+.btn-sem-download {
+  background-color: #6f42c1 !important;
+  border-color: #6f42c1 !important;
+  color: #ffffff !important;
+}
+
+.btn-sem-download:hover,
+.btn-sem-download:focus {
+  background-color: #5e35b1 !important;
+  border-color: #5b32ab !important;
+  color: #ffffff !important;
+}
+
+.btn-sem-danger {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #ffffff !important;
+}
+
+.btn-sem-danger:hover,
+.btn-sem-danger:focus {
+  background-color: #c82333 !important;
+  border-color: #bd2130 !important;
+  color: #ffffff !important;
+}
+
+/* Make fileInput controls visually consistent with semantic buttons */
+.shiny-input-container .input-group .form-control {
+  border-radius: 8px 0 0 8px !important;
+  border-color: #ced4da !important;
+}
+
+.shiny-input-container .input-group .input-group-btn .btn,
+.shiny-input-container .btn-file {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: #ffffff !important;
+  border-radius: 0 8px 8px 0 !important;
+  font-weight: 600;
+}
+
+.shiny-input-container .input-group .input-group-btn .btn:hover,
+.shiny-input-container .input-group .input-group-btn .btn:focus,
+.shiny-input-container .btn-file:hover,
+.shiny-input-container .btn-file:focus {
+  background-color: #0069d9 !important;
+  border-color: #0062cc !important;
+  color: #ffffff !important;
+}
+
+.compact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 10px 14px;
+  align-items: start;
+}
+
+.compact-grid .shiny-input-container {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.home-readme {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 22px 26px;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  line-height: 1.7;
+}
+
+.home-readme h1,
+.home-readme h2,
+.home-readme h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.6rem;
+  font-weight: 700;
+}
+
+.home-readme pre {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.home-readme img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.card-body {
+  padding: 1rem 1.1rem;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  border-radius: 6px !important;
+}

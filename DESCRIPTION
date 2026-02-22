@@ -1,0 +1,44 @@
+Type: Package
+Package: ggNetView
+Title: An R Package for Reproducible and Deterministic Network Analysis and Visualization.
+Version: 1.4.17
+Authors@R: 
+    person("Yue", "Liu", , "yueliu@iae.ac.cn", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-6180-8068"))
+Description: ggNetView is an R package for network analysis and visualization.
+     It provides flexible and publication-ready tools for exploring complex biological and ecological networks.
+License: GPL (>= 3)
+Depends: 
+    R (>= 3.5)
+Imports:
+    dplyr,
+    future,
+    future.apply,
+    ggforce,
+    ggnewscale,
+    ggplot2,
+    ggraph,
+    ggrepel,
+    grDevices,
+    igraph,
+    magrittr,
+    Matrix,
+    multtest,
+    progressr,
+    psych,
+    purrr,
+    qgraph,
+    readr,
+    scales,
+    SpiecEasi,
+    stats,
+    tibble,
+    tidygraph,
+    utils,
+    vegan,
+    WGCNA
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.3
+URL: https://github.com/Jiawang1209/ggNetView, https://jiawang1209.github.io/ggNetView/
+BugReports: https://github.com/Jiawang1209/ggNetView/issues

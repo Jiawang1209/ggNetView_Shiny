@@ -1,0 +1,18 @@
+url: https://jiawang1209.github.io/ggNetView/
+template:
+  bootstrap: 5
+  math-rendering: mathjax
+  light-switch: yes
+  bslib:
+    primary: '#0054AD'
+    border-radius: 0.5rem
+    btn-border-radius: 0.25rem
+    danger: '#A6081A'
+  footer:
+    structure:
+      left: developed_by
+      right: built_with
+  authors:
+    Yue Liu:
+      href: https://github.com/Jiawang1209
+

@@ -1,0 +1,371 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# ggNetView <img src="man/figures/logo.png" align="right" width="240" hight="240" />
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+ggNetView is an R package for network analysis and visualization. It provides flexible and publication-ready tools for exploring complex biological and ecological networks.
+
+
+</br>
+</br>
+</br>
+
+## Installation
+
+You can install the development version of ggNetView from [GitHub](https://github.com/) with:
+
+```
+# install.packages("devtools")
+devtools::install_github("Jiawang1209/ggNetView")
+```
+
+## Example1
+
+### Step1: load ggNetView
+
+```{r}
+library(ggplot2)
+library(ggnewscale)
+library(ggNetView)
+```
+
+### Step2: load Data
+
+> You can load raw matrix
+
+```{r}
+data("otu_tab")
+
+otu_tab[1:5, 1:5]
+```
+
+
+> You can load rarely matrix. Note : the rownames of  `otu_rare` is the features.
+
+```{r}
+data("otu_rare")
+
+otu_tab[1:5, 1:5]
+```
+
+> 
+
+```{r}
+data("otu_rare_relative")
+
+otu_rare_relative[1:5, 1:5]
+
+```
+
+> You can load node annotation. Note : the rownames of  `tax_tab` is NULL.
+
+
+```{r}
+data("tax_tab")
+
+tax_tab[1:5, 1:5]
+```
+
+
+### Step3: create graph object
+
+```{r}
+obj <- build_graph_from_mat(
+  mat = otu_rare_relative,
+  transfrom.method = "none",
+  method = "WGCNA",
+  cor.method = "pearson",
+  proc = "BH",
+  r.threshold = 0.7,
+  p.threshold = 0.05,
+  node_annotation = tax_tab
+)
+
+obj
+```
+
+
+### Step4: ggNetView to plot
+
+> Basic network plot
+
+```{r fig.align='center', fig.width=10, fig.height=10}
+p1 <- ggNetView(
+  graph_obj = obj,
+  layout = "gephi",
+  layout.module = "adjacent",
+  group.by = "Modularity",
+  fill.by = "Modularity",
+  pointsize = c(1, 5),
+  center = F,
+  jitter = F,
+  mapping_line = F,
+  shrink = 0.9,
+  linealpha = 0.2,
+  linecolor = "#d9d9d9"
+) 
+
+p1
+```
+
+
+```
+ggsave(file = "Output/p1.pdf",
+       plot = p1,
+       height = 10,
+       width = 10)
+```
+
+
+> Add outer line in netwotk plot
+
+```{r fig.align='center', fig.width=15, fig.height=15}
+p2 <- ggNetView(
+  graph_obj = obj,
+  layout = "gephi",
+  layout.module = "adjacent",
+  group.by = "Modularity",
+  fill.by = "Modularity",
+  pointsize = c(1, 5),
+  center = F,
+  jitter = TRUE,
+  jitter_sd = 0.15,
+  mapping_line = TRUE,
+  shrink = 0.9,
+  linealpha = 0.2,
+  linecolor = "#d9d9d9",
+  add_outer = T,
+  label = T
+) 
+
+p2
+```
+
+
+```
+ggsave(file = "Output/p2.pdf",
+       plot = p2,
+       height = 10,
+       width = 10)
+```
+
+
+> Change the fill of node points.
+
+```{r fig.align='center', fig.width=15, fig.height=15}
+p3 <- ggNetView(
+  graph_obj = obj,
+  layout = "gephi",
+  layout.module = "adjacent",
+  group.by = "Modularity",
+  fill.by = "Phylum",
+  pointsize = c(1, 5),
+  center = F,
+  jitter = TRUE,
+  jitter_sd = 0.15,
+  mapping_line = TRUE,
+  shrink = 0.9,
+  linealpha = 0.2,
+  linecolor = "#d9d9d9",
+  add_outer = T,
+  label = T
+) 
+
+p3
+```
+
+
+```
+ggsave(file = "Output/p3.pdf",
+       plot = p3,
+       height = 10,
+       width = 10)
+```
+
+
+
+> Change the color of node points.
+
+
+```{r fig.align='center', fig.width=15, fig.height=15}
+p4 <- ggNetView(
+  graph_obj = obj,
+  layout = "gephi",
+  layout.module = "adjacent",
+  group.by = "Modularity",
+  fill.by = "Phylum",
+  color.by = "Phylum",
+  pointsize = c(1, 5),
+  center = F,
+  jitter = TRUE,
+  jitter_sd = 0.15,
+  mapping_line = TRUE,
+  shrink = 0.9,
+  linealpha = 0.2,
+  linecolor = "#d9d9d9",
+  add_outer = T,
+  label = T
+) 
+
+p4
+```
+
+
+```
+ggsave(file = "Output/p4.pdf",
+       plot = p4,
+       height = 10,
+       width = 10)
+```
+
+
+
+> Add node label
+
+
+```{r fig.align='center', fig.width=15, fig.height=15}
+p5 <- ggNetView(
+  graph_obj = obj,
+  layout = "gephi",
+  layout.module = "adjacent",
+  group.by = "Modularity",
+  fill.by = "Modularity",
+  pointsize = c(1, 5),
+  center = F,
+  jitter = TRUE,
+  jitter_sd = 0.15,
+  mapping_line = TRUE,
+  shrink = 0.9,
+  linealpha = 0.2,
+  linecolor = "#d9d9d9",
+  add_outer = T,
+  label = T,
+  pointlabel = "top1"
+) 
+
+p5
+```
+
+
+```
+ggsave(file = "Output/p3.pdf", 
+       plot = p5,
+       height = 10,
+       width = 10)
+```
+
+## Example2
+
+> Get information of graph_object
+
+```{r}
+Sub_module_1 <- get_subgraph(graph_obj = obj, select_module = "1")
+
+names(Sub_module_1)
+```
+
+
+## Example3
+
+```{r}
+# load test data in ggNetView
+data("Envdf_4st")
+data("Spedf")
+```
+
+
+```{r fig.align='center', fig.width=15, fig.height=15}
+out1 <- gglink_heatmaps(
+  env = Envdf_4st,
+  spec = Spedf,
+  env_select = list(Env01 = 1:14, 
+                    Env02 = 15:28,
+                    Env03 = 29:42,
+                    Env04 = 43:56),
+  spec_select = list(Spec01 = 1:8),
+  relation_method = "correlation",
+  spec_layout = "circle_outline",
+  cor.method = "pearson",
+  cor.use = "pairwise",
+  r = 6,
+  distance = 1,
+  orientation = c("top_right", "bottom_right", "top_left", "bottom_left")
+)
+
+out1[[1]]
+
+```
+
+
+## Example4
+
+> Leave lines with a significance level less than 0.05, and change the color of heatmap.
+
+```{r fig.align='center', fig.width=15, fig.height=15}
+out2 <- gglink_heatmaps(
+  env = Envdf_4st,
+  spec = Spedf,
+  env_select = list(Env01 = 1:14,
+                    Env03 = 29:40,
+                    Env04 = 43:50),
+  spec_select = list(Spec01 = 1:8),
+  relation_method = "correlation",
+  spec_layout = "circle_outline",
+  cor.method = "pearson",
+  cor.use = "pairwise",
+  drop_nonsig = TRUE,
+  HeatmapColorBar = list(c("#2166ac", "#b2182b"), 
+                         c("#1b7837", "#762a83"),
+                         c("#4393c3", "#d6604d")),
+  HeatmapPointFill = "#8c6bb1",
+  CorePointFill = "#225ea8",
+  HeatmapLabelOrient = 45,
+  r = 6,
+  distance = 1,
+  orientation = c("top_right", "top_left", "bottom_left")
+)
+
+out2[[2]]
+
+```
+
+
+
+## sessionInfo
+
+```{r}
+sessionInfo()
+```
+
+
+#### Citation
+
+If you use ggNetView in your research, please cite:
+
+```
+Yue Liu, Chao Wang (2026). ggNetView: An R Package for Reproducible and Deterministic Network Analysis and Visualization. 
+```
+
+#### Github & Manual
+
+```
+https://github.com/Jiawang1209/ggNetView
+https://jiawang1209.github.io/ggNetView-manual/
+```
+
+<h4 align="center">©微信公众号 RPython</h5>
