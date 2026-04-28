@@ -6,7 +6,12 @@
 #' @returns a data frame of edge
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' data(adjacency_matrix_example)
+#' set.seed(1)
+#' idx <- sample(ncol(adjacency_matrix_example), 50)
+#' edge_df <- trans_adjacency_matrix_to_df(adjacency_matrix_example[idx, idx])
+#' head(edge_df)
 trans_adjacency_matrix_to_df <- function(adjacency_matrix){
   # argument check
   if (is.data.frame(adjacency_matrix)){

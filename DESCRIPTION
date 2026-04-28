@@ -1,17 +1,28 @@
 Type: Package
 Package: ggNetView
-Title: An R Package for Reproducible and Deterministic Network Analysis and Visualization.
-Version: 1.4.17
-Authors@R: 
+Title: Reproducible and Deterministic Network Analysis and Visualization
+Version: 0.1.0
+Authors@R: c(
     person("Yue", "Liu", , "yueliu@iae.ac.cn", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-6180-8068"))
-Description: ggNetView is an R package for network analysis and visualization.
-     It provides flexible and publication-ready tools for exploring complex biological and ecological networks.
+           comment = c(ORCID = "0000-0002-6180-8068")),
+    person("Chao", "Wang", , "cwang@iae.ac.cn", role = "aut"))
+Description: Provides a unified, reproducible framework for analyzing and
+    visualizing complex biological, ecological, and microbial association
+    networks. Includes tools for building correlation and co-occurrence
+    networks (e.g., 'WGCNA', 'SpiecEasi', 'SparCC'), computing topological
+    metrics, performing module-level analyses, and rendering deterministic
+    layouts based on 'ggraph' and 'ggplot2'. The package emphasizes
+    reproducibility, modularity, and publication-quality figures.
 License: GPL (>= 3)
 Depends: 
-    R (>= 3.5)
+    R (>= 4.2)
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo
 Imports:
+    boot,
     dplyr,
+    FNN,
     future,
     future.apply,
     ggforce,
@@ -19,26 +30,40 @@ Imports:
     ggplot2,
     ggraph,
     ggrepel,
-    grDevices,
+    grid,
+    Hmisc,
+    huge,
     igraph,
     magrittr,
+    MASS,
     Matrix,
-    multtest,
+    methods,
+    patchwork,
     progressr,
     psych,
     purrr,
     qgraph,
+    Rcpp,
     readr,
     scales,
-    SpiecEasi,
+    scatterpie,
     stats,
+    stringr,
     tibble,
     tidygraph,
+    tidyr,
     utils,
     vegan,
+    VGAM,
     WGCNA
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.3
+Config/testthat/edition: 3
 URL: https://github.com/Jiawang1209/ggNetView, https://jiawang1209.github.io/ggNetView/
 BugReports: https://github.com/Jiawang1209/ggNetView/issues

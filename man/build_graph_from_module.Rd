@@ -37,5 +37,12 @@ Node/edge attributes include correlation statistics and (optionally) module labe
 Build a graph object from a data frame and module Info
 }
 \examples{
-NULL
+\dontrun{
+# `node_annotation` must contain a `Modularity` column that assigns
+# each node to a module.
+obj <- build_graph_from_module(
+  df              = edge_df,
+  node_annotation = node_annotation
+)
+}
 }

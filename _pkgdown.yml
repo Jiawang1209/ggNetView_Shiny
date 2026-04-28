@@ -16,3 +16,110 @@ template:
     Yue Liu:
       href: https://github.com/Jiawang1209
 
+navbar:
+  structure:
+    left:  [intro, reference, articles]
+    right: [search, github]
+  components:
+    articles:
+      text: Articles
+      menu:
+        - text: Getting Started
+        - text: Introduction to ggNetView
+          href: articles/ggNetView-intro.html
+        - text: "---"
+        - text: Workflows
+        - text: Correlation-based Network Pipelines
+          href: articles/correlation-networks.html
+        - text: WGCNA Network Pipeline
+          href: articles/wgcna-pipeline.html
+        - text: Network Topology and Keystone Analysis
+          href: articles/network-topology.html
+        - text: "---"
+        - text: Reference
+        - text: Layout Gallery
+          href: articles/layout-gallery.html
+
+reference:
+  - title: Network builders
+    desc: >
+      Construct a tidygraph network object from various input types.
+      All builders return a module-annotated graph ready for `ggNetView()`.
+    contents:
+      - build_graph_from_mat
+      - build_graph_from_double_mat
+      - build_graph_from_double_mat_with_module
+      - build_graph_from_multi_mat
+      - build_graph_from_adj_mat
+      - build_graph_from_adj_mat_module
+      - build_graph_from_df
+      - build_graph_from_igraph
+      - build_graph_from_module
+      - build_graph_from_wgcna
+      - build_graph_from_pie
+      - build_graph_from_enrichGO
+
+  - title: Visualisation
+    desc: >
+      Plot networks, heatmaps, and multi-network comparisons.
+    contents:
+      - ggNetView
+      - ggNetView_multi
+      - ggNetView_multi_link
+      - gglink_heatmaps
+      - gglink_heatmaps_2
+      - gglink_heatmap_triple
+      - ggnetview_modularity_heatmaps
+      - ggnetview_zipi
+
+  - title: Network analysis
+    desc: >
+      Compute topology metrics, extract subgraphs, and perform
+      statistical tests.
+    contents:
+      - get_network_topology
+      - get_network_topology_parallel
+      - get_sample_subgraph_topology
+      - get_sample_subgraph_topology_parallel
+      - ggNetView_RMT
+      - mantel_between_blocks
+      - mantel_pairwise
+
+  - title: Correlation & inference engines
+    desc: >
+      Low-level correlation and network-inference functions powered by
+      Rcpp. These are called internally by the builders but can also be
+      used directly.
+    contents:
+      - sparcc_matrix_rcpp
+      - sparcc_pvalue_rcpp
+      - spieceasi_matrix_rcpp
+
+  - title: Graph utilities
+    desc: >
+      Extract, transform, reorder, and export graph components.
+    contents:
+      - get_graph_nodes
+      - get_graph_adjacency
+      - get_info_from_graph
+      - get_subgraph
+      - order_graph
+      - update_graph_modules
+      - update_graph_modules2
+      - export_ggnetview
+      - trans_adjacency_matrix_to_df
+      - trans_TOM_in_WGCNA
+
+  - title: Themes & scales
+    desc: >
+      ggplot2 theme and colour/fill scale helpers for consistent
+      network aesthetics.
+    contents:
+      - theme_ggnetview
+      - scale_color_ggnetview
+      - scale_fill_ggnetview
+      - get_palette
+
+  - title: Re-exports
+    contents:
+      - "%>%"

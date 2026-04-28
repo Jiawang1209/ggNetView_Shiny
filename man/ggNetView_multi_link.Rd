@@ -5,18 +5,19 @@
 \title{Visualize multiple networks and show the connections between them to highlight key members within the networks}
 \usage{
 ggNetView_multi_link(
-  mat,
-  group_info,
+  mat = NULL,
+  group_info = NULL,
+  graph_obj_list = NULL,
   transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy",
     "rrarefy_relative"),
   r.threshold = 0.7,
   p.threshold = 0.05,
   method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
   cor.method = c("pearson", "kendall", "spearman"),
-  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
-    "TSBH"),
+  proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
   module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
   SpiecEasi.method = c("mb", "glasso"),
+  sparcc_R = 20,
   node_annotation = NULL,
   top_modules = 15,
   layout = NULL,
@@ -26,29 +27,84 @@ ggNetView_multi_link(
   center = TRUE,
   idx = NULL,
   shrink = 1,
+  inner_shrink = 1,
   k_nn = 12,
   push_others_delta = 0,
   layout.module = c("random", "adjacent", "order"),
   group.by = "Modularity",
   fill.by = "Modularity",
+  fill = NULL,
+  color = NULL,
+  pointsize = c(1, 5),
   jitter = FALSE,
   jitter_sd = 0.01,
   mapping_line = FALSE,
   linealpha = 0.25,
   linecolor = "grey70",
-  scale = T,
+  inner_curve = FALSE,
+  inner_curvature = 0.12,
+  inner_curve_adaptive = TRUE,
+  inner_curve_adaptive_range = c(0.7, 1.3),
+  inner_curve_adaptive_bins = 7,
+  add_outer = "circle",
+  q_outer = 0.88,
+  expand_outer = 1.02,
+  outerwidth = 1.25,
+  outerlinetype = 2,
+  outeralpha = 0.5,
+  link_level = "Module",
+  link_curve = FALSE,
+  link_curvature = 0.2,
+  link_curve_mode = "outward",
+  link_curve_adaptive = TRUE,
+  link_curve_adaptive_range = c(0.7, 1.3),
+  link_curve_adaptive_bins = 7,
+  link_color_node = NULL,
+  link_color_module = NULL,
+  link_linewidth_node = 1,
+  link_linewidth_module = 1,
+  link_linetype_node = 2,
+  link_linetype_module = 1,
+  link_linealpha_node = 0.25,
+  link_linealpha_module = 0.5,
+  dropOthers = FALSE,
+  calculate_topology = FALSE,
+  comparisons = TRUE,
+  comparisons_groups = NULL,
+  order = NULL,
+  group_layout = "circle",
+  scale_groups = TRUE,
   orientation = "up",
   angle = 0,
   anchor_dist = 6,
+  layout_anchor_dist = NULL,
+  nrow = NULL,
+  ncol = NULL,
+  sine_period = 4,
+  label_offset = 0.2,
+  label_size = 4,
+  add_group_outer = FALSE,
+  add_group_outer_expand = 2,
+  add_group_outer_color = "grey50",
+  add_group_outer_fill = NULL,
+  add_group_outer_fill_alpha = 0.2,
+  add_group_outer_linetype = 1,
+  add_group_outer_linewidth = 0.5,
   seed = 1115
 )
 }
 \arguments{
-\item{mat}{Numeric matrix.
-A numeric matrix with samples in rows and variables in columns.}
+\item{mat}{Numeric matrix. Required when \code{graph_obj_list} is \code{NULL}.
+A numeric matrix with variables (e.g. genes, taxa) in rows and samples in columns.}
 
-\item{group_info}{DataFrame
-The group information contains: Sample and Group}
+\item{group_info}{DataFrame. Required when \code{graph_obj_list} is \code{NULL}.
+The group information contains: Sample and Group.
+If Sample or Group contain underscores (\code{_}), they are automatically replaced with hyphens (\code{-}) to avoid parsing issues; \code{mat} column names, \code{order}, and \code{comparisons_groups} are updated accordingly.}
+
+\item{graph_obj_list}{Named list of \code{tbl_graph} objects. Alternative to \code{mat} and \code{group_info}.
+Each element is a graph object (e.g. from \code{build_graph_from_mat} or \code{build_graph_from_df}).
+List names define group names (e.g. \code{list(WT = g1, KO = g2)}).
+When provided, \code{mat} and \code{group_info} are ignored. Enables custom pre-built networks.}
 
 \item{transfrom.method}{Character.
 Data transformation methods applied before correlation analysis.
@@ -79,9 +135,8 @@ Options include "pearson", "kendall", and "spearman".}
 \item{proc}{Character.
 Correlation p-value adjustment methods.
 Options include:
-"Bonferroni", "Holm", "Hochberg", "
-SidakSS", "SidakSD","BH",
-"BY", "ABH", and "TSBH".}
+"holm", "hochberg", "hommel", "bonferroni",
+"BH", "BY", "fdr", and "none".}
 
 \item{module.method}{Character.
 Network community detection (module identification) method.
@@ -89,6 +144,10 @@ Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".}
 
 \item{SpiecEasi.method}{Character.
 Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".}
+
+\item{sparcc_R}{Integer.
+Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+Default 20.}
 
 \item{node_annotation}{Data frame.
 Optional node annotation table, containing metadata such as taxonomy or functional categories.}
@@ -119,6 +178,10 @@ Index of nodes to be emphasized or centered in the layout}
 \item{shrink}{Numeric (default = 1).
 Shrinkage factor applied to the center points.}
 
+\item{inner_shrink}{Numeric (default = 1).
+Intra-module compactness factor for \code{layout = "WGCNA"} only.
+See \code{\link{ggNetView}} for details.  Ignored by other layouts.}
+
 \item{k_nn}{Numeric (default = 8).
 Number of nearest neighbors used to build the local adjacency graph.}
 
@@ -126,6 +189,7 @@ Number of nearest neighbors used to build the local adjacency graph.}
 Radial offset applied to the "Others" module to slightly}
 
 \item{layout.module}{Character  (default = "random")
+- random : modules are distributed more randomly and independently.
 - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
 
@@ -135,14 +199,30 @@ Change group for nodes}
 \item{fill.by}{Character (default = "Modularity").
 Change fill for nodes}
 
+\item{fill}{Named vector of colors for node/module fill (e.g. \code{c("M1" = "red", "M2" = "blue")}).
+If \code{NULL} (default), uses viridis discrete fill scale
+(\code{scale_fill_viridis_d});
+if provided, uses \code{scale_fill_manual(values = fill)}.}
+
+\item{color}{Color setting for node/module border.
+Supports either a single color string (fixed border color) or a named vector
+(module-to-color mapping, similar to \code{fill}).
+If \code{NULL}, mapped borders use viridis discrete color scale
+(\code{scale_color_viridis_d}).}
+
+\item{pointsize}{Numeric vector of length 2 (default = \code{c(1, 5)}).
+The range of point size when mapping \code{Degree} to size.
+First value is minimum size, second is maximum size.}
+
 \item{jitter}{Logical (default = FALSE).
 Whether to apply jitter to points.}
 
 \item{jitter_sd}{Integer  (default = 0.1).
 The standard deviation of the jitter applied when `jitter = TRUE`.}
 
-\item{mapping_line}{Logical (default = FALSE).
-Whether to mapping line in ggNetView.}
+\item{mapping_line}{Logical or Character (default = FALSE).
+Whether to map line color in ggNetView. If a character string is provided,
+it must be a variable name in edge data.}
 
 \item{linealpha}{Integer  (default = 0.25).
 Change  line alpha.}
@@ -150,8 +230,161 @@ Change  line alpha.}
 \item{linecolor}{Character  (default = "grey70").
 Change  line color.}
 
-\item{scale}{Logical  (default = T).
-modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius}
+\item{inner_curve}{Logical (default = FALSE).
+Whether to draw within-group edges as curves.}
+
+\item{inner_curvature}{Numeric (default = 0.12).
+Curvature for within-group edges when \code{inner_curve = TRUE}.}
+
+\item{inner_curve_adaptive}{Logical (default = TRUE).
+Whether to adapt within-group edge curvature by edge length when
+\code{inner_curve = TRUE}.}
+
+\item{inner_curve_adaptive_range}{Numeric vector of length 2 (default = c(0.7, 1.3)).
+Multipliers applied to \code{inner_curvature} for shortest and longest
+within-group edges.}
+
+\item{inner_curve_adaptive_bins}{Integer (default = 7).
+Number of bins used to approximate per-edge adaptive curvature for
+within-group edges.}
+
+\item{add_outer}{Logical or Character (default = "circle").
+Add outer boundaries for matched modules.
+Supported values: \code{"circle"} (use \code{ggforce::geom_mark_circle}),
+\code{"manual"} (use smoothed polygon boundary like \code{ggNetView}),
+and \code{"none"} (disable). Logical \code{TRUE}/\code{FALSE} are
+accepted and mapped to \code{"circle"}/\code{"none"}.}
+
+\item{q_outer}{Numeric (default = 0.88).
+Quantile of radial distance used to construct the smooth outer boundary
+when \code{add_outer = "manual"}.}
+
+\item{expand_outer}{Numeric (default = 1.02).
+Global scaling factor applied to the smooth outer boundary when
+\code{add_outer = "manual"}.}
+
+\item{outerwidth}{Numeric (default = 1.25).
+Line width for module outer boundaries.}
+
+\item{outerlinetype}{Integer or character (default = 2).
+Linetype for module outer boundaries (e.g. 1 = solid, 2 = dashed).}
+
+\item{outeralpha}{Numeric (default = 0.5).
+Alpha for module outer boundaries.}
+
+\item{link_level}{Character (default = "Module").
+Cross-group link granularity. One of \code{"None"}, \code{"Module"}, \code{"Node"},
+\code{"NodeinModule"}, \code{"Module&Node"}, or \code{"Module&Node2"}.
+\code{"None"} draws no cross-group links.
+\code{"Module"} links significant module matches (module centroids).
+\code{"Node"} links shared node names across groups.
+\code{"NodeinModule"} links both module centroids and nodes within significantly overlapping
+modules (module links show which modules overlap; node links show shared nodes).
+\code{"Module&Node"} draws both module-level links and node-level links.
+\code{"Module&Node2"} same as \code{"Module&Node"} but adds outer boundaries for all modules
+(not only matched ones).}
+
+\item{link_curve}{Logical (default = FALSE).
+Whether to draw cross-group links as curves (\code{geom_curve}) instead of straight segments.}
+
+\item{link_curvature}{Numeric (default = 0.2).
+Curvature used when \code{link_curve = TRUE}.}
+
+\item{link_curve_mode}{Character (default = "outward").
+Curve direction strategy used when \code{link_curve = TRUE}.
+\code{"outward"} bends links away from the global center.
+\code{"inward"} bends links toward the global center.
+\code{"cross"} follows a cross-axis rule: left links bend left, right links bend right,
+upper links bend up, and lower links bend down.}
+
+\item{link_curve_adaptive}{Logical (default = TRUE).
+Whether to adapt link curvature by link length when \code{link_curve = TRUE}.
+Longer links get larger curvature and shorter links get smaller curvature.}
+
+\item{link_curve_adaptive_range}{Numeric vector of length 2 (default = c(0.7, 1.3)).
+Multipliers applied to \code{link_curvature} for shortest and longest links.
+The first value is the minimum multiplier; the second is the maximum multiplier.}
+
+\item{link_curve_adaptive_bins}{Integer (default = 7).
+Number of bins used to approximate per-link adaptive curvature.}
+
+\item{link_color_node}{Character or NULL (default = NULL).
+Colors for node-to-node cross-group links. \code{NULL} = use default palette.
+A single value, named vector (e.g. \code{c("WT|KO" = "red")}), or unnamed vector (by pair index).}
+
+\item{link_color_module}{Character or NULL (default = NULL).
+Colors for module-to-module cross-group links. Same rules as \code{link_color_node}.}
+
+\item{link_linewidth_node}{Numeric (default = 1).
+Line width for node-to-node cross-group links. Single value or vector (by pair index/named).}
+
+\item{link_linewidth_module}{Numeric (default = 1).
+Line width for module-to-module cross-group links. Single value or vector.}
+
+\item{link_linetype_node}{Integer or character (default = 2).
+Linetype for node-to-node cross-group links (e.g. 2 = dashed, 1 = solid). Single value or vector.}
+
+\item{link_linetype_module}{Integer or character (default = 1).
+Linetype for module-to-module cross-group links. Single value or vector.}
+
+\item{link_linealpha_node}{Numeric (default = 0.25).
+Alpha (transparency) for node-to-node cross-group links. Single value or vector.}
+
+\item{link_linealpha_module}{Numeric (default = 0.5).
+Alpha (transparency) for module-to-module cross-group links. Single value or vector.}
+
+\item{dropOthers}{Logical (default = FALSE).
+If TRUE, remove nodes in the \code{"Others"} module from each group's
+\code{graph_obj} before layout, plotting, and module-overlap comparison.}
+
+\item{calculate_topology}{Logical (default = FALSE).
+Whether to compute topology for each group using
+\code{get_network_topology_parallel()} and
+\code{get_sample_subgraph_topology_parallel()}.}
+
+\item{comparisons}{Logical (default = TRUE).
+Whether to perform cross-group comparisons and draw links.
+If \code{FALSE}, no module overlap or node comparison is done, and no cross-group links are drawn.}
+
+\item{comparisons_groups}{List or NULL (default = NULL).
+When \code{comparisons = TRUE}, constrains which group pairs are compared.
+Each element must be a length-2 character vector, e.g. \code{list(c("WT", "OE"), c("WT", "KO"))}.
+Group names must exist in \code{group_info$Group} or \code{names(graph_obj_list)}.
+If \code{NULL}, all pairwise group comparisons are performed.}
+
+\item{order}{Character vector or NULL (default = NULL).
+Order of groups for layout positions. Groups are placed evenly on a circle:
+1st = top, 2nd = next clockwise, etc. (e.g. 3 groups = triangle, 4 = square).
+Must contain all unique groups from \code{group_info$Group} or \code{names(graph_obj_list)} exactly once.
+If \code{NULL}, uses \code{unique(group_info$Group)} or \code{names(graph_obj_list)} order (first occurrence).}
+
+\item{group_layout}{Character (default = "circle").
+Arrangement of groups in the multi-group plot.
+\code{"circle"}: groups placed evenly on a circle (default).
+\code{"row"}: groups in a grid, filled row-by-row; uses \code{nrow} and \code{ncol}.
+\code{"column"}: groups in a grid, filled column-by-column; uses \code{nrow} and \code{ncol}.
+\code{"square"}: 4 groups at corners of a square (top-left, top-right, bottom-right, bottom-left).
+\code{"diamond"}: 4 groups at top, right, bottom, left (like a rotated square).
+\code{"triangle"}: 3 groups at vertices of an upright triangle (point up).
+\code{"triangle_down"}: 3 groups at vertices of an inverted triangle (point down).
+\code{"snake"}: groups in a grid with snake-like ordering; first row left-to-right,
+second row right-to-left, third row left-to-right, etc. Uses \code{nrow} and \code{ncol}.
+\code{"snake_vertical"}: groups along a smooth sine curve; uses \code{sine_period}.
+\code{"snake_vertical_sin"}: same as \code{"snake_vertical"}.
+\code{"snake_vertical_cos"}: groups along a smooth cosine curve; uses \code{sine_period}.
+\code{"snake_vertical_neg_sin"}: smooth \code{-sin} curve.
+\code{"snake_vertical_neg_cos"}: smooth \code{-cos} curve.
+\code{"sin"}: vertex-only; group 1 at center; groups 2+ alternate peaks and troughs.
+\code{"cos"}: vertex-only; group 1 at peak; groups 2+ alternate peak and trough.
+\code{"-sin"}: vertex-only; group 1 at center; groups 2+ alternate down, up.
+\code{"-cos"}: vertex-only; group 1 at trough; groups 2+ alternate trough and peak.
+\code{"center_pairs"}: group 1 at center (y=0); remaining groups form pairs on peak (y=1) and trough (y=-1),
+with one \code{anchor_dist} gap between center and first pair. Pairs alternate right/left of center.
+If a pair has only one group, it goes on top (peak). Empty pair slots keep their positions.}
+
+\item{scale_groups}{Logical (default = TRUE).
+Whether to normalize each group to a comparable coordinate scale before
+placing groups on anchors for cross-group visual comparison.}
 
 \item{orientation}{Character string.
 Custom orientation; one of "up","down","left","right".}
@@ -159,20 +392,74 @@ Custom orientation; one of "up","down","left","right".}
 \item{angle}{Integer  (default = 0).
 Change  orientation angle.}
 
-\item{anchor_dist}{Integer (default = 2)
-the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
+\item{anchor_dist}{Numeric (default = 6).
+Distance between groups when placing each group network on the outer circle
+in \code{ggNetView_multi_link}.}
+
+\item{layout_anchor_dist}{Numeric (default = NULL).
+Anchor distance passed to the single-group layout function (module spacing
+within each group). If \code{NULL}, it falls back to \code{anchor_dist}
+for backward compatibility.}
+
+\item{nrow}{Integer (default = NULL).
+Number of rows. Used by: (1) \code{group_layout = "row"}, \code{"column"}, or \code{"snake"} for group grid;
+(2) layout functions like \code{"consensus_module_equal_gephi"} for module grid.}
+
+\item{ncol}{Integer (default = NULL).
+Number of columns. Used by: (1) \code{group_layout = "row"}, \code{"column"}, or \code{"snake"} for group grid;
+(2) layout functions like \code{"consensus_module_equal_gephi"} for module grid.}
+
+\item{sine_period}{Numeric (default = 4).
+Groups per wavelength for \code{snake_vertical*}; ignored for \code{sin}, \code{cos}, \code{-sin}, \code{-cos}.}
+
+\item{label_offset}{Numeric (default = 0.2).
+Vertical offset of group labels above each group's layout (added to max y).}
+
+\item{label_size}{Numeric (default = 4).
+Font size for group labels (Group, Node, Edge, etc.).}
+
+\item{add_group_outer}{Logical (default = FALSE).
+Whether to add a circle boundary around each group (mimics \code{ggforce::geom_mark_circle}).}
+
+\item{add_group_outer_expand}{Numeric (default = 2).
+Expansion in mm for the group circle to account for point size; passed to \code{geom_mark_circle(expand = ...)}.}
+
+\item{add_group_outer_color}{Character (default = "grey50").
+Color of the group outer circle border. A single value applies to all groups;
+a named vector maps group names to colors (e.g. \code{c("WT" = "blue", "KO" = "red")});
+an unnamed vector is used by index (recycled if needed).}
+
+\item{add_group_outer_fill}{Character or NULL (default = NULL).
+Fill color of the group outer circle. \code{NULL} = no fill (transparent).
+A single value, named vector, or unnamed vector works like \code{add_group_outer_color}.}
+
+\item{add_group_outer_fill_alpha}{Numeric (default = 0.2).
+Alpha (transparency) of the group outer circle fill; 0 = fully transparent, 1 = opaque.}
+
+\item{add_group_outer_linetype}{Integer or character (default = 1).
+Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).}
+
+\item{add_group_outer_linewidth}{Numeric (default = 0.5).
+Line width of the group outer circle.}
 
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}
-
-\item{pointstroke}{Integer  (default = 0.3).}
 }
 \value{
-A ggplot object representing the network visualization.
+A list containing plot, module-overlap info, link info, group graphs,
+and optional topology results.
 }
 \description{
-Visualize multiple networks and show the connections between them to highlight key members within the networks
+Provide either \code{(mat, group_info)} or \code{graph_obj_list} as input.
+When \code{graph_obj_list} is provided, \code{mat} and \code{group_info} are ignored.
 }
 \examples{
-NULL
+\dontrun{
+# Provide either `mat` + `group_info` or a pre-built `graph_obj_list`.
+p <- ggNetView_multi_link(
+  mat        = mat,
+  group_info = group_info,
+  method     = "cor"
+)
+}
 }

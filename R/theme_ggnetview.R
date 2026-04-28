@@ -4,7 +4,7 @@
 #' @param base_family Base font family. Default NULL.
 #' @param title_face Title font face (e.g., "bold"). Default "bold".
 #' @param title_size Title font size. Default 18.
-#' @param title_hjust Title horizontal justification (0–1). Default 0.5 (center).
+#' @param title_hjust Title horizontal justification (0-1). Default 0.5 (center).
 #' @param subtitle_size Subtitle size. Default 12.
 #' @param caption_size Caption size. Default 9.
 #' @param background Plot background color; NULL for transparent. Default "white".
@@ -48,14 +48,14 @@ theme_ggnetview <- function(
       plot.margin  = plot_margin
     )
 
-  # 背景：NULL 透明；否则上色
+
   if (is.null(background)) {
     th <- th + ggplot2::theme(plot.background = ggplot2::element_blank())
   }else{
     th <- th + ggplot2::theme(plot.background = ggplot2::element_rect(fill = background, colour = NA))
   }
 
-  # 条带背景（分面）与边框
+
   if (!is.null(foreground)) {
     th <- th + ggplot2::theme(
       strip.background = ggplot2::element_rect(fill = foreground, colour = foreground)
@@ -67,7 +67,7 @@ theme_ggnetview <- function(
     )
   }
 
-  # 网格线简易开关（theme_graph 默认很干净，这里按需补）
+
   th <- th + switch(
     grid,
     none = ggplot2::theme(panel.grid.major = ggplot2::element_blank(),

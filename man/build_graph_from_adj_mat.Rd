@@ -37,5 +37,14 @@ Node/edge attributes include correlation statistics and (optionally) module labe
 Build a correlation-based network from a adjacency matrix
 }
 \examples{
-NULL
+data(adjacency_matrix_example)
+set.seed(1)
+idx <- sample(ncol(adjacency_matrix_example), 80)
+adj <- adjacency_matrix_example[idx, idx]
+obj <- build_graph_from_adj_mat(
+  adjacency_matrix = adj,
+  module.method    = "Fast_greedy",
+  top_modules      = 5
+)
+obj
 }

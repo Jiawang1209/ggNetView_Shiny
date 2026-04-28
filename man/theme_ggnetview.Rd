@@ -28,7 +28,7 @@ theme_ggnetview(
 
 \item{title_size}{Title font size. Default 18.}
 
-\item{title_hjust}{Title horizontal justification (0–1). Default 0.5 (center).}
+\item{title_hjust}{Title horizontal justification (0-1). Default 0.5 (center).}
 
 \item{subtitle_size}{Subtitle size. Default 12.}
 

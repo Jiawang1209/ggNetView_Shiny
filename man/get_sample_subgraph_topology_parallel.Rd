@@ -13,8 +13,9 @@ get_sample_subgraph_topology_parallel(
   p.threshold = 0.05,
   method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
   cor.method = c("pearson", "kendall", "spearman"),
-  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
-    "TSBH"),
+  proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
+  SpiecEasi.method = c("mb", "glasso"),
+  sparcc_R = 20,
   bootstrap = 100,
   parallel = FALSE,
   n_workers = NULL,
@@ -39,6 +40,11 @@ columns are samples.}
 \item{cor.method}{Character. Passed to \code{get_network_topology()}.}
 
 \item{proc}{Character. Passed to \code{get_network_topology()}.}
+
+\item{SpiecEasi.method}{Character. Passed to \code{get_network_topology()};
+one of \code{"mb"} or \code{"glasso"} for SpiecEasi inverse-covariance.}
+
+\item{sparcc_R}{Integer. Passed to \code{get_network_topology()} for SparCC p-values. Default 20.}
 
 \item{bootstrap}{Numeric (default = 100). Passed to
 \code{get_network_topology()}.}
@@ -68,5 +74,16 @@ from \code{graph_obj} using \code{igraph::subgraph()}, then computes topology
 for each sample-specific subgraph via \code{get_network_topology()}.
 }
 \examples{
-NULL
+\dontrun{
+# `mat` is the OTU/feature-by-sample matrix used to build `graph_obj`.
+obj <- build_graph_from_mat(mat = mat, method = "cor")
+res <- get_sample_subgraph_topology_parallel(
+  graph_obj = obj,
+  mat       = mat,
+  bootstrap = 10,
+  parallel  = TRUE,
+  n_workers = 2
+)
+head(res$topology)
+}
 }

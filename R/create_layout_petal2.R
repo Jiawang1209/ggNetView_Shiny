@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_petal2 <- function(graph_obj,
                                  node_add = 7,
                                  r = 0.1,
@@ -5,26 +6,26 @@ create_layout_petal2 <- function(graph_obj,
                                  anchor_dist = 10,
                                  petals = 6,
                                  amp = 0.35,
-                                 inner_rings = 2, # 有多少“内圈”保持纯圆形（不含中心点）
-                                 transition_rings = 0,  # 从圆形过渡到花瓣需要的圈数（0=立即切换）
+                                 inner_rings = 2,
+                                 transition_rings = 0,
                                  orientation = c("up","down","left","right"),
-                                 angle = 0 # 在 orientation 基础上的微调（弧度）
+                                 angle = 0
 ){
-  # 旋转角度
+
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
   theta_shift <- base_angle + angle
 
 
-  # 内圈同心圆 + 外圈花瓣（可选平滑过渡），严格对称、无偏移
-  # 节点数
+
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tibble::as_tibble()
   n <- nrow(node_df)
 
-  # 每圈点数分配：第1圈1个，其后第 i 圈增 node_add*(i-1)
+
   ring_counts <- (function(n, node_add){
     counts <- 1; total <- 1; i <- 2
     while (total < n) {
@@ -41,38 +42,38 @@ create_layout_petal2 <- function(graph_obj,
     number = ring_counts
   )
 
-  # 结果容器：中心点
+
   ly <- data.frame(x = 0, y = 0)
 
-  # 从第二圈开始
+
   for (index in 2:nrow(layout_df_info)) {
     m <- layout_df_info$number[index]
-    R_base <- (index - 1) * r               # 本圈基准半径
-    theta  <- 2 * pi * (0:(m - 1)) / m      # 等角度采样（无偏移，保证对称）
+    R_base <- (index - 1) * r
+    theta  <- 2 * pi * (0:(m - 1)) / m
 
-    # 决定这一圈的“有效幅度”：内圈=0；外圈逐步从0过渡到 amp
-    k <- index - 1                           # 逻辑上的圈号（1=第一圈外圈）
+
+    k <- index - 1
     if (k <= inner_rings) {
       amp_eff <- 0
     } else if (transition_rings <= 0) {
       amp_eff <- amp
     } else {
-      t <- (k - inner_rings) / transition_rings   # 0→1
+      t <- (k - inner_rings) / transition_rings   # 0->1
       t <- max(0, min(1, t))
       amp_eff <- amp * t
     }
 
     radius <- R_base * (1 + amp_eff * cos(petals * theta))
 
-    # 生成坐标（内圈就是纯圆，外圈是花瓣）
+
     x <- radius * cos(theta)
     y <- radius * sin(theta)
 
     ly <- dplyr::bind_rows(ly, data.frame(x = x, y = y))
   }
 
-  # 开始旋转
-  # 统一旋转（绕原点）
+
+
   if (theta_shift != 0) {
     Rm <- matrix(c(cos(theta_shift), -sin(theta_shift),
                    sin(theta_shift),  cos(theta_shift)), nrow = 2)

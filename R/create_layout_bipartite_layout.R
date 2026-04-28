@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_bipartite_layout <- function(
     graph_obj,
     r = 6,
@@ -8,9 +9,9 @@ create_layout_bipartite_layout <- function(
     angle = 0
   ){
 
-  # 既然，要画二分网络，那么你肯定要有二分网络
+
   # graph_obj = graph_sub[[3]]
-  # 旋转角度
+
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
@@ -19,7 +20,7 @@ create_layout_bipartite_layout <- function(
   # set radius
   radius = r
 
-  # 获取节点
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
@@ -50,11 +51,11 @@ create_layout_bipartite_layout <- function(
   if (length(radius_vec) == 1) {
     sep <- 0
   } else {
-    sep <- 1.5 * max(radius_vec)     # 间距系数可按视觉需求微调
+    sep <- 1.5 * max(radius_vec)
   }
   centers <- list(c(-sep, 0), c(+sep, 0))
 
-  # ---- 生成坐标 ----
+
   layout_list <- purrr::map2(
     n_vec, seq_along(n_vec),
     ~{
@@ -73,7 +74,7 @@ create_layout_bipartite_layout <- function(
   )
   ly <- dplyr::bind_rows(layout_list)
 
-  # ---- 统一旋转（绕原点）----
+
   if (theta_shift != 0) {
     Rm <- matrix(c(cos(theta_shift), -sin(theta_shift),
                    sin(theta_shift),  cos(theta_shift)), nrow = 2)

@@ -1,13 +1,32 @@
+# Canonical ordering for discrete classes.
+# For factors, return levels that actually occur (preserving the factor's own
+# order). For non-factors, fall back to a lexicographic sort of the unique
+# values. Used by point / label / mask scales so a given column always produces
+# the same palette regardless of which site first observed it.
+.ggnv_class_order <- function(x) {
+  if (length(x) == 0L) return(character())
+  if (is.factor(x)) {
+    lv <- levels(x)
+    present <- unique(as.character(stats::na.omit(x)))
+    return(lv[lv %in% present])
+  }
+  sort(unique(stats::na.omit(as.character(x))))
+}
+
 #' Generate a named color palette for discrete classes
 #'
 #' @param classes Character string.
 #' The discrete class names or factor levels to map to colors.
 #' @param others_label Character, (default = "Others").
 #'
-#' @returns A named character vector where names correspond to
+#' @returns A named character vector whose names are the discrete classes
+#' and whose values are hex colors. If `others_label` appears in `classes`,
+#' it is always mapped to a neutral grey so "Others" has a stable color.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' get_palette(c("Module1", "Module2", "Module3"))
+#' get_palette(c("Module1", "Module2", "Others"))
 #'
 get_palette <- function(classes, others_label = "Others") {
   base_colors <- c(
@@ -48,7 +67,15 @@ get_palette <- function(classes, others_label = "Others") {
 #' @returns A `ggplot2` scale object.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' library(ggplot2)
+#' df <- data.frame(
+#'   x = 1:4, y = 1:4,
+#'   group = c("Module1", "Module2", "Module3", "Others")
+#' )
+#' ggplot(df, aes(x, y, color = group)) +
+#'   geom_point(size = 6) +
+#'   scale_color_ggnetview(df$group)
 #'
 scale_color_ggnetview <- function(classes,
                                   ...,
@@ -71,7 +98,15 @@ scale_color_ggnetview <- function(classes,
 #' @returns A `ggplot2` scale object.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' library(ggplot2)
+#' df <- data.frame(
+#'   x = 1:4, y = 1:4,
+#'   group = c("Module1", "Module2", "Module3", "Others")
+#' )
+#' ggplot(df, aes(x, y, fill = group)) +
+#'   geom_point(shape = 21, size = 8) +
+#'   scale_fill_ggnetview(df$group)
 scale_fill_ggnetview <- function(classes,
                                  ...,
                                  others_label = "Others",

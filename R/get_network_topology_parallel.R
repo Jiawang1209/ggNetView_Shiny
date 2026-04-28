@@ -5,8 +5,13 @@
 #'
 #' @param graph_obj An graph object from build_graph_from_mat or build_graph_from_df.
 #'   The network object to be visualized.
+#' @param graph_obj_list A list of graph objects. Optional alternative to
+#'   \code{graph_obj}. Each element is analyzed separately.
 #' @param mat Numeric Matrix (default = NULL)
 #' The matrix to build graph_obj
+#' @param graph_mat_list A list of matrices corresponding to
+#'   \code{graph_obj_list}. Optional. Each element is paired with the graph
+#'   object at the same position and used for topology analysis separately.
 #' @param transfrom.method Character.
 #'Data transformation methods applied before correlation analysis.
 #' Options include:
@@ -31,9 +36,14 @@
 #' @param proc Character.
 #' Correlation p-value adjustment methods.
 #' Options include:
-#' "Bonferroni", "Holm", "Hochberg",
-#' "SidakSS", "SidakSD","BH",
-#' "BY", "ABH", and "TSBH".
+#' "holm", "hochberg", "hommel", "bonferroni",
+#' "BH", "BY", "fdr", and "none".
+#' @param SpiecEasi.method Character. Inverse-covariance estimation method
+#'   passed to SpiecEasi when \code{method = "SpiecEasi"}.
+#'   One of \code{"mb"} (Meinshausen-Buehlmann, default) or \code{"glasso"}.
+#' @param sparcc_R Integer.
+#' Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+#' Default 20.
 #' @param bootstrap Numeric  (default = 100).
 #' Number of bootstrap iterations for stability analysis
 #' @param parallel Logical (default = FALSE).
@@ -43,38 +53,125 @@
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
 #'
-#' @returns data frame of network topolog
+#' @returns A list containing topology output and robustness output for a single
+#'   network. When \code{graph_obj_list} is provided, returns a named list of
+#'   such results.
 #' @export
 #'
-#' @examples NULL
-get_network_topology_parallel <- function(graph_obj,
+#' @examples
+#' \dontrun{
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation
+#' )
+#' topo <- get_network_topology_parallel(
+#'   graph_obj = obj,
+#'   bootstrap = 20,
+#'   parallel  = TRUE,
+#'   n_workers = 2
+#' )
+#' head(topo$topology)
+#' }
+get_network_topology_parallel <- function(graph_obj = NULL,
+                                          graph_obj_list = NULL,
                                           mat = NULL,
+                                          graph_mat_list = NULL,
                                           transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
                                           r.threshold = 0.7,
                                           p.threshold = 0.05,
                                           method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
                                           cor.method = c("pearson", "kendall", "spearman"),
-                                          proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
+                                          proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
+                                          SpiecEasi.method = c("mb", "glasso"),
+                                          sparcc_R = 20,
                                           bootstrap = 100,
                                           parallel = FALSE,
                                           n_workers = NULL,
                                           seed = 1115
                                           ){
 
+  if (!is.null(graph_obj_list) || !is.null(graph_mat_list)) {
+    if (!is.null(graph_obj)) {
+      stop("Please provide either `graph_obj` or `graph_obj_list`, not both.", call. = FALSE)
+    }
+    if (is.null(graph_obj_list)) {
+      stop("`graph_obj_list` must be provided when using list input mode.", call. = FALSE)
+    }
+    if (!is.list(graph_obj_list)) {
+      stop("`graph_obj_list` must be a list.", call. = FALSE)
+    }
+    if (length(graph_obj_list) == 0) {
+      stop("`graph_obj_list` must contain at least one graph object.", call. = FALSE)
+    }
+    if (!is.null(graph_mat_list)) {
+      if (!is.list(graph_mat_list)) {
+        stop("`graph_mat_list` must be a list.", call. = FALSE)
+      }
+      if (length(graph_mat_list) != length(graph_obj_list)) {
+        stop("`graph_obj_list` and `graph_mat_list` must have the same length.", call. = FALSE)
+      }
+    }
+
+    result_names <- names(graph_obj_list)
+    if (is.null(result_names) && !is.null(graph_mat_list)) {
+      result_names <- names(graph_mat_list)
+    }
+    if (is.null(result_names)) {
+      result_names <- paste0("network_", seq_along(graph_obj_list))
+    }
+
+    out <- lapply(seq_along(graph_obj_list), function(i) {
+      get_network_topology_parallel(
+        graph_obj = graph_obj_list[[i]],
+        mat = if (is.null(graph_mat_list)) NULL else graph_mat_list[[i]],
+        transfrom.method = transfrom.method,
+        r.threshold = r.threshold,
+        p.threshold = p.threshold,
+        method = method,
+        cor.method = cor.method,
+        proc = proc,
+        SpiecEasi.method = SpiecEasi.method,
+        sparcc_R = sparcc_R,
+        bootstrap = bootstrap,
+        parallel = parallel,
+        n_workers = n_workers,
+        seed = seed + i - 1L
+      )
+    })
+    names(out) <- result_names
+    return(out)
+  }
+
+  if (is.null(graph_obj)) {
+    stop("`graph_obj` must be provided unless `graph_obj_list` is used.", call. = FALSE)
+  }
 
   set.seed(seed)
-
-  progressr::handlers("txtprogressbar")
-  progressr::handlers(global = TRUE)
 
   # self network topology attributes
   # create igraph object
   ig <- tidygraph::as.igraph(graph_obj)
 
   # argument check
-  # transfrom.method <-  match.arg(transfrom.method)
-  # cor.method <- match.arg(cor.method)
-  # proc <- match.arg(proc)
+  method <- match.arg(method)
+  transfrom.method <-  match.arg(transfrom.method)
+  cor.method <- match.arg(cor.method)
+  proc <- match.arg(proc)
+  SpiecEasi.method <- match.arg(SpiecEasi.method)
+  sparcc_R <- as.integer(sparcc_R)[1L]
+  if (is.na(sparcc_R) || sparcc_R < 1L) {
+    stop("`sparcc_R` must be a positive integer.", call. = FALSE)
+  }
+
+  adjust_p_matrix <- function(p_mat, proc_method) {
+    matrix(
+      stats::p.adjust(unlist(p_mat), method = proc_method),
+      nrow = nrow(p_mat),
+      ncol = ncol(p_mat),
+      dimnames = dimnames(p_mat)
+    )
+  }
 
   if (is.null(mat)) {
     graph_obj = graph_obj
@@ -102,17 +199,7 @@ get_network_topology_parallel <- function(graph_obj,
 
   }else{
     # data transfrom
-    mat <- switch (
-      transfrom.method,
-      none = mat,
-      scale = t(scale(t(mat), scale = T, center = T)),
-      center = t(scale(t(mat), scale = F, center = T)),
-      log2 = log2(mat + 1),
-      log10 = log10(mat + 1),
-      ln = log(mat + 1),
-      rrarefy = t(vegan::rrarefy(t(mat), min(colSums(mat)))),
-      rrarefy_relative = t(vegan::rrarefy(t(mat), min(colSums(mat)))) / colSums(t(vegan::rrarefy(t(mat), min(colSums(mat)))))
-    )
+    mat <- apply_transform_method(mat, transfrom.method)
 
     # calculate correlation
 
@@ -122,9 +209,7 @@ get_network_topology_parallel <- function(graph_obj,
 
       # WGCNA for correlation
       occor <- WGCNA::corAndPvalue(t(mat), method = cor.method)
-      mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
-      adpcor <- mtadj$adjp[order(mtadj$index),2]
-      occor.p <- matrix(adpcor, dim(t(mat))[2])
+      occor.p <- adjust_p_matrix(occor$p, proc)
 
       # R and pvalue
       occor.r <- occor$cor
@@ -137,60 +222,33 @@ get_network_topology_parallel <- function(graph_obj,
 
     }
 
-    # SpiecEasi
+    # SpiecEasi (spieceasi_matrix_rcpp: no p-value, filter by r.threshold only)
     if (method == "SpiecEasi") {
       sp.ra <- colMeans(t(mat))
-      # SpiecEasi for correlation
-      SpiecEasi_obj <- SpiecEasi::spiec.easi(as.matrix(t(mat)),
-                                             method = SpiecEasi.method,
-                                             lambda.min.ratio=1e-2,
-                                             nlambda=20,
-                                             pulsar.params=list(rep.num=50)
-      )
-
-      # return adjacency matrix
-      am <- SpiecEasi::getRefit(SpiecEasi_obj)
-
+      am <- spieceasi_matrix_rcpp(as.matrix(t(mat)), method = SpiecEasi.method, output = "adjacency",
+                                  lambda.min.ratio = 1e-2, nlambda = 20, pulsar.params = list(rep.num = 50))
       rownames(am) <- rownames(mat)
       colnames(am) <- rownames(mat)
-
-      am2 <- am*(abs(am) >= r.threshold)
-
+      am2 <- am * (abs(am) >= r.threshold)
       am2[is.na(am2)] <- 0
       diag(am2) <- 0
-      sum(abs(am2) > 0) / 2
-      sum(colSums(abs(am2)) > 0)
-
-      network.raw <- am2[colSums(abs(am2)) > 0,colSums(abs(am2)) > 0]
-      sp.ra2<-sp.ra[colSums(abs(am2)) > 0]
-      sum(row.names(network.raw) == names(sp.ra2))
-
+      network.raw <- am2[colSums(abs(am2)) > 0, colSums(abs(am2)) > 0]
+      sp.ra2 <- sp.ra[colSums(abs(am2)) > 0]
     }
 
-    # SparCC
-    if (method == "SparCC") {
+    # SparCC (sparcc_matrix_rcpp: filter by r.threshold and p.threshold)
+    if (method == "SPARCC") {
       sp.ra <- colMeans(t(mat))
-      # Sparcc for correlation
-      SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
-
-      SparCC_graph <- abs(SparCC_obj$Cor) >= r.threshold
-
-      diag(SparCC_graph) <- 0
-
-      rownames(SparCC_graph) <- rownames(mat)
-      colnames(SparCC_graph) <- rownames(mat)
-
-      SparCC_graph <- Matrix::Matrix(SparCC_graph, sparse=TRUE)
-
-      SparCC_graph2 <- SparCC_graph
-
-      SparCC_graph2[is.na(SparCC_graph2)] <- 0
-      diag(SparCC_graph2) <- 0
-      sum(abs(SparCC_graph2) > 0) / 2
-      sum(colSums(abs(SparCC_graph2)) > 0)
-
-      network.raw <- SparCC_graph2[colSums(abs(SparCC_graph2)) > 0,colSums(abs(SparCC_graph2)) > 0]
-      sp.ra2<-sp.ra[colSums(abs(SparCC_graph2)) > 0]
+      occor.r <- sparcc_matrix_rcpp(as.matrix(t(mat)))
+      p_mat <- sparcc_pvalue_rcpp(as.matrix(t(mat)), R = sparcc_R)
+      diag(occor.r) <- 0
+      occor.r[abs(occor.r) < r.threshold | is.na(p_mat) | p_mat > p.threshold] <- 0
+      occor.r[is.na(occor.r)] <- 0
+      rownames(occor.r) <- rownames(mat)
+      colnames(occor.r) <- rownames(mat)
+      SparCC_graph2 <- Matrix::Matrix(occor.r, sparse = TRUE)
+      network.raw <- SparCC_graph2[colSums(abs(SparCC_graph2)) > 0, colSums(abs(SparCC_graph2)) > 0]
+      sp.ra2 <- sp.ra[colSums(abs(SparCC_graph2)) > 0]
     }
 
     # cor
@@ -198,9 +256,7 @@ get_network_topology_parallel <- function(graph_obj,
       sp.ra <- colMeans(t(mat))
       # Cor for correlation
       occor <- psych::corr.test(t(mat), method = cor.method)
-      mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
-      adpcor <- mtadj$adjp[order(mtadj$index),2]
-      occor.p <- matrix(adpcor, dim(t(mat))[2])
+      occor.p <- adjust_p_matrix(occor$p, proc)
 
       # R and pvalue
       occor.r <- occor$r
@@ -497,8 +553,6 @@ get_network_topology_parallel <- function(graph_obj,
   # single thread
   if (isFALSE(parallel)) {
 
-    future::plan(future::sequential)
-
     # random topology
     random_topology <- list()
 
@@ -512,7 +566,7 @@ get_network_topology_parallel <- function(graph_obj,
                                            m = igraph::ecount(ig),
                                            directed = F,
                                            loops = F)
-        # 获取属性
+
         random_topology[[i]] <- .get_topology(ig = random_graph) %>%
           dplyr::mutate(Robustness_weight = NA,
                         Robustness_unweight = NA,
@@ -559,7 +613,7 @@ get_network_topology_parallel <- function(graph_obj,
                                            directed = F,
                                            loops = F)
 
-        # 获取属性
+
         r_topology <- .get_topology(ig = random_graph) %>%
           dplyr::mutate(Robustness_weight = NA,
                         Robustness_unweight = NA,

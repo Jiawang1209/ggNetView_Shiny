@@ -1,3 +1,4 @@
+#' @noRd
 build_graph_from_node_edge <- function(node,
                                        edge,
                                        directed = F,

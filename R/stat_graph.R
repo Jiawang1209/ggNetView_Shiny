@@ -1,3 +1,4 @@
+#' @noRd
 stat_graph <- function(graph_obj, mapping_line){
 
   # node number

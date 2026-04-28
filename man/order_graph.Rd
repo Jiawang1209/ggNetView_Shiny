@@ -19,5 +19,12 @@ An graph object with reorder
 Reorder the Modularity from graph object
 }
 \examples{
-NULL
+data(ppi_example)
+obj <- build_graph_from_df(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation
+)
+current <- levels(get_graph_nodes(obj)$Modularity)
+obj2 <- order_graph(obj, order = rev(current))
+levels(get_graph_nodes(obj2)$Modularity)
 }

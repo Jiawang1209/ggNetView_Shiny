@@ -42,5 +42,14 @@ A new graph object with updated module-related node attributes:
 Update module names in an existing graph object
 }
 \examples{
-NULL
+data(ppi_example)
+obj <- build_graph_from_df(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation
+)
+obj2 <- update_graph_modules(
+  graph_obj = obj,
+  modules   = c("1" = "ModuleA", "2" = "ModuleB")
+)
+levels(get_graph_nodes(obj2)$Modularity)
 }

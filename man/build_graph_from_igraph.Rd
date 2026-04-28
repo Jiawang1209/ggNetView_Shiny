@@ -6,7 +6,9 @@
 \usage{
 build_graph_from_igraph(
   igraph,
+  use_existing_modules = TRUE,
   module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
+  module_attr = NULL,
   node_annotation = NULL,
   top_modules = 15,
   seed = 1115
@@ -15,9 +17,17 @@ build_graph_from_igraph(
 \arguments{
 \item{igraph}{a igraph object}
 
+\item{use_existing_modules}{Logical (default = TRUE).
+If \code{TRUE}, reuse module information already stored on igraph vertices when available.}
+
 \item{module.method}{Character.
 Network community detection (module identification) method.
 Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".}
+
+\item{module_attr}{Character or NULL (default = NULL).
+Optional vertex attribute name containing precomputed module labels. When \code{NULL},
+the function will auto-detect one of \code{"Modularity"}, \code{"modularity2"},
+\code{"modularity3"}, or \code{"modularity"}.}
 
 \item{node_annotation}{Data Frame
 The annotation file of nodes in network}
@@ -35,5 +45,12 @@ An graph object
 Build a graph object from a graph object
 }
 \examples{
-NULL
+data(ppi_example)
+ig <- igraph::graph_from_data_frame(
+  d        = ppi_example$ppi,
+  vertices = ppi_example$annotation,
+  directed = FALSE
+)
+obj <- build_graph_from_igraph(igraph = ig, module.method = "Fast_greedy")
+levels(get_graph_nodes(obj)$Modularity)
 }

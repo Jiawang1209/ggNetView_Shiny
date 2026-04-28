@@ -1,0 +1,132 @@
+---
+title: "Introduction to ggNetView"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to ggNetView}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  fig.width = 6,
+  fig.height = 5,
+  dpi       = 72
+)
+```
+
+## Overview
+
+`ggNetView` provides a reproducible, deterministic framework for analyzing and
+visualizing biological, ecological, and microbial association networks. The
+package combines:
+
+* a family of `build_graph_from_*()` functions that turn adjacency matrices,
+  correlation matrices, edge lists, or `igraph` objects into a unified
+  `tidygraph`-backed network object with module annotations;
+* topology utilities (`get_network_topology()`, `get_info_from_graph()`,
+  `get_graph_nodes()`) for node- and network-level metrics;
+* a large collection of deterministic layout generators (dispatched through
+  `ggNetView()` via the `layout` argument); and
+* a `ggplot2`-compatible plotting function `ggNetView()` for
+  publication-quality figures.
+
+This vignette walks through an end-to-end workflow: loading a bundled example,
+building a graph object, extracting information, and rendering a plot.
+
+## Load the package
+
+```{r setup}
+library(ggNetView)
+library(igraph)
+```
+
+## 1. Build a graph object
+
+`ggNetView` ships with several example datasets. We use `ppi_example`, a
+small protein–protein interaction network with 100 nodes and 200 edges.
+
+```{r build}
+data(ppi_example)
+
+ig <- igraph::graph_from_data_frame(
+  d        = ppi_example$ppi,
+  vertices = ppi_example$annotation,
+  directed = FALSE
+)
+
+graph_obj <- build_graph_from_igraph(
+  igraph        = ig,
+  module.method = "Fast_greedy"
+)
+
+graph_obj
+```
+
+`build_graph_from_igraph()` detects communities (here with the Fast-greedy
+algorithm), simplifies any multi-edges or self-loops, and attaches
+node-level attributes (`Modularity`, `Degree`, `Strength`) for downstream
+plotting.
+
+## 2. Inspect nodes and edges
+
+Use `get_graph_nodes()` for a quick node tibble, or `get_info_from_graph()`
+for both nodes and edges as a list.
+
+```{r inspect}
+nodes <- get_graph_nodes(graph_obj)
+head(nodes)
+
+info <- get_info_from_graph(graph_obj)
+lapply(info, head, 3)
+```
+
+## 3. Visualize with `ggNetView()`
+
+The `ggNetView()` function is the main entry point for plotting. The `layout`
+argument selects one of the deterministic layout generators shipped with the
+package. Below we render the network with the Fruchterman–Reingold layout and
+color nodes by module.
+
+```{r plot-fr}
+ggNetView(
+  graph_obj,
+  layout    = "fr",
+  seed      = 1,
+  pointsize = c(2, 8),
+  fill.by   = "Modularity",
+  label     = FALSE
+)
+```
+
+Switching layouts only requires changing the `layout` string. Here is the same
+graph rendered on a circular layout:
+
+```{r plot-circle}
+ggNetView(
+  graph_obj,
+  layout    = "circle",
+  seed      = 1,
+  pointsize = c(2, 8),
+  fill.by   = "Modularity"
+)
+```
+
+Every layout in `ggNetView` uses a controllable `seed` so figures are
+bit-for-bit reproducible across runs.
+
+## 4. Next steps
+
+For correlation-network pipelines from raw abundance tables, see
+`build_graph_from_mat()`, `build_graph_from_double_mat()`, and the
+`get_network_topology()` / `get_sample_subgraph_topology()` families. For
+module-level comparisons across samples, see
+`ggnetview_modularity_heatmaps()` and `ggnetview_zipi()`.
+
+## Session information
+
+```{r sessioninfo}
+sessionInfo()
+```

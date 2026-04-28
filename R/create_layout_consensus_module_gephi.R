@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_consensus_module_gephi <- function(
     graph_obj,
     scale = T,
@@ -20,7 +21,7 @@ create_layout_consensus_module_gephi <- function(
   theta_shift <- base_angle + angle
 
 
-  # ---- 获取节点和模块信息 ----
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
@@ -37,7 +38,7 @@ create_layout_consensus_module_gephi <- function(
   # module size
   n_mod <- length(n_vec)
 
-  # ---- 计算 grid 的行列（支持 nrow/ncol）----
+
   if (!is.null(nrow) && !is.null(ncol)) {
     rows <- as.integer(nrow)
     cols <- as.integer(ncol)
@@ -55,23 +56,23 @@ create_layout_consensus_module_gephi <- function(
   rows <- max(1L, rows)
   cols <- max(1L, cols)
 
-  # index：从 0 到 n_mod-1
+
   idx <- 0:(n_mod - 1)
 
-  # 行号（从 0 开始）
+
   row_id <- idx %/% cols
 
-  # 列号（从 0 开始）
+
   col_id <- idx %% cols
 
 
-  # 生成每个模块的锚点：在 grid 上均匀排布
+
   anchors <- lapply(seq_len(n_mod), function(i) {
     c(col_id[i] * anchor_dist,
       -row_id[i] * anchor_dist)
   })
 
-  # ---- 同心圆节点分层 ----
+
   circle_layout <- function(n, node_add) {
     counts <- 1
     total  <- 1
@@ -97,9 +98,9 @@ create_layout_consensus_module_gephi <- function(
     )
   })
 
-  # ---- 同心圆布局函数（每个模块内部）----
+
   concentric_from_anchor <- function(cx, cy, info_df, r_step) {
-    # 第一圈：单点在锚点处
+
     ly <- data.frame(x = cx, y = cy)
     offset <- 0
     prev_n <- info_df$number_node
@@ -107,10 +108,10 @@ create_layout_consensus_module_gephi <- function(
     if (nrow(info_df) >= 2) {
       for (index in 2:nrow(info_df)) {
         if (index == 2) {
-          # 第二圈：均匀分布
+
           l <- 2 * pi * (0:(prev_n[index] - 1)) / prev_n[index]
         } else {
-          # 第三圈开始：错开半个身位
+
           offset <- (offset + pi / prev_n[index]) %% (2 * pi)
           l <- offset + 2 * pi * (0:(prev_n[index] - 1)) / prev_n[index]
         }
@@ -124,13 +125,13 @@ create_layout_consensus_module_gephi <- function(
   }
 
 
-  # ---- 按模块生成布局 ----
+
   ly_list <- vector("list", n_mod)
   for (i in seq_len(n_mod)) {
     cx <- anchors[[i]][1]
     cy <- anchors[[i]][2]
     ly_i <- concentric_from_anchor(cx, cy, n_vec_node[[i]], r_step = r)
-    ly_i$group <- mod_levels[i]   # 标记模块，方便后续 join
+    ly_i$group <- mod_levels[i]
     ly_list[[i]] <- ly_i
   }
 

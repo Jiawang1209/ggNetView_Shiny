@@ -13,6 +13,7 @@ ggNetView(
   center = TRUE,
   idx = NULL,
   shrink = 1,
+  inner_shrink = 1,
   k_nn = 12,
   push_others_delta = 0,
   layout.module = c("random", "adjacent", "order"),
@@ -39,6 +40,13 @@ ggNetView(
   labelsize = 10,
   labelsegmentsize = 1,
   labelsegmentalpha = 1,
+  add_group_outer = FALSE,
+  add_group_outer_expand = 2,
+  add_group_outer_color = "grey50",
+  add_group_outer_fill = NULL,
+  add_group_outer_fill_alpha = 0.2,
+  add_group_outer_linetype = 1,
+  add_group_outer_linewidth = 0.5,
   add_outer = FALSE,
   q_outer = 0.88,
   expand_outer = 1.02,
@@ -47,14 +55,16 @@ ggNetView(
   outeralpha = 0.5,
   nodelabsize = 5,
   remove = FALSE,
+  dropOthers = FALSE,
   orientation = "up",
   angle = 0,
   scale = T,
   anchor_dist = 6,
   nrow = NULL,
   ncol = NULL,
-  snake = FALSE,
-  seed = 1115
+  seed = 1115,
+  scale_radius = NULL,
+  return_layout = FALSE
 )
 }
 \arguments{
@@ -84,6 +94,17 @@ Index of nodes to be emphasized or centered in the layout}
 \item{shrink}{Numeric (default = 1).
 Shrinkage factor applied to the center points.}
 
+\item{inner_shrink}{Numeric (default = 1).
+Intra-module compactness factor for \code{layout = "WGCNA"} only.
+Controls how tightly nodes fill each module's allocated disc during
+the WGCNA bubble-pack layout: at \code{1} (default) nodes spread to
+fill 95\% of the disc (original behaviour); smaller values
+(e.g. \code{0.65}) contract the FR/uniform fill toward each module
+centre, exposing hub/periphery structure and producing visible
+inter-module whitespace.  Module disc centres and radii are
+invariant under \code{inner_shrink}; this parameter only affects
+the point cloud inside each module.  Ignored by all other layouts.}
+
 \item{k_nn}{Numeric (default = 8).
 Number of nearest neighbors used to build the local adjacency graph.}
 
@@ -91,6 +112,7 @@ Number of nearest neighbors used to build the local adjacency graph.}
 Radial offset applied to the "Others" module to slightly}
 
 \item{layout.module}{Character  (default = "random")
+- random : modules are distributed more randomly and independently.
 - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
 
@@ -174,8 +196,29 @@ Change  label segment size.}
 \item{labelsegmentalpha}{Integer  (default = 1).
 Change  label segment alpha.}
 
+\item{add_group_outer}{Logical (default = FALSE).
+Whether to add a circle boundary around the entire network (mimics \code{ggforce::geom_mark_circle}).}
+
+\item{add_group_outer_expand}{Numeric (default = 2).
+Expansion in mm for the group circle to account for point size; passed to \code{geom_mark_circle(expand = ...)}.}
+
+\item{add_group_outer_color}{Character (default = "grey50").
+Color of the group outer circle border.}
+
+\item{add_group_outer_fill}{Character or NULL (default = NULL).
+Fill color of the group outer circle. \code{NULL} = no fill (transparent).}
+
+\item{add_group_outer_fill_alpha}{Numeric (default = 0.2).
+Alpha (transparency) of the group outer circle fill; 0 = fully transparent, 1 = opaque.}
+
+\item{add_group_outer_linetype}{Integer or character (default = 1).
+Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).}
+
+\item{add_group_outer_linewidth}{Numeric (default = 0.5).
+Line width of the group outer circle.}
+
 \item{add_outer}{Logical (default = FALSE).
-Whether to add an outer circle/border around the layout.}
+Whether to add an outer circle/border around each module.}
 
 \item{q_outer}{Numeric (default = 0.88).
 Quantile of radial distance used to construct the smooth outer boundary for each module.
@@ -198,7 +241,13 @@ Change  outer alpha.}
 Change  node label size.}
 
 \item{remove}{Logical (default = FALSE).
-Delect nodes that are not modules.}
+Remove \code{"Others"} only at the visualization stage (post-layout),
+so the layout of remaining modules is kept unchanged.}
+
+\item{dropOthers}{Logical (default = FALSE).
+If TRUE, remove nodes in the \code{"Others"} module from \code{graph_obj}
+before layout and visualization, then recompute layout/plot from the
+updated graph.}
 
 \item{orientation}{Character string.
 Custom orientation; one of "up","down","left","right".}
@@ -220,13 +269,48 @@ the ncol of network with layout is "consensus_module_equal_gephi" or "consensus_
 
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}
+
+\item{scale_radius}{Numeric or NULL (default = NULL).
+When non-NULL, scale the layout so the network fits within this radius.
+Used by \code{ggnetview_modularity_heatmaps} for coordinate alignment.}
+
+\item{return_layout}{Logical (default = FALSE).
+When TRUE, return a list with \code{$plot} (ggplot) and \code{$layout_data}
+(graph_ly_final, graph_obj, ggplot_data, module_centroids) for downstream
+use (e.g. adding heatmaps and links).}
 }
 \value{
-A ggplot object representing the network visualization.
+A ggplot object, or when \code{return_layout = TRUE}, a list with
+\code{$plot} and \code{$layout_data}.
 }
 \description{
 Visualize a network with custom layouts
 }
 \examples{
-NULL
+data(ppi_example)
+obj <- build_graph_from_df(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation,
+  module.method   = "Fast_greedy",
+  top_modules     = 5
+)
+
+ggNetView(
+  graph_obj     = obj,
+  layout        = "fr",
+  layout.module = "adjacent",
+  pointsize     = c(3, 8),
+  seed          = 1115
+)
+\donttest{
+ggNetView(
+  graph_obj       = obj,
+  layout          = "gephi",
+  layout.module   = "adjacent",
+  pointsize       = c(3, 8),
+  label           = TRUE,
+  add_group_outer = TRUE,
+  seed            = 1115
+)
+}
 }

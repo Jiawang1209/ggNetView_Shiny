@@ -13,12 +13,15 @@ The discrete class names or factor levels to map to colors.}
 \item{others_label}{Character, (default = "Others").}
 }
 \value{
-A named character vector where names correspond to
+A named character vector whose names are the discrete classes
+and whose values are hex colors. If `others_label` appears in `classes`,
+it is always mapped to a neutral grey so "Others" has a stable color.
 }
 \description{
 Generate a named color palette for discrete classes
 }
 \examples{
-NULL
+get_palette(c("Module1", "Module2", "Module3"))
+get_palette(c("Module1", "Module2", "Others"))
 
 }

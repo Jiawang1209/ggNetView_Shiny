@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_tripartite_gephi_layout <- function(
     graph_obj,
     scale = T,
@@ -12,16 +13,16 @@ create_layout_tripartite_gephi_layout <- function(
                        up = 0, right = -pi/2, down = pi, left = pi/2)
   theta_shift <- base_angle + angle
 
-  # 基础半径与等腰直角三角形三个锚点（先按“up”放置，再统一旋转）
+
   radius <- r * 6
 
   anchors <- list(
-    c(-anchor_dist, 0),  # 左
-    c( anchor_dist, 0),  # 右
-    c( 0,  anchor_dist)  # 上（此处是直角顶点，三角形为等腰直角）
+    c(-anchor_dist, 0),
+    c( anchor_dist, 0),
+    c( 0,  anchor_dist)
   )
 
-  # 取节点与模块
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
@@ -38,7 +39,7 @@ create_layout_tripartite_gephi_layout <- function(
     message("`tripartite layout more than 2 modules detected.")
   }
 
-  # 计算每个模块同心圆分桶
+
   circle_layout <- function(n, node_add){
     counts <- 1
     total  <- 1
@@ -64,9 +65,9 @@ create_layout_tripartite_gephi_layout <- function(
     )
   })
 
-  # 生成“以某锚点为中心”的同心圆布局（带交错 offset）
+
   concentric_from_anchor <- function(cx, cy, info_df, r_step){
-    ly <- data.frame(x = cx, y = cy)  # 第一圈放 1 个
+    ly <- data.frame(x = cx, y = cy)
     offset <- 0
     prev_n <- info_df$number_node
     if (nrow(info_df) >= 2) {
@@ -85,18 +86,18 @@ create_layout_tripartite_gephi_layout <- function(
     ly
   }
 
-  # 为三个模块依次生成
+
   ly_list <- list()
   for (i in 1:3) {
     cx <- anchors[[i]][1]; cy <- anchors[[i]][2]
     ly_i <- concentric_from_anchor(cx, cy, n_vec_node[[i]], r_step = r)
-    ly_i$group <- mod_levels[i]  # 可用于后续按模块对齐/合并
+    ly_i$group <- mod_levels[i]
     ly_list[[i]] <- ly_i
   }
 
   ly <- dplyr::bind_rows(ly_list)
 
-  # ---- 统一旋转（绕原点）----
+
   if (theta_shift != 0) {
     Rm <- matrix(c(cos(theta_shift), -sin(theta_shift),
                    sin(theta_shift),  cos(theta_shift)), nrow = 2)

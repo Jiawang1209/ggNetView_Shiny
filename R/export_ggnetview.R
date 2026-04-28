@@ -10,7 +10,18 @@
 #' @returns a graph output
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \donttest{
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation
+#' )
+#' p <- ggNetView(obj, layout = "fr", layout.module = "adjacent")
+#' tmp <- tempfile(fileext = ".png")
+#' export_ggnetview(p, filename = tmp, height = 6, width = 6)
+#' file.exists(tmp)
+#' }
 export_ggnetview <- function(p, filename, height, width, limitsize = F, dpi = 300){
   ggplot2::ggsave(filename = filename,
                   plot = p,

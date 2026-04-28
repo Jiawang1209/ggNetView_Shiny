@@ -1,0 +1,5 @@
+# OpenMP support for SparCC parallelization (when available on Windows)
+# Note: Standard Rtools may not include OpenMP; code falls back to sequential
+# RcppArmadillo requires BLAS/LAPACK; must be linked explicitly on Windows
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)

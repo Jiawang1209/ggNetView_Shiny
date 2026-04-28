@@ -1,3 +1,4 @@
+#' @noRd
 get_neighbors <- function(ly,
                           k = 5,
                           idx = NULL,
@@ -5,12 +6,12 @@ get_neighbors <- function(ly,
                           # seed = seed,
                           tol = 1e-12) {
 
-  # ly: data.frame，至少包含 x, y 两列
-  # k:  需要的邻居个数（包含中心点本身）
-  # idx: 指定中心点行号（可选）
-  # coord: 指定中心点坐标 c(x, y)（可选，不一定在 ly 中）
-  # seed: 随机中心时用于可复现
-  # tol:  判断零距离的容差（浮点误差保护）
+
+
+
+
+
+
 
   stopifnot(all(c("x","y") %in% names(ly)))
   stopifnot(is.numeric(ly$x), is.numeric(ly$y))
@@ -19,16 +20,16 @@ get_neighbors <- function(ly,
 
   # set.seed(seed)
 
-  # 1) 确定中心 (fx, fy)，以及与中心重合的点们
-  # 如果 coord 不是空的
+
+
   if (!is.null(coord)) {
     fx <- coord[1]
     fy <- coord[2]
     self_ids <- which(abs(ly$x - fx) <= tol & abs(ly$y - fy) <= tol)
     idx_used <- if (length(self_ids) == 1) self_ids else NA_integer_
   } else {
-    # 如果 coord 是空的
-    # 如果id 不是空的
+
+
     if (is.null(idx)) idx <- sample.int(n, 1)
     stopifnot(idx >= 1, idx <= n)
     fx <- ly$x[idx]
@@ -37,14 +38,14 @@ get_neighbors <- function(ly,
     idx_used <- idx
   }
 
-  # 2) 计算距离
+
   d <- sqrt((ly$x - fx)^2 + (ly$y - fy)^2)
 
-  # 3) 候选集合：finite 距离
-  cand <- which(is.finite(d))
-  o <- cand[order(d[cand], cand)]  # 按距离升序（再按行号稳定排序）
 
-  # 4) 先放中心/重合点，再补最近的其他点，确保总数 = k
+  cand <- which(is.finite(d))
+  o <- cand[order(d[cand], cand)]
+
+
   self_pick <- intersect(self_ids, o)
   others <- setdiff(o, self_pick)
   need_self <- length(self_pick)
@@ -52,7 +53,7 @@ get_neighbors <- function(ly,
   k_other <- max(0, k - k_self)
   nn_idx <- c(utils::head(self_pick, k_self), utils::head(others, k_other))
 
-  # 5) 输出
+
   neighbors <- data.frame(
     node = nn_idx,
     x    = ly$x[nn_idx],
@@ -60,7 +61,7 @@ get_neighbors <- function(ly,
     dist = d[nn_idx]
   )
   focal <- data.frame(
-    node = idx_used,  # 如果用 coord 且多点重合，可能 NA
+    node = idx_used,
     x = fx,
     y = fy
   )
@@ -73,7 +74,7 @@ get_neighbors <- function(ly,
 }
 
 
-# 仅对 get_neighbors 的输出做“局部半径升序”的重排
+
 get_neighbors_hub <- function(ly,
                               k=5,
                               idx=NULL,
@@ -87,10 +88,10 @@ get_neighbors_hub <- function(ly,
                        # seed = seed,
                        tol = tol)
   nb  <- out$neighbors
-  # 以该块点集的质心为“局部中心”
+
   cx  <- mean(nb$x); cy <- mean(nb$y)
   r   <- sqrt((nb$x - cx)^2 + (nb$y - cy)^2)
-  ord <- order(r, nb$dist, nb$node)   # 半径优先，随后备份排序
+  ord <- order(r, nb$dist, nb$node)
   out$neighbors <- nb[ord, , drop = FALSE]
   out
 }
@@ -127,12 +128,12 @@ module_layout <- function(graph_obj,
 
   # set.seed(seed)
 
-  # 1) 取节点数据
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
 
-  # 2) 确定模块顺序（大到小，Others 最后）
+
   node_df %>%
     dplyr::count(modularity3, name = "size") %>%
     dplyr::arrange(desc(size)) %>%
@@ -143,27 +144,27 @@ module_layout <- function(graph_obj,
     dplyr::mutate(modularity4 = as.character(modularity4)) %>%
     dplyr::pull(modularity4) -> mod_levels
 
-  # 3) 模块内按度数排（仅用于统计数量）
+
   node_df_sorted <- node_df %>%
     tidygraph::mutate(modularity3 = factor(modularity3, levels = mod_levels)) %>%
     tidygraph::arrange(modularity3, dplyr::desc(Degree))
 
-  # 4) 每模块节点数
+
   node_df_sorted_number <- node_df_sorted %>%
     dplyr::count(modularity3)
 
-  # 5) 返回的图对象（只按模块顺序排）
+
   graph_obj_sort <- graph_obj %>%
     tidygraph::mutate(modularity3 = factor(modularity3, levels = mod_levels, ordered = TRUE)) %>%
     tidygraph::arrange(modularity3)
 
-  # 6) 第一个模块的锚点（get_neighbors 用）
+
   coord <- if (isTRUE(center)) c(0, 0) else NULL
 
   neighbors_list <- list()
 
 
-  # 7) 逐模块分配
+
   for (i in 1:nrow(node_df_sorted_number)) {
 
     if (i == 1) {
@@ -241,12 +242,12 @@ module_layout2 <- function(graph_obj,
 
   # set.seed(seed)
 
-  ## ---------- 1) layout 邻接：kNN 图 ----------
+
   xy <- as.matrix(layout[, c("x","y")])
   nn  <- FNN::get.knn(xy, k = k_nn)$nn.index
   adj <- lapply(seq_len(nrow(layout)), function(i) unique(stats::na.omit(nn[i,])))
 
-  ## ---------- 2) 节点与模块顺序 ----------
+
   nodes_tb <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
@@ -267,14 +268,14 @@ module_layout2 <- function(graph_obj,
   need_per_mod <- nodes_sorted %>%
     dplyr::count(modularity3)
 
-  ## ---------- 3) 区域生长占位 ----------
+
   nL    <- nrow(layout)
-  free  <- rep(TRUE, nL)            # 该 layout 点是否空闲
-  claim <- rep(NA_character_, nL)   # 被哪个模块占用
+  free  <- rep(TRUE, nL)
+  claim <- rep(NA_character_, nL)
   placed_coords <- setNames(vector("list", nrow(need_per_mod)),
                             as.character(need_per_mod$modularity3))
 
-  # 当前已占区域的“边界空位”
+
   get_frontier <- function(){
     used_idx <- which(!free)
     if (length(used_idx) == 0) return(integer())
@@ -282,7 +283,7 @@ module_layout2 <- function(graph_obj,
     uniq[free[uniq]]
   }
 
-  # 第一模块种子：尽量靠中心（取最内圈若干随机）
+
   pick_seed_first <- function(){
     if (center) {
       r <- sqrt(layout$x^2 + layout$y^2)
@@ -293,7 +294,7 @@ module_layout2 <- function(graph_obj,
     }
   }
 
-  # 后续模块种子：从 frontier 里按“更靠当前已占质心”的概率抽
+
   pick_seed_next <- function(){
     fr <- get_frontier()
     if (length(fr) == 0) return(sample(which(free), 1))
@@ -303,7 +304,7 @@ module_layout2 <- function(graph_obj,
     sample(fr, 1, prob = prob)
   }
 
-  # BFS 生长（带轻启发式）：从种子扩张到 quota
+
   grow_region <- function(seed_idx, quota){
     q <- seed_idx
     region <- integer()
@@ -315,7 +316,7 @@ module_layout2 <- function(graph_obj,
       nb <- nb[free[nb]]
       if (length(nb) == 0) next
 
-      # 轻微偏好“向当前已占质心靠近”，但仍保留随机
+
       if (any(!is.na(claim))) {
         cx <- mean(layout$x[!free], na.rm = TRUE); cy <- mean(layout$y[!free], na.rm = TRUE)
       } else {
@@ -330,7 +331,7 @@ module_layout2 <- function(graph_obj,
     region
   }
 
-  # 若 BFS 不足 quota，则从全局 free 里按到 region/seed 最近补齐
+
   fill_deficit <- function(region, quota, target_idx){
     need <- quota - length(region)
     if (need <= 0) return(region)
@@ -348,14 +349,14 @@ module_layout2 <- function(graph_obj,
     c(region, pick)
   }
 
-  # 逐模块（Others 留到最后）
+
   for (mi in seq_len(nrow(need_per_mod))) {
     mod    <- as.character(need_per_mod$modularity3[mi])
     k_need <- need_per_mod$n[mi]
     if (mod == "Others") next
 
     if (sum(free) < k_need) {
-      stop(sprintf("剩余 layout 点不足：模块 %s 需要 %d，但只剩 %d。",
+      stop(sprintf("Not enough free layout points: module %s needs %d, but only %d remain.",
                    mod, k_need, sum(free)))
     }
 
@@ -369,7 +370,7 @@ module_layout2 <- function(graph_obj,
     coords <- layout[region, c("x","y"), drop = FALSE]
     coords <- shrink_rings_global(coords, shrink = shrink)
 
-    # 模块内：Degree降序 ↔ 半径升序（hub居中）
+
     cx <- mean(coords$x); cy <- mean(coords$y)
     rr <- sqrt((coords$x - cx)^2 + (coords$y - cy)^2)
     ord_pts <- order(rr, coords$x, coords$y)
@@ -380,20 +381,20 @@ module_layout2 <- function(graph_obj,
     placed_coords[[mod]] <- dplyr::bind_cols(coords[ord_pts, , drop=FALSE], nodes_this)
   }
 
-  ## ---------- 4) Others：外缘分配 ----------
+
   if ("Others" %in% names(placed_coords)) {
     n_oth <- need_per_mod$n[need_per_mod$modularity3 == "Others"]
     if (n_oth > 0) {
       idx_free <- which(free)
       if (length(idx_free) < n_oth) {
-        stop(sprintf("Others 需要 %d 个点，但仅剩 %d 个。", n_oth, length(idx_free)))
+        stop(sprintf("`Others` group needs %d points, but only %d remain.", n_oth, length(idx_free)))
       }
       r_free <- sqrt(layout$x[idx_free]^2 + layout$y[idx_free]^2)
       take   <- idx_free[order(-r_free)][seq_len(n_oth)]
       free[take] <- FALSE
 
       coords <- layout[take, c("x","y")]
-      coords <- radial_offset(coords, delta = push_others_delta)  # 稍微外移，包边
+      coords <- radial_offset(coords, delta = push_others_delta)
 
       nodes_oth <- nodes_sorted %>%
         dplyr::filter(modularity3 == "Others")
@@ -402,7 +403,7 @@ module_layout2 <- function(graph_obj,
     }
   }
 
-  ## ---------- 5) 拼装返回 ----------
+
   graph_ly_final <- dplyr::bind_rows(placed_coords[as.character(need_per_mod$modularity3)])
 
   if (isTRUE(jitter)) {
@@ -415,12 +416,12 @@ module_layout2 <- function(graph_obj,
 
   ly_final <- graph_ly_final[, c("x","y")]
 
-  # 1) 取节点数据
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
 
-  # 2) 确定模块顺序（大到小，Others 最后）
+
   node_df %>%
     dplyr::count(modularity3, name = "size") %>%
     dplyr::arrange(desc(size)) %>%
@@ -431,16 +432,16 @@ module_layout2 <- function(graph_obj,
     dplyr::mutate(modularity4 = as.character(modularity4)) %>%
     dplyr::pull(modularity4) -> mod_levels
 
-  # 3) 模块内按度数排（仅用于统计数量）
+
   node_df_sorted <- node_df %>%
     tidygraph::mutate(modularity3 = factor(modularity3, levels = mod_levels)) %>%
     tidygraph::arrange(modularity3, dplyr::desc(Degree))
 
-  # 4) 每模块节点数
+
   node_df_sorted_number <- node_df_sorted %>%
     dplyr::count(modularity3)
 
-  # 5) 返回的图对象（只按模块顺序排）
+
   graph_obj_sort <- graph_obj %>%
     tidygraph::mutate(modularity3 = factor(modularity3, levels = mod_levels, ordered = TRUE)) %>%
     tidygraph::arrange(modularity3)
@@ -459,10 +460,10 @@ module_layout2 <- function(graph_obj,
 
 module_layout3 <- function(graph_obj,
                            layout,                # data.frame(x, y)
-                           center = TRUE,         # 第一个模块优先靠中心放
-                           shrink = 0.9,          # 模块内轻度收紧
-                           k_nn = 12,             # layout 邻接度，越大连通性越好，同一模块更易聚在一起
-                           push_others_delta = 0.2, # Others 外移量
+                           center = TRUE,
+                           shrink = 0.9,
+                           k_nn = 12,
+                           push_others_delta = 0.2,
                            jitter,
                            jitter_sd
                            # seed = seed
@@ -471,7 +472,7 @@ module_layout3 <- function(graph_obj,
   stopifnot(all(c("x","y") %in% names(layout)))
   # set.seed(seed)
 
-  ## ---------- 小工具 ----------
+
   # shrink_rings_global <- function(df, shrink){
   #   cx <- mean(df$x); cy <- mean(df$y)
   #   r  <- sqrt((df$x - cx)^2 + (df$y - cy)^2)
@@ -489,12 +490,12 @@ module_layout3 <- function(graph_obj,
   #   df
   # }
 
-  ## ---------- 1) layout 邻接：kNN 图 ----------
+
   xy <- as.matrix(layout[, c("x","y")])
   nn  <- FNN::get.knn(xy, k = k_nn)$nn.index
   adj <- lapply(seq_len(nrow(layout)), function(i) unique(stats::na.omit(nn[i,])))
 
-  ## ---------- 2) 节点与模块顺序 ----------
+
   nodes_tb <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
@@ -515,14 +516,14 @@ module_layout3 <- function(graph_obj,
   need_per_mod <- nodes_sorted %>%
     dplyr::count(modularity3)
 
-  ## ---------- 3) 区域生长占位 ----------
+
   nL    <- nrow(layout)
-  free  <- rep(TRUE, nL)            # 该 layout 点是否空闲
-  claim <- rep(NA_character_, nL)   # 被哪个模块占用
+  free  <- rep(TRUE, nL)
+  claim <- rep(NA_character_, nL)
   placed_coords <- setNames(vector("list", nrow(need_per_mod)),
                             as.character(need_per_mod$modularity3))
 
-  # 当前已占区域的“边界空位”
+
   get_frontier <- function(){
     used_idx <- which(!free)
     if (length(used_idx) == 0) return(integer())
@@ -530,7 +531,7 @@ module_layout3 <- function(graph_obj,
     uniq[free[uniq]]
   }
 
-  # free 子图在 k-NN 上的连通分量（保证种子落在足够大的区域内）
+
   get_free_components <- function(){
     visited <- rep(FALSE, nL)
     comps <- list()
@@ -553,13 +554,13 @@ module_layout3 <- function(graph_obj,
     comps
   }
 
-  # 第一模块种子：从“大小足够”的最大分量中选，尽量靠中心
+
   pick_seed_first <- function(k_need){
     comps <- get_free_components()
     comps <- comps[order(-sapply(comps, length))]
     ok <- comps[sapply(comps, length) >= k_need]
     if (length(ok) == 0) {
-      stop(sprintf("不存在包含 >= %d 个连续 slot 的区域。请增大 k_nn（当前 %d）或更换 layout。", k_need, k_nn))
+      stop(sprintf("No region with >= %d consecutive slots exists. Please increase k_nn (currently %d) or switch to another layout.", k_need, k_nn))
     }
     cand <- ok[[1]]
     if (center) {
@@ -570,12 +571,12 @@ module_layout3 <- function(graph_obj,
     }
   }
 
-  # 后续模块种子：从“大小足够”的分量中选最靠近已占区域的
+
   pick_seed_next <- function(k_need){
     comps <- get_free_components()
     ok <- comps[sapply(comps, length) >= k_need]
     if (length(ok) == 0) {
-      stop(sprintf("不存在包含 >= %d 个连续 slot 的区域。请增大 k_nn（当前 %d）或更换 layout。", k_need, k_nn))
+      stop(sprintf("No region with >= %d consecutive slots exists. Please increase k_nn (currently %d) or switch to another layout.", k_need, k_nn))
     }
     cx <- mean(layout$x[!free], na.rm = TRUE)
     cy <- mean(layout$y[!free], na.rm = TRUE)
@@ -595,7 +596,7 @@ module_layout3 <- function(graph_obj,
     }
   }
 
-  # BFS 生长（带轻启发式）：从种子扩张到 quota
+
   grow_region <- function(seed_idx, quota){
     q <- seed_idx
     region <- integer()
@@ -607,7 +608,7 @@ module_layout3 <- function(graph_obj,
       nb <- nb[free[nb]]
       if (length(nb) == 0) next
 
-      # 轻微偏好“向当前已占质心靠近”，但仍保留随机
+
       if (any(!is.na(claim))) {
         cx <- mean(layout$x[!free], na.rm = TRUE); cy <- mean(layout$y[!free], na.rm = TRUE)
       } else {
@@ -622,7 +623,7 @@ module_layout3 <- function(graph_obj,
     region
   }
 
-  # 只从与 region 在 k-NN 图上相邻的 free 点迭代扩展，保证同一模块聚在一起
+
   fill_deficit <- function(region, quota, target_idx){
     need <- quota - length(region)
     if (need <= 0) return(region)
@@ -630,22 +631,20 @@ module_layout3 <- function(graph_obj,
     ty <- if (length(region) > 0) mean(layout$y[region]) else layout$y[target_idx]
 
     while (length(region) < quota) {
-      # 只从 region 的 1-hop 邻居（且仍为 free）中选取
+
       frontier <- unique(unlist(adj[region], use.names = FALSE))
       frontier <- frontier[free[frontier]]
 
       if (length(frontier) == 0) {
         stop(sprintf(
           paste0(
-            "模块需要 %d 个连续 slot，但邻接区域内仅能扩展到 %d 个。请增大 k_nn（当前 %d）或更换 layout 以增加连通性。\n",
             "The module requires %d consecutive slots, but the adjacent region can only grow to %d. ",
             "Please increase k_nn (currently %d) or switch to a layout with better connectivity."
           ),
-          quota, length(region), k_nn,
           quota, length(region), k_nn
         ))
       }
-      # 优先选离 region 质心最近的，保持紧凑
+
       dd <- (layout$x[frontier] - tx)^2 + (layout$y[frontier] - ty)^2
       pick <- frontier[order(dd, frontier)[1]]
       region <- c(region, pick)
@@ -656,14 +655,14 @@ module_layout3 <- function(graph_obj,
     region
   }
 
-  # 逐模块（Others 留到最后）
+
   for (mi in seq_len(nrow(need_per_mod))) {
     mod    <- as.character(need_per_mod$modularity3[mi])
     k_need <- need_per_mod$n[mi]
     if (mod == "Others") next
 
     if (sum(free) < k_need) {
-      stop(sprintf("剩余 layout 点不足：模块 %s 需要 %d，但只剩 %d。",
+      stop(sprintf("Not enough free layout points: module %s needs %d, but only %d remain.",
                    mod, k_need, sum(free)))
     }
 
@@ -677,7 +676,7 @@ module_layout3 <- function(graph_obj,
     coords <- layout[region, c("x","y"), drop = FALSE]
     coords <- shrink_rings_global(coords, shrink = shrink)
 
-    # 模块内：Degree降序 ↔ 半径升序（hub居中）
+
     cx <- mean(coords$x); cy <- mean(coords$y)
     rr <- sqrt((coords$x - cx)^2 + (coords$y - cy)^2)
     ord_pts <- order(rr, coords$x, coords$y)
@@ -688,38 +687,38 @@ module_layout3 <- function(graph_obj,
     placed_coords[[mod]] <- dplyr::bind_cols(coords[ord_pts, , drop=FALSE], nodes_this)
   }
 
-  ## ---------- 4) Others：外缘分配（里大外小；不改坐标，只改映射） ----------
+
   if ("Others" %in% names(placed_coords)) {
     n_oth <- need_per_mod$n[need_per_mod$modularity3 == "Others"]
     if (n_oth > 0) {
       idx_free <- which(free)
       if (length(idx_free) < n_oth) {
-        stop(sprintf("Others 需要 %d 个点，但仅剩 %d 个。", n_oth, length(idx_free)))
+        stop(sprintf("`Others` group needs %d points, but only %d remain.", n_oth, length(idx_free)))
       }
-      # 仍然选“最外圈”的 n_oth 个点，并可整体外移
+
       r_free <- sqrt(layout$x[idx_free]^2 + layout$y[idx_free]^2)
       take   <- idx_free[order(-r_free)][seq_len(n_oth)]
       free[take] <- FALSE
       coords <- layout[take, c("x","y"), drop = FALSE]
-      coords <- radial_offset(coords, delta = push_others_delta)  # 可为 0
+      coords <- radial_offset(coords, delta = push_others_delta)
 
-      # 关键：只重排“节点→坐标”的对应关系
-      # - 节点按 Degree 降序（高在前）
+
+
       nodes_oth <- nodes_sorted %>%
         dplyr::filter(modularity3 == "Others") %>%
         dplyr::arrange(dplyr::desc(Degree))
 
-      # - 坐标按半径升序（越靠内的坐标放在前）
+
       rr   <- sqrt(coords$x^2 + coords$y^2)
       ordc <- order(rr, coords$x, coords$y)
       coords <- coords[ordc, , drop = FALSE]
 
-      # 绑定：高 Degree ↔ 更靠内的坐标
+
       placed_coords[["Others"]] <- dplyr::bind_cols(coords, nodes_oth)
     }
   }
 
-  ## ---------- 5) 拼装返回 ----------
+
   graph_ly_final <- dplyr::bind_rows(placed_coords[as.character(need_per_mod$modularity3)])
 
   if (isTRUE(jitter)) {
@@ -732,12 +731,12 @@ module_layout3 <- function(graph_obj,
 
   ly_final <- graph_ly_final[, c("x","y")]
 
-  # 1) 取节点数据
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
 
-  # 2) 确定模块顺序（大到小，Others 最后）
+
   node_df %>%
     dplyr::count(modularity3, name = "size") %>%
     dplyr::arrange(desc(size)) %>%
@@ -748,16 +747,16 @@ module_layout3 <- function(graph_obj,
     dplyr::mutate(modularity4 = as.character(modularity4)) %>%
     dplyr::pull(modularity4) -> mod_levels
 
-  # 3) 模块内按度数排（仅用于统计数量）
+
   node_df_sorted <- node_df %>%
     tidygraph::mutate(modularity3 = factor(modularity3, levels = mod_levels)) %>%
     tidygraph::arrange(modularity3, dplyr::desc(Degree))
 
-  # 4) 每模块节点数
+
   node_df_sorted_number <- node_df_sorted %>%
     dplyr::count(modularity3)
 
-  # 5) 返回的图对象（只按模块顺序排）
+
   graph_obj_sort <- graph_obj %>%
     tidygraph::mutate(modularity3 = factor(modularity3, levels = mod_levels, ordered = TRUE)) %>%
     tidygraph::arrange(modularity3)
@@ -776,22 +775,22 @@ module_layout3 <- function(graph_obj,
 
 module_layout4 <- function(graph_obj,
                            layout,                # data.frame(x, y)
-                           center = TRUE,         # 第一个模块优先靠中心放
-                           shrink = 0.9,          # 模块内轻度收紧
-                           k_nn = 8,              # layout 邻接度（6~10合适）
-                           push_others_delta = 0.2, # Others 外移量
+                           center = TRUE,
+                           shrink = 0.9,
+                           k_nn = 8,
+                           push_others_delta = 0.2,
                            jitter,
                            jitter_sd
                            # seed = seed
 ){
   # set.seed(seed)
 
-  # 1) 取节点数据
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
 
-  # 2) 确定模块顺序（大到小，Others 最后）
+
   node_df %>%
     dplyr::count(modularity3, name = "size") %>%
     dplyr::arrange(desc(size)) %>%
@@ -802,16 +801,16 @@ module_layout4 <- function(graph_obj,
     dplyr::mutate(modularity4 = as.character(modularity4)) %>%
     dplyr::pull(modularity4) -> mod_levels
 
-  # 3) 模块内按度数排（仅用于统计数量）
+
   node_df_sorted <- node_df %>%
     tidygraph::mutate(modularity3 = factor(modularity3, levels = mod_levels)) %>%
     tidygraph::arrange(modularity3, dplyr::desc(Degree))
 
-  # 4) 每模块节点数
+
   node_df_sorted_number <- node_df_sorted %>%
     dplyr::count(modularity3)
 
-  # 5) 返回的图对象（只按模块顺序排）
+
   graph_obj_sort <- graph_obj %>%
     tidygraph::mutate(modularity3 = factor(modularity3, levels = mod_levels, ordered = TRUE)) %>%
     tidygraph::arrange(modularity3)
@@ -837,6 +836,32 @@ module_layout4 <- function(graph_obj,
   ) %>%
     dplyr::mutate(Modularity = droplevels(Modularity))
 
+  # Per-module shrink toward each module's centroid.
+  #
+  # module_layout4 pairs with module-aware first-tier layouts
+  # (circular_modules_gephi_layout, bipartite_gephi_layout, WGCNA, ...),
+  # where the first tier has already placed nodes into geometrically
+  # distinct per-module clusters.  The right "shrink" semantic here is
+  # therefore to contract each cluster toward its own centroid -- module
+  # positions stay put, module interiors become tighter, inter-module
+  # whitespace grows.  (Contrast with module_layout / module_layout3,
+  # which use shrink_rings_global() because their first-tier layouts are
+  # not module-clustered in coordinate space.)
+  if (!is.null(shrink) && shrink != 1) {
+    graph_ly_final <- graph_ly_final %>%
+      dplyr::group_by(modularity3) %>%
+      dplyr::mutate(
+        x = mean(x) + (x - mean(x)) * shrink,
+        y = mean(y) + (y - mean(y)) * shrink
+      ) %>%
+      dplyr::ungroup()
+
+    # Keep the standalone `ly_final` data.frame in sync with the shrunk
+    # coordinates in `graph_ly_final` (same row order guaranteed by the
+    # bind_cols above).  Both are returned and consumed downstream.
+    ly_final$x <- graph_ly_final$x
+    ly_final$y <- graph_ly_final$y
+  }
 
   ggplot_data <- get_location(graph_ly_final, graph_obj_sort)
 
@@ -853,22 +878,22 @@ module_layout4 <- function(graph_obj,
 
 module_layout5 <- function(graph_obj,
                            layout,                # data.frame(x, y)
-                           center = TRUE,         # 第一个模块优先靠中心放
-                           shrink = 0.9,          # 模块内轻度收紧
-                           k_nn = 8,              # layout 邻接度（6~10合适）
-                           push_others_delta = 0.2, # Others 外移量
+                           center = TRUE,
+                           shrink = 0.9,
+                           k_nn = 8,
+                           push_others_delta = 0.2,
                            jitter,
                            jitter_sd
                            # seed = seed
 ){
   # set.seed(seed)
 
-  # 1) 取节点数据
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
 
-  # 2) 确定模块顺序（大到小，Others 最后）
+
   node_df %>%
     dplyr::count(modularity3, name = "size") %>%
     dplyr::arrange(size) %>%
@@ -879,16 +904,16 @@ module_layout5 <- function(graph_obj,
     dplyr::mutate(modularity4 = as.character(modularity4)) %>%
     dplyr::pull(modularity4) -> mod_levels
 
-  # 3) 模块内按度数排（仅用于统计数量）
+
   node_df_sorted <- node_df %>%
     tidygraph::mutate(modularity3 = factor(modularity3, levels = mod_levels)) %>%
     tidygraph::arrange(modularity3, dplyr::desc(Degree))
 
-  # 4) 每模块节点数
+
   node_df_sorted_number <- node_df_sorted %>%
     dplyr::count(modularity3)
 
-  # 5) 返回的图对象（只按模块顺序排）
+
   graph_obj_sort <- graph_obj %>%
     tidygraph::mutate(modularity3 = factor(modularity3, levels = mod_levels, ordered = TRUE)) %>%
     tidygraph::arrange(modularity3)

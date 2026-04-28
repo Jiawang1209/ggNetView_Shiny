@@ -17,5 +17,9 @@ An graph object with GO enrichment analysis
 Build a  graph object from GO enrichment analysis
 }
 \examples{
-NULL
+\dontrun{
+# Requires clusterProfiler enrichment result
+ego <- clusterProfiler::enrichGO(gene, OrgDb = org.Hs.eg.db, ont = "ALL")
+obj <- build_graph_from_enrichGO(df = as.data.frame(ego))
+}
 }

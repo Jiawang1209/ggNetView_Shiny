@@ -28,5 +28,10 @@ An graph object representing the correlation network.
 Build a pie graph object from a data frame
 }
 \examples{
-NULL
+data(ppi_example)
+obj <- build_graph_from_pie(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation
+)
+obj
 }

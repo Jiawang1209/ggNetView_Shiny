@@ -19,7 +19,21 @@
 #' @returns A graph object representing the correlation-based two numeric matrix.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \donttest{
+#' set.seed(1)
+#' mat1 <- matrix(stats::rnorm(15 * 20), nrow = 15, ncol = 20)
+#' mat2 <- matrix(stats::rnorm(10 * 20), nrow = 10, ncol = 20)
+#' rownames(mat1) <- paste0("A", seq_len(15))
+#' rownames(mat2) <- paste0("B", seq_len(10))
+#' colnames(mat1) <- colnames(mat2) <- paste0("sample", seq_len(20))
+#' obj <- build_graph_from_double_mat(
+#'   mat1          = mat1,
+#'   mat2          = mat2,
+#'   module.method = "Fast_greedy"
+#' )
+#' obj
+#' }
 build_graph_from_double_mat <- function(mat1,
                                         mat2,
                                         module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
@@ -27,6 +41,8 @@ build_graph_from_double_mat <- function(mat1,
                                         directed = F,
                                         top_modules = 15,
                                         seed = 1115){
+
+  module.method <- match.arg(module.method)
 
   df1 = mat1 %>% t() %>% as.data.frame()
   df2 = mat2 %>% t() %>% as.data.frame()
@@ -42,7 +58,7 @@ build_graph_from_double_mat <- function(mat1,
     as.data.frame() %>%
     tibble::rownames_to_column(var = "from") %>%
     tidyr::pivot_longer(cols = -from, names_to = "to", values_to = "Pvalue") %>%
-    dplyr::mutate(signif = case_when(
+    dplyr::mutate(signif = dplyr::case_when(
       Pvalue > 0.05 ~ "",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "*",
       Pvalue < 0.01 & Pvalue > 0.001 ~ "**",
@@ -52,11 +68,11 @@ build_graph_from_double_mat <- function(mat1,
   cor_out <- cor_out_odata_r %>%
     dplyr::left_join(cor_out_odata_p, by = c("from", "to")) %>%
     purrr::set_names(c("from", "to", "Correlation", "Pvalue", "Signif")) %>%
-    dplyr::mutate(Correlated = case_when(
+    dplyr::mutate(Correlated = dplyr::case_when(
       Correlation > 0 ~ "Positive",
       Correlation < 0 ~ "Negative"
     )) %>%
-    dplyr::mutate(Signif2 = case_when(
+    dplyr::mutate(Signif2 = dplyr::case_when(
       Pvalue > 0.05 ~ "P > 0.05",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "0.01 < P < 0.05",
       Pvalue < 0.01 & Pvalue > 0.001 ~ "0.001 < P < 0.01",
@@ -73,25 +89,25 @@ build_graph_from_double_mat <- function(mat1,
     directed = directed
   )
 
-  # 构建igraph对象
+
   g <- igraph::graph_from_data_frame(
     d = df,
     vertices = node_annotation,
     directed = F
   )
 
-  # 删除自相关
+
   g <- igraph::simplify(g)
 
-  # 删除孤立节点
+
   g <- igraph::delete_vertices(g, which(igraph::degree(g)==0))
 
-  ## 设置网络的weight，为计算模块性做准备
+
   igraph::E(g)$correlation <- igraph::E(g)$weight
   igraph::E(g)$weight <- abs(igraph::E(g)$weight)
   igraph::E(g)$corr_direction <- ifelse(igraph::E(g)$correlation > 0, "Positive", "Negative")
 
-  # 模块化
+
   membership_vec <- switch(
     module.method,
     Fast_greedy = igraph::membership(igraph::cluster_fast_greedy(g)),
@@ -120,7 +136,7 @@ build_graph_from_double_mat <- function(mat1,
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
 
-  # 构建ggraph对象
+
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
     tidygraph::mutate(modularity = factor(modularity),
                       modularity2 = factor(modularity2),
@@ -134,4 +150,3 @@ build_graph_from_double_mat <- function(mat1,
 
   return(graph_obj)
 }
-

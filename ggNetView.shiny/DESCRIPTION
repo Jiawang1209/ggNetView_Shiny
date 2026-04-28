@@ -1,0 +1,45 @@
+Type: Package
+Package: ggNetView.shiny
+Title: Interactive Shiny Interface for 'ggNetView'
+Version: 0.1.0
+Authors@R: c(
+    person("Yue", "Liu", , "yueliu@iae.ac.cn", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-6180-8068")),
+    person("Chao", "Wang", , "cwang@iae.ac.cn", role = "aut"))
+Description: A 'shinydashboard' based graphical user interface for the
+    'ggNetView' R package. Provides interactive workflows for building
+    correlation / co-occurrence networks, visualizing them with
+    publication-quality 'ggraph' / 'ggplot2' layouts, computing network
+    topology metrics including zi-pi node-role analysis, and exploring
+    multi-block environment-species associations via 'gglink_heatmaps'.
+    Supports both the built-in example datasets shipped with 'ggNetView'
+    and user-uploaded files (CSV / TSV / RDS).
+License: GPL (>= 3)
+Depends:
+    R (>= 4.2)
+Imports:
+    DT (>= 0.27),
+    ggNetView,
+    ggplot2,
+    igraph,
+    markdown,
+    readr,
+    shiny (>= 1.7.0),
+    shinycssloaders,
+    shinydashboard,
+    shinyWidgets,
+    tibble,
+    tidygraph,
+    tools,
+    utils
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.3
+Config/testthat/edition: 3
+URL: https://github.com/Jiawang1209/ggNetView.shiny
+BugReports: https://github.com/Jiawang1209/ggNetView.shiny/issues

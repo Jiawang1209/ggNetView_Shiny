@@ -2,7 +2,7 @@
 % Please edit documentation in R/gglink_heatmap_triple.R
 \name{gglink_heatmap_triple}
 \alias{gglink_heatmap_triple}
-\title{Visualize multi-orientation environmental–species correlation heatmaps2}
+\title{Visualize multi-orientation environmental-species correlation heatmaps2}
 \usage{
 gglink_heatmap_triple(
   Environment,
@@ -43,8 +43,15 @@ Number of hub nodes used in layout; if NULL, uses all nodes.}
 a ggplot2 object
 }
 \description{
-Visualize multi-orientation environmental–species correlation heatmaps2
+Visualize multi-orientation environmental-species correlation heatmaps2
 }
 \examples{
-NULL
+\dontrun{
+p <- gglink_heatmap_triple(
+  Environment = env_df,
+  Experiment  = exp_df,
+  edge        = edge_df,
+  node        = node_df
+)
+}
 }

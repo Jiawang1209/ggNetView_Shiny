@@ -44,5 +44,18 @@ A graph object representing the correlation-based two numeric matrix.
 Build a graph object from Two numeric matrix
 }
 \examples{
-NULL
+\donttest{
+set.seed(1)
+mat1 <- matrix(stats::rnorm(15 * 20), nrow = 15, ncol = 20)
+mat2 <- matrix(stats::rnorm(10 * 20), nrow = 10, ncol = 20)
+rownames(mat1) <- paste0("A", seq_len(15))
+rownames(mat2) <- paste0("B", seq_len(10))
+colnames(mat1) <- colnames(mat2) <- paste0("sample", seq_len(20))
+obj <- build_graph_from_double_mat(
+  mat1          = mat1,
+  mat2          = mat2,
+  module.method = "Fast_greedy"
+)
+obj
+}
 }

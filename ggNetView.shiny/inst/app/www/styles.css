@@ -1,0 +1,551 @@
+/* ===========================================================
+   ggNetView.shiny — Pink theme (header + sidebar only)
+   Page body, boxes, buttons, forms etc. keep default styling.
+   =========================================================== */
+
+:root{
+  --gg-pink-100: #fce4ec;
+  --gg-pink-200: #f8bbd0;
+  --gg-pink-300: #f48fb1;
+  --gg-pink-500: #e91e63;
+  --gg-pink-600: #d81b60;
+  --gg-pink-700: #c2185b;
+  --gg-pink-800: #ad1457;
+}
+
+/* ---------- Header logo (top-left) ---------- */
+.skin-blue .main-header .logo,
+.skin-purple .main-header .logo,
+.main-header .logo {
+  background: var(--gg-pink-700) !important;
+  color: #fff !important;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+.skin-blue .main-header .logo:hover,
+.skin-purple .main-header .logo:hover,
+.main-header .logo:hover {
+  background: var(--gg-pink-800) !important;
+}
+
+/* ---------- Top navbar ---------- */
+.skin-blue .main-header .navbar,
+.skin-purple .main-header .navbar,
+.main-header .navbar {
+  background: var(--gg-pink-500) !important;
+}
+.main-header .navbar .nav > li > a {
+  color: #fff !important;
+}
+.main-header .navbar .sidebar-toggle:hover {
+  background: var(--gg-pink-600) !important;
+}
+
+/* ---------- Sidebar (wider, larger text & icons) ---------- */
+.skin-blue .main-sidebar,
+.skin-purple .main-sidebar,
+.main-sidebar {
+  background: #ffe4ef !important;          /* soft pink */
+  width: 270px !important;
+}
+/* wrapper offsets keep the body content next to the wider sidebar */
+.skin-blue .content-wrapper,
+.skin-blue .right-side,
+.skin-blue .main-footer,
+.skin-purple .content-wrapper,
+.skin-purple .right-side,
+.skin-purple .main-footer,
+.content-wrapper, .right-side, .main-footer {
+  margin-left: 270px;
+}
+@media (max-width: 767px) {
+  .content-wrapper, .right-side, .main-footer { margin-left: 0; }
+}
+
+/* group section header */
+.gg-side-header {
+  list-style: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--gg-pink-700);
+  text-transform: uppercase;
+  padding: 14px 18px 4px 18px;
+  border-bottom: 1px dashed var(--gg-pink-200);
+  margin: 6px 12px 4px 12px;
+  opacity: 0.85;
+}
+.gg-side-header:first-of-type { margin-top: 4px; }
+
+/* base menu link */
+.skin-blue .sidebar-menu > li > a,
+.skin-purple .sidebar-menu > li > a,
+.sidebar-menu > li > a {
+  color: var(--gg-pink-800) !important;
+  font-weight: 600;
+  font-size: 15.5px;          /* up from default ~14px */
+  letter-spacing: 0.2px;
+  padding: 14px 16px;          /* taller rows */
+  border-left: 4px solid transparent;
+  transition: all .15s ease-in-out;
+  display: flex;
+  align-items: center;
+}
+
+/* icon size and color */
+.skin-blue .sidebar-menu > li > a > .fa,
+.skin-blue .sidebar-menu > li > a > .glyphicon,
+.skin-blue .sidebar-menu > li > a > .ion,
+.skin-blue .sidebar-menu > li > a > svg,
+.skin-purple .sidebar-menu > li > a > .fa,
+.skin-purple .sidebar-menu > li > a > .glyphicon,
+.skin-purple .sidebar-menu > li > a > .ion,
+.skin-purple .sidebar-menu > li > a > svg,
+.sidebar-menu > li > a > .fa,
+.sidebar-menu > li > a > .glyphicon,
+.sidebar-menu > li > a > .ion,
+.sidebar-menu > li > a > svg {
+  font-size: 19px;
+  width: 26px;
+  margin-right: 10px;
+  color: var(--gg-pink-700);
+  text-align: center;
+}
+
+/* hover state */
+.skin-blue .sidebar-menu > li:hover > a,
+.skin-purple .sidebar-menu > li:hover > a,
+.sidebar-menu > li:hover > a {
+  background: var(--gg-pink-200) !important;
+  color: var(--gg-pink-800) !important;
+  border-left-color: var(--gg-pink-500) !important;
+}
+.skin-blue .sidebar-menu > li:hover > a > .fa,
+.skin-purple .sidebar-menu > li:hover > a > .fa,
+.sidebar-menu > li:hover > a > .fa { color: var(--gg-pink-800) !important; }
+
+/* active state */
+.skin-blue .sidebar-menu > li.active > a,
+.skin-purple .sidebar-menu > li.active > a,
+.sidebar-menu > li.active > a {
+  background: var(--gg-pink-500) !important;
+  color: #fff !important;
+  border-left-color: var(--gg-pink-800) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+}
+.skin-blue .sidebar-menu > li.active > a > .fa,
+.skin-purple .sidebar-menu > li.active > a > .fa,
+.sidebar-menu > li.active > a > .fa { color: #fff !important; }
+
+/* let header bar (top navbar) match the wider sidebar */
+.main-header,
+.skin-blue .main-header .logo,
+.skin-purple .main-header .logo {
+  width: auto;
+}
+.main-header .logo { width: 270px !important; }
+.main-header .navbar { margin-left: 270px !important; }
+@media (max-width: 767px) {
+  .main-header .logo { width: 100% !important; }
+  .main-header .navbar { margin-left: 0 !important; }
+}
+
+/* ---------- Misc small touches kept from before ---------- */
+.shiny-output-error-validation { color: #d9534f; }
+.shiny-notification { font-size: 13px; }
+pre { font-size: 12px; }
+
+/* ===========================================================
+   Home tab — variant switcher (pills)
+   =========================================================== */
+.gg-home-switch {
+  max-width: 960px;
+  margin: 0 auto;
+  padding-top: 6px;
+}
+.gg-home-switch .nav.nav-pills {
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.gg-home-switch .nav.nav-pills > li > a {
+  background: #fff;
+  color: var(--gg-pink-700);
+  border: 1px solid var(--gg-pink-200);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 0.2px;
+  margin-right: 4px;
+  transition: all .15s ease-in-out;
+}
+.gg-home-switch .nav.nav-pills > li > a:hover {
+  background: var(--gg-pink-100);
+  border-color: var(--gg-pink-300);
+  color: var(--gg-pink-800);
+}
+.gg-home-switch .nav.nav-pills > li.active > a,
+.gg-home-switch .nav.nav-pills > li.active > a:focus,
+.gg-home-switch .nav.nav-pills > li.active > a:hover {
+  background: var(--gg-pink-500) !important;
+  color: #fff !important;
+  border-color: var(--gg-pink-500) !important;
+  box-shadow: 0 2px 6px rgba(173, 20, 87, 0.25);
+}
+.gg-home-switch .nav.nav-pills > li > a > .fa,
+.gg-home-switch .nav.nav-pills > li > a > svg {
+  margin-right: 4px;
+}
+
+/* ===========================================================
+   Dark mode override for the README article
+   Apply by adding `.gg-dark` on top of `.gg-readme`.
+   Dark background, light text, softer pink accents that read
+   well on a dark surface.
+   =========================================================== */
+.gg-readme.gg-dark {
+  background: #161a23;                           /* deep slate */
+  color: #e6e6e6;
+  border: 1px solid #2a2f3a;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+}
+.gg-readme.gg-dark h1,
+.gg-readme.gg-dark h2,
+.gg-readme.gg-dark h3,
+.gg-readme.gg-dark h4 {
+  color: #ffb6c8;                                 /* soft pink on dark */
+}
+.gg-readme.gg-dark h1 { border-bottom: 2px solid #3a2230; }
+.gg-readme.gg-dark h2 { border-bottom: 1px solid #2a2f3a; }
+.gg-readme.gg-dark p,
+.gg-readme.gg-dark li {
+  color: #d8d8e0;
+}
+.gg-readme.gg-dark strong, .gg-readme.gg-dark b {
+  color: #ffffff;
+}
+.gg-readme.gg-dark em {
+  color: #cfd0d6;
+}
+
+/* inline code */
+.gg-readme.gg-dark code {
+  background: #2a2030;
+  color: #ffb6c8;
+  border: 1px solid #3d2638;
+}
+/* code block */
+.gg-readme.gg-dark pre {
+  background: #0f1218;
+  border: 1px solid #2a2f3a;
+  color: #e6e6e6;
+}
+.gg-readme.gg-dark pre code {
+  background: transparent;
+  color: #e6e6e6;
+  border: 0;
+}
+
+/* blockquote */
+.gg-readme.gg-dark blockquote {
+  background: #1c2030;
+  border-left-color: #ff79a8;
+  color: #c9c9d4;
+}
+
+/* links */
+.gg-readme.gg-dark a       { color: #ff9ec1; text-decoration: none; }
+.gg-readme.gg-dark a:hover { color: #ffd0e0; text-decoration: underline; }
+
+/* horizontal rule */
+.gg-readme.gg-dark hr {
+  border-top: 1px dashed #3a2230;
+}
+
+/* tables */
+.gg-readme.gg-dark table {
+  background: transparent;
+}
+.gg-readme.gg-dark table th {
+  background: #261c24;
+  color: #ffb6c8;
+  border-bottom: 2px solid #4d2c3e !important;
+}
+.gg-readme.gg-dark table th,
+.gg-readme.gg-dark table td {
+  border-color: #2a2f3a;
+}
+
+/* keep images legible (slightly dim & gentle border so they don't glow) */
+.gg-readme.gg-dark img {
+  filter: brightness(0.92);
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.5);
+}
+.gg-readme.gg-dark img[align="right"] {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* keyboard hints inside dark blocks */
+.gg-readme.gg-dark kbd {
+  background: #ff5b94;
+  color: #fff;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.4);
+}
+
+/* usage page pills inside dark mode (in case anyone reuses .gg-dark) */
+.gg-readme.gg-dark .gg-pill {
+  background: #221821;
+  color: #ffb6c8;
+  border-color: #4d2c3e;
+}
+.gg-readme.gg-dark .gg-step-num {
+  background: #ff5b94;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* ===========================================================
+   Home tab — rendered README.md
+   Constrained to a comfortable reading width and centered.
+   =========================================================== */
+.gg-readme {
+  /* center as an article column on a "paper" card */
+  max-width: 880px;
+  margin: 12px auto 24px auto;
+  padding: 24px 36px;
+  color: #2c2c2c;
+  font-size: 14px;
+  line-height: 1.65;
+  background: #ffffff;
+  border: 1px solid #f0e6ec;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(173, 20, 87, 0.06);
+  /* let long words / urls wrap instead of forcing horizontal scroll */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+@media (max-width: 991px) {
+  .gg-readme {
+    max-width: 100%;
+    margin: 6px auto 14px auto;
+    padding: 16px 18px;
+    border-radius: 8px;
+  }
+}
+.gg-readme h1, .gg-readme h2, .gg-readme h3, .gg-readme h4 {
+  color: var(--gg-pink-800);
+  font-weight: 700;
+  margin-top: 1.2em;
+}
+.gg-readme h1 { font-size: 26px; border-bottom: 2px solid var(--gg-pink-200); padding-bottom: 6px; }
+.gg-readme h2 { font-size: 20px; border-bottom: 1px solid var(--gg-pink-100); padding-bottom: 4px; }
+.gg-readme h3 { font-size: 17px; }
+.gg-readme h4 { font-size: 15px; }
+.gg-readme img {
+  /* network screenshots: cap so they don't dominate the column */
+  max-width: 80%;
+  height: auto;
+  display: block;
+  margin: 14px auto;
+  border-radius: 6px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+}
+.gg-readme img[align="right"] {
+  display: inline-block;
+  margin: 4px 0 8px 16px;
+  float: right;
+  max-width: 180px;
+  box-shadow: none;
+}
+.gg-readme pre {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+.gg-readme code {
+  background: #fde7ef;
+  color: var(--gg-pink-800);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 90%;
+}
+.gg-readme pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+.gg-readme blockquote {
+  border-left: 4px solid var(--gg-pink-300);
+  background: #fff7fa;
+  margin: 8px 0;
+  padding: 6px 14px;
+  color: #555;
+}
+.gg-readme a { color: var(--gg-pink-700); }
+.gg-readme a:hover { color: var(--gg-pink-800); text-decoration: underline; }
+.gg-readme table {
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+.gg-readme table th, .gg-readme table td {
+  border: 1px solid #e9ecef;
+  padding: 4px 10px;
+}
+.gg-readme table th {
+  background: var(--gg-pink-100);
+  color: var(--gg-pink-800);
+}
+.gg-readme hr {
+  border: 0;
+  border-top: 1px dashed var(--gg-pink-200);
+  margin: 18px 0;
+}
+.gg-readme ul, .gg-readme ol { padding-left: 24px; }
+.gg-readme ul li, .gg-readme ol li { margin: 4px 0; }
+.gg-readme kbd {
+  background: var(--gg-pink-500);
+  color: #fff;
+  padding: 2px 9px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+}
+
+/* ---------- Usage page extras ---------- */
+.gg-usage .gg-pill {
+  display: inline-block;
+  background: #fff;
+  color: var(--gg-pink-700);
+  border: 1px solid var(--gg-pink-300);
+  border-radius: 999px;
+  padding: 2px 12px;
+  margin: 0 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.gg-usage .gg-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gg-pink-500);
+  color: #fff;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 14px;
+  margin-right: 10px;
+  vertical-align: middle;
+  box-shadow: 0 1px 4px rgba(173, 20, 87, 0.25);
+}
+.gg-usage h2 {
+  display: flex;
+  align-items: center;
+}
+
+/* ===========================================================
+   Legacy Home widgets (kept for backwards compatibility; no-op
+   if not used by ui.R)
+   =========================================================== */
+.gg-home-hero {
+  background: linear-gradient(135deg, #fff0f5 0%, #fce4ec 60%, #f8bbd0 100%);
+  border-radius: 12px;
+  padding: 28px 32px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border: 1px solid var(--gg-pink-200);
+  box-shadow: 0 4px 16px rgba(233, 30, 99, 0.10);
+}
+.gg-home-hero img.gg-logo {
+  width: 160px;
+  height: auto;
+  flex-shrink: 0;
+}
+.gg-home-hero h1 {
+  margin: 0 0 8px 0;
+  color: var(--gg-pink-800);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.gg-home-hero p.gg-tagline {
+  margin: 0;
+  color: #4a1d33;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.gg-home-hero .gg-badges { margin-top: 10px; }
+.gg-badge {
+  display: inline-block;
+  background: var(--gg-pink-500);
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-size: 12px;
+  margin-right: 6px;
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+.gg-badge.alt {
+  background: #fff;
+  color: var(--gg-pink-700);
+  border: 1px solid var(--gg-pink-300);
+}
+.gg-card {
+  background: #fff;
+  border: 1px solid var(--gg-pink-100);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 6px rgba(233, 30, 99, 0.06);
+}
+.gg-card h4 {
+  color: var(--gg-pink-700);
+  margin-top: 0;
+}
+.gg-code {
+  background: #fff7fa;
+  border: 1px solid var(--gg-pink-100);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-family: Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  color: #4a1d33;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.gg-step {
+  display: inline-block;
+  background: var(--gg-pink-500);
+  color: #fff;
+  width: 26px; height: 26px; line-height: 26px;
+  text-align: center; border-radius: 50%;
+  margin-right: 8px; font-weight: 700;
+}
+.gg-link-row a {
+  display: inline-block;
+  margin-right: 14px;
+  margin-bottom: 6px;
+  color: var(--gg-pink-700);
+  font-weight: 500;
+}
+.gg-quote {
+  border-left: 3px solid var(--gg-pink-300);
+  background: #fff7fa;
+  padding: 8px 14px;
+  color: var(--gg-pink-800);
+  border-radius: 0 6px 6px 0;
+  margin: 8px 0;
+}

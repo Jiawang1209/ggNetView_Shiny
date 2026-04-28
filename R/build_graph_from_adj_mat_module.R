@@ -14,7 +14,15 @@
 #' @returns An graph object representing the correlation network.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `node_annotation` must contain a `Modularity` column that assigns
+#' # each node to a module.
+#' obj <- build_graph_from_adj_mat_module(
+#'   adjacency_matrix = adj_mat,
+#'   node_annotation  = node_annotation
+#' )
+#' }
 build_graph_from_adj_mat_module <- function(adjacency_matrix,
                                             node_annotation = NULL,
                                             directed = F,
@@ -65,7 +73,7 @@ build_graph_from_adj_mat_module <- function(adjacency_matrix,
   # node_annotation = ppi_module$annotation
   # directed = F
 
-  # 构建igraph对象
+
   # create igraph object
   g <- igraph::graph_from_adjacency_matrix(adjacency_matrix, weighted = TRUE, mode = 'undirected')
 
@@ -87,7 +95,7 @@ build_graph_from_adj_mat_module <- function(adjacency_matrix,
   igraph::E(g)$weight <- abs(igraph::E(g)$weight)
   igraph::E(g)$corr_direction <- ifelse(igraph::E(g)$correlation > 0, "Positive", "Negative")
 
-  # 模块化 是自身提供的
+
 
   # igraph::V(g)$modularity  <- membership_vec
   igraph::V(g)$modularity2 <- as.character(igraph::V(g)$Modularity)
@@ -110,7 +118,7 @@ build_graph_from_adj_mat_module <- function(adjacency_matrix,
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
 
-  # 构建ggraph对象
+
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
     tidygraph::mutate(Modularity = factor(Modularity, levels = factor_levels, ordered = T),
                       modularity2 = factor(modularity2, levels = factor_levels, ordered = T),

@@ -1,0 +1,317 @@
+---
+title: "Correlation-based Network Pipelines"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Correlation-based Network Pipelines}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  fig.width = 6,
+  fig.height = 5,
+  dpi       = 72
+)
+```
+
+## Overview
+
+This vignette walks through the correlation-network family of builders in
+`ggNetView`. These functions turn one or more numeric abundance / expression
+tables into a unified, module-annotated graph object that can be plotted
+directly with `ggNetView()`.
+
+The three main entry points are:
+
+* `build_graph_from_mat()` — single matrix, correlation network across its
+  rows (e.g. OTUs, genes, metabolites).
+* `build_graph_from_double_mat()` — two matrices (two feature blocks)
+  measured on the same samples; edges represent cross-block correlations.
+* `build_graph_from_multi_mat()` — generalizes the double-matrix case to
+  three or more feature blocks.
+
+All three return a `tidygraph` object carrying correlation sign, edge
+weight, and a deterministic module assignment.
+
+```{r setup}
+library(ggNetView)
+```
+
+## 1. Single-matrix correlation network
+
+`build_graph_from_mat()` expects a numeric matrix with **features in rows**
+and **samples in columns**. The package ships `otu_rare_relative`, a
+relative-abundance OTU table. For a fast example we subset to the 60 most
+abundant OTUs.
+
+```{r single-mat}
+data(otu_rare_relative)
+
+mat <- as.matrix(otu_rare_relative)
+row_sums <- rowSums(mat)
+mat <- mat[order(row_sums, decreasing = TRUE)[seq_len(60)], ]
+
+graph_obj <- build_graph_from_mat(
+  mat           = mat,
+  method        = "cor",
+  cor.method    = "spearman",
+  proc          = "BH",
+  r.threshold   = 0.6,
+  p.threshold   = 0.05,
+  module.method = "Fast_greedy",
+  seed          = 1
+)
+
+graph_obj
+```
+
+### Choosing an inference method
+
+The `method` argument selects how edges are inferred:
+
+| `method`     | Engine                                     | P-values | Typical use |
+|--------------|--------------------------------------------|----------|-------------|
+| `"cor"`      | `psych::corr.test()`                       | yes      | General-purpose |
+| `"Hmisc"`    | `Hmisc::rcorr()`                           | yes      | Large matrices, Pearson / Spearman only |
+| `"WGCNA"`    | `WGCNA::corAndPvalue()`                    | yes      | Gene co-expression |
+| `"SPARCC"`   | Internal Rcpp SparCC + bootstrap           | yes      | Compositional microbiome data |
+| `"SpiecEasi"`| Internal Rcpp SpiecEasi (`mb` / `glasso`)  | no       | Sparse inverse-covariance |
+
+Switch methods by changing a single argument — the rest of the pipeline
+(`r.threshold`, module detection, attribute assembly) stays the same.
+
+### Attaching taxonomy
+
+Passing a node annotation table merges metadata onto the vertices. The
+first column of the annotation must match the feature names.
+
+```{r single-mat-annot}
+data(tax_tab)
+
+annot <- tax_tab[tax_tab$OTUID %in% rownames(mat), ]
+graph_obj_annot <- build_graph_from_mat(
+  mat             = mat,
+  method          = "cor",
+  cor.method      = "spearman",
+  proc            = "BH",
+  r.threshold     = 0.6,
+  p.threshold     = 0.05,
+  module.method   = "Fast_greedy",
+  node_annotation = annot,
+  seed            = 1
+)
+```
+
+Downstream plots can now colour or facet by any taxonomy column
+(`Phylum`, `Class`, …).
+
+## 2. Visualising the network
+
+`ggNetView()` is the single plotting entry point. Edge colour follows
+correlation sign automatically; node fill can be driven by `Modularity`
+or any column attached via `node_annotation`.
+
+```{r plot-single}
+ggNetView(
+  graph_obj_annot,
+  layout    = "fr",
+  seed      = 1,
+  pointsize = c(2, 7),
+  fill.by   = "Modularity",
+  label     = FALSE
+)
+```
+
+Swap layouts by changing the `layout` string — every layout uses the
+supplied `seed` so figures are reproducible.
+
+```{r plot-single-circle}
+ggNetView(
+  graph_obj_annot,
+  layout    = "circle",
+  seed      = 1,
+  pointsize = c(2, 7),
+  fill.by   = "Modularity"
+)
+```
+
+## 3. Two-block (double-matrix) networks
+
+Use `build_graph_from_double_mat()` when you have two feature blocks
+measured on the same samples and want edges that only cross between the
+two blocks (e.g. bacteria ↔ fungi, or microbes ↔ metabolites).
+
+Both matrices must share the same sample column names.
+
+```{r double-mat}
+data(BASV_tab)
+data(FASV_tab)
+
+mat_b <- as.matrix(BASV_tab)
+mat_f <- as.matrix(FASV_tab)
+
+double_obj <- build_graph_from_double_mat(
+  mat1          = mat_b,
+  mat2          = mat_f,
+  module.method = "Fast_greedy",
+  seed          = 1
+)
+
+double_obj
+```
+
+The returned graph behaves identically to the single-matrix case, so the
+same `ggNetView()` call works:
+
+```{r plot-double}
+ggNetView(
+  double_obj,
+  layout    = "fr",
+  seed      = 1,
+  pointsize = c(2, 6),
+  fill.by   = "Modularity",
+  label     = FALSE
+)
+```
+
+For a bipartite-style rendering, swap `layout = "fr"` for
+`"bipartite"` and supply the block assignment via `node_annotation`.
+
+## 4. Multi-block networks
+
+`build_graph_from_multi_mat()` is the natural extension to three or more
+blocks. Matrices are passed positionally or via `...`; the function
+intersects sample names and stacks features.
+
+```{r multi-mat}
+set.seed(1)
+nsamp <- 20
+mat_a <- matrix(stats::rnorm(10 * nsamp), nrow = 10)
+mat_b <- matrix(stats::rnorm(10 * nsamp), nrow = 10)
+mat_c <- matrix(stats::rnorm(10 * nsamp), nrow = 10)
+rownames(mat_a) <- paste0("A", seq_len(10))
+rownames(mat_b) <- paste0("B", seq_len(10))
+rownames(mat_c) <- paste0("C", seq_len(10))
+colnames(mat_a) <- colnames(mat_b) <- colnames(mat_c) <-
+  paste0("sample", seq_len(nsamp))
+
+multi_obj <- build_graph_from_multi_mat(
+  mat_a, mat_b, mat_c,
+  module.method = "Fast_greedy",
+  seed          = 1
+)
+
+multi_obj
+```
+
+## 5. Inspecting the result
+
+All three builders return a `tidygraph` object, so node- and edge-level
+tibbles are directly accessible via `get_graph_nodes()` and
+`get_info_from_graph()`:
+
+```{r inspect}
+head(get_graph_nodes(graph_obj))
+lapply(get_info_from_graph(graph_obj), head, 3)
+```
+
+Every node carries:
+
+* `Modularity` — top-k module label (`Others` bucket when many small modules)
+* `Degree`, `Strength` — degree and weighted degree
+* any column merged in through `node_annotation`
+
+Every edge carries:
+
+* `weight` — absolute correlation
+* `correlation` — signed correlation
+* `corr_direction` — `"Positive"` / `"Negative"`
+
+## 6. Network topology
+
+`get_network_topology()` computes global network metrics plus a
+bootstrap-based robustness summary. It accepts either a pre-built graph
+object or a raw matrix — in the latter case the builder is re-run
+internally so that the same `r.threshold` / `p.threshold` / `method`
+combination is applied.
+
+```{r topology}
+topo <- get_network_topology(graph_obj = graph_obj, bootstrap = 20)
+names(topo)
+head(topo$topology)
+```
+
+The return value is a list with at least two elements:
+
+* `topology` — one row of global metrics (number of nodes / edges,
+  average degree, clustering coefficient, modularity, …).
+* `robustness` — bootstrap summary of how network-level metrics behave
+  under random node removal, used to estimate stability.
+
+For sample × feature designs (e.g. microbiome studies with many
+samples) use `get_sample_subgraph_topology()` or its `_parallel`
+variant to compute the same metrics per-sample.
+
+## 7. Keystone detection with Zi-Pi
+
+`ggnetview_zipi()` classifies every node by its within-module
+connectivity (Zi) and among-module participation coefficient (Pi).
+The default thresholds (`Zi = 2.5`, `Pi = 0.62`) are those of Guimerà
+& Amaral (2005) and split nodes into four roles:
+
+* **Peripherals** — low Zi, low Pi
+* **Connectors** — low Zi, high Pi
+* **Module hubs** — high Zi, low Pi
+* **Network hubs** — high Zi, high Pi
+
+It takes a node table and an adjacency matrix — both of which are
+accessible directly from a `ggNetView` graph object:
+
+```{r zipi}
+nodes_tbl <- get_graph_nodes(graph_obj)
+adj_mat   <- get_graph_adjacency(graph_obj)
+
+zipi <- ggnetview_zipi(
+  nodes_bulk     = nodes_tbl,
+  z_bulk_mat     = adj_mat,
+  modularity_col = "Modularity",
+  degree_col     = "Degree"
+)
+
+head(zipi$data[, c("name", "within_module_connectivities",
+                   "among_module_connectivities", "type")])
+```
+
+The `plot` element in the result is a ready-to-render Zi-Pi scatter
+plot with the four quadrants shaded:
+
+```{r zipi-plot}
+zipi$plot
+```
+
+## 8. Where to go next
+
+* **Layout gallery**: pass any `layout = "..."` string accepted by
+  `ggNetView()` — there are 30+ deterministic layouts, including
+  `"circular_modules_petal"`, `"cross_quadripartite_gephi"`, and
+  `"star_concentric"`.
+* **Module comparison across networks**: build a named list of graph
+  objects and feed it to `get_network_topology(graph_obj_list = ...)`
+  to get per-network metrics in one call; use
+  `ggnetview_modularity_heatmaps()` to visualise module composition
+  side-by-side.
+* **RMT thresholding**: `ggNetView_RMT()` picks a data-driven
+  correlation threshold using random matrix theory — useful when you
+  do not want to hand-tune `r.threshold`.
+* **Multi-network rendering**: `ggNetView_multi()` /
+  `ggNetView_multi_link()` plot several networks in a shared
+  coordinate system with aligned modules.
+
+## Session information
+
+```{r sessioninfo}
+sessionInfo()
+```

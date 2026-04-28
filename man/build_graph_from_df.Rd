@@ -41,6 +41,14 @@ An graph object representing the correlation network.
 Build a graph object from a data frame
 }
 \examples{
-NULL
+data(ppi_example)
+obj <- build_graph_from_df(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation,
+  directed        = FALSE,
+  module.method   = "Fast_greedy",
+  top_modules     = 5
+)
+obj
 
 }

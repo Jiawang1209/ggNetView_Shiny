@@ -1,0 +1,14 @@
+citHeader("To cite ggNetView in publications use:")
+
+bibentry(
+  bibtype = "Manual",
+  title   = "ggNetView: Reproducible and Deterministic Network Analysis and Visualization",
+  author  = c(
+    person("Yue", "Liu",  email = "yueliu@iae.ac.cn",
+           comment = c(ORCID = "0000-0002-6180-8068")),
+    person("Chao", "Wang", email = "cwang@iae.ac.cn")
+  ),
+  year    = format(Sys.Date(), "%Y"),
+  note    = sprintf("R package version %s", meta$Version),
+  url     = "https://github.com/Jiawang1209/ggNetView"
+)

@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_bipartite_gephi_layout <- function(
     graph_obj,
     r = 1,
@@ -8,9 +9,9 @@ create_layout_bipartite_gephi_layout <- function(
     angle = 0
 ){
 
-  # 既然，要画二分网络，那么你肯定要有二分网络
+
   # graph_obj = graph_sub[[3]]
-  # 旋转角度
+
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
@@ -19,7 +20,7 @@ create_layout_bipartite_gephi_layout <- function(
   # set radius
   radius = r
 
-  # 获取节点
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
@@ -30,7 +31,7 @@ create_layout_bipartite_gephi_layout <- function(
 
   module_list <- node_df %>% dplyr::group_split(Modularity)
 
-  # 每一个分组的节点数
+
   n_vec <- purrr::map(module_list, ~dim(.x)[1]) %>% unlist()
 
   if (length(n_vec) < 2) {
@@ -40,9 +41,9 @@ create_layout_bipartite_gephi_layout <- function(
     message("`Bipartite layout more than 2 modules detected.")
   }
 
-  # 我们统计一下每一个分组当中，应该有多少个点
+
   circle_layout <- function(n, node_add){
-    # 初始化
+
     counts <- 1
     total <- 1
     i <- 2
@@ -52,7 +53,7 @@ create_layout_bipartite_gephi_layout <- function(
         counts <- c(counts, add)
         total <- total + add
       }else{
-        # 最后一圈
+
         counts <- c(counts, n-total)
         total <- n
       }
@@ -78,14 +79,14 @@ create_layout_bipartite_gephi_layout <- function(
       offset <- 0
       prev_n <- n_vec_node[[i]]$number_node
 
-      # 第二圈 到 最后一圈
+
       for (index in 2:(dim(n_vec_node[[i]])[1])) {
         if (index == 2) {
           # index = 2
           # l <- seq(0, 2*pi, length.out = prev_n[index])
           l <- 2* pi * (0:(prev_n[index]-1)) / prev_n[index]
         }else{
-          # 第三圈开始 错开半个身位置
+
           offset <- pi/prev_n[index] %% (2*pi) + offset
           # l <- offset + seq(0, 2*pi, length.out = prev_n[index])
           l <- offset + (2* pi * (0:(prev_n[index]-1)) / prev_n[index])
@@ -108,14 +109,14 @@ create_layout_bipartite_gephi_layout <- function(
       offset <- 0
       prev_n <- n_vec_node[[i]]$number_node
 
-      # 第二圈 到 最后一圈
+
       for (index in 2:(dim(n_vec_node[[i]])[1])) {
         if (index == 2) {
           # index = 2
           # l <- seq(0, 2*pi, length.out = prev_n[index])
           l <- 2* pi * (0:(prev_n[index]-1)) / prev_n[index]
         }else{
-          # 第三圈开始 错开半个身位置
+
           offset <- pi/prev_n[index] %% (2*pi) + offset
           # l <- offset + seq(0, 2*pi, length.out = prev_n[index])
           l <- offset + (2* pi * (0:(prev_n[index]-1)) / prev_n[index])
@@ -138,7 +139,7 @@ create_layout_bipartite_gephi_layout <- function(
 
   ly <- do.call(rbind, ly_list)
 
-  # ---- 统一旋转（绕原点）----
+
   if (theta_shift != 0) {
     Rm <- matrix(c(cos(theta_shift), -sin(theta_shift),
                    sin(theta_shift),  cos(theta_shift)), nrow = 2)

@@ -2,7 +2,7 @@
 #'
 #' @param mat   Numeric matrix.
 #' A numeric matrix with samples in colums and variables in rows
-#' #' @param transfrom.method Character.
+#' @param transfrom.method Character.
 #'Data transformation methods applied before correlation analysis.
 #' Options include:
 #' "none" (raw data),
@@ -40,12 +40,14 @@
 #'         unfolded (last-step unfolding), meta (matrix info & params), plots (file paths if saved).
 #' @export
 #'
-#' @examples NULL
-#'
-#'
-#' # m <- cor(scale(matrix(rnorm(40000), 200, 200)))
-#' # res <- ggNetView_RMT(m, save_plots=TRUE)
-#' # res$chosen_threshold
+#' @examples
+#' \dontrun{
+#' set.seed(1)
+#' m <- stats::cor(scale(matrix(stats::rnorm(40000), 200, 200)))
+#' rownames(m) <- colnames(m) <- paste0("g", seq_len(200))
+#' res <- ggNetView_RMT(m, method = "cor")
+#' res$chosen_threshold
+#' }
 ggNetView_RMT <- function(
     mat,
     transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
@@ -93,22 +95,14 @@ ggNetView_RMT <- function(
   }
 
 
+  method <- match.arg(method)
+  SpiecEasi.method <- match.arg(SpiecEasi.method)
   unfold.method <- match.arg(unfold.method)
   transfrom.method <-  match.arg(transfrom.method)
   cor.method <- match.arg(cor.method)
 
   # data transfrom
-  mat <- switch (
-    transfrom.method,
-    none = mat,
-    scale = t(scale(t(mat), scale = T, center = T)),
-    center = t(scale(t(mat), scale = F, center = T)),
-    log2 = log2(mat + 1),
-    log10 = log10(mat + 1),
-    ln = log(mat + 1),
-    rrarefy = t(vegan::rrarefy(t(mat), min(colSums(mat)))),
-    rrarefy_relative = t(vegan::rrarefy(t(mat), min(colSums(mat)))) / colSums(t(vegan::rrarefy(t(mat), min(colSums(mat)))))
-  )
+  mat <- apply_transform_method(mat, transfrom.method)
 
   # correlation
 
@@ -122,36 +116,21 @@ ggNetView_RMT <- function(
     mat <- occor.r
   }
 
-  # SpiecEasi
+  # SpiecEasi (spieceasi_matrix_rcpp: no p-value, r.threshold applied in RMT scan)
   if (method == "SpiecEasi") {
-    # SpiecEasi for correlation
-    SpiecEasi_obj <- SpiecEasi::spiec.easi(as.matrix(t(mat)),
-                                           method = SpiecEasi.method,
-                                           lambda.min.ratio=1e-2,
-                                           nlambda=20,
-                                           pulsar.params=list(rep.num=50)
-    )
-
-    # return adjacency matrix
-    am <- SpiecEasi::getRefit(SpiecEasi_obj)
-
+    am <- spieceasi_matrix_rcpp(as.matrix(t(mat)), method = SpiecEasi.method, output = "adjacency",
+                                lambda.min.ratio = 1e-2, nlambda = 20, pulsar.params = list(rep.num = 50))
     rownames(am) <- rownames(mat)
     colnames(am) <- rownames(mat)
-
     mat <- am
   }
 
-  # SparCC
-  if (method == "SparCC") {
-    # Sparcc for correlation
-    SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
-
-    rownames(SparCC_graph) <- rownames(mat)
-    colnames(SparCC_graph) <- rownames(mat)
-
-    SparCC_graph <- Matrix::Matrix(SparCC_graph, sparse=TRUE)
-
-    mat <- SparCC_graph
+  # SparCC (sparcc_matrix_rcpp: correlation matrix for RMT scan)
+  if (method == "SPARCC") {
+    SparCC_cor <- sparcc_matrix_rcpp(as.matrix(t(mat)))
+    rownames(SparCC_cor) <- rownames(mat)
+    colnames(SparCC_cor) <- rownames(mat)
+    mat <- Matrix::Matrix(SparCC_cor, sparse = TRUE)
   }
 
   # cor
@@ -312,7 +291,8 @@ ggNetView_RMT <- function(
   }
 
   effective_mat <- function(A, tol = 0) {
-    dg <- diag(A); diag(A) <- 0
+    dg <- diag(A)
+    diag(A) <- 0
     keep_row <- rowSums(abs(A) > tol) > 0
     keep_col <- colSums(abs(A) > tol) > 0
     idx <- which(keep_row & keep_col)

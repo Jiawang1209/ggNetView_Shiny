@@ -17,5 +17,12 @@ a list
 Extract node and edge information from graph object
 }
 \examples{
-NULL
+data(adjacency_matrix_example)
+set.seed(1)
+idx <- sample(ncol(adjacency_matrix_example), 80)
+obj <- build_graph_from_adj_mat(adjacency_matrix_example[idx, idx])
+info <- get_info_from_graph(obj)
+names(info)
+head(info$node_info)
+head(info$edge_info)
 }

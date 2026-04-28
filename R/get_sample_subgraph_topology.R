@@ -15,6 +15,9 @@
 #' @param method Character. Passed to \code{get_network_topology()}.
 #' @param cor.method Character. Passed to \code{get_network_topology()}.
 #' @param proc Character. Passed to \code{get_network_topology()}.
+#' @param SpiecEasi.method Character. Passed to \code{get_network_topology()};
+#'   one of \code{"mb"} or \code{"glasso"} for SpiecEasi inverse-covariance.
+#' @param sparcc_R Integer. Passed to \code{get_network_topology()} for SparCC p-values. Default 20.
 #' @param bootstrap Numeric (default = 100). Passed to
 #'   \code{get_network_topology()}.
 #'
@@ -27,7 +30,17 @@
 #' }
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `mat` is the OTU/feature-by-sample matrix used to build `graph_obj`.
+#' obj <- build_graph_from_mat(mat = mat, method = "cor")
+#' res <- get_sample_subgraph_topology(
+#'   graph_obj = obj,
+#'   mat       = mat,
+#'   bootstrap = 10
+#' )
+#' head(res$topology)
+#' }
 get_sample_subgraph_topology <- function(graph_obj,
                                          mat = NULL,
                                          transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
@@ -35,7 +48,9 @@ get_sample_subgraph_topology <- function(graph_obj,
                                          p.threshold = 0.05,
                                          method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
                                          cor.method = c("pearson", "kendall", "spearman"),
-                                         proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
+                                         proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
+                                         SpiecEasi.method = c("mb", "glasso"),
+                                         sparcc_R = 20,
                                          bootstrap = 100) {
   transfrom.method <- match.arg(transfrom.method)
   method <- match.arg(method)
@@ -108,6 +123,8 @@ get_sample_subgraph_topology <- function(graph_obj,
         method = method,
         cor.method = cor.method,
         proc = proc,
+        SpiecEasi.method = SpiecEasi.method,
+        sparcc_R = sparcc_R,
         bootstrap = bootstrap
       ),
       error = function(e) e

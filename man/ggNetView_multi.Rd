@@ -13,10 +13,10 @@ ggNetView_multi(
   p.threshold = 0.05,
   method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
   cor.method = c("pearson", "kendall", "spearman"),
-  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
-    "TSBH"),
+  proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
   module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
   SpiecEasi.method = c("mb", "glasso"),
+  sparcc_R = 20,
   node_annotation = NULL,
   top_modules = 15,
   layout = NULL,
@@ -26,6 +26,7 @@ ggNetView_multi(
   center = TRUE,
   idx = NULL,
   shrink = 1,
+  inner_shrink = 1,
   k_nn = 12,
   push_others_delta = 0,
   layout.module = c("random", "adjacent", "order"),
@@ -33,6 +34,8 @@ ggNetView_multi(
   pointalpha = 1,
   pointsize = c(1, 10),
   pointstroke = 0.3,
+  pointlabel = NULL,
+  pointlabelsize = 5,
   group.by = "Modularity",
   fill.by = "Modularity",
   color.by = NULL,
@@ -50,18 +53,31 @@ ggNetView_multi(
   labelsize = 10,
   labelsegmentsize = 1,
   labelsegmentalpha = 1,
+  add_group_outer = FALSE,
+  add_group_outer_expand = 2,
+  add_group_outer_color = "grey50",
+  add_group_outer_fill = NULL,
+  add_group_outer_fill_alpha = 0.2,
+  add_group_outer_linetype = 1,
+  add_group_outer_linewidth = 0.5,
   add_outer = FALSE,
+  q_outer = 0.88,
+  expand_outer = 1.02,
   outerwidth = 1.25,
   outerlinetype = 2,
   outeralpha = 0.5,
   nodelabsize = 5,
   remove = FALSE,
+  dropOthers = FALSE,
   orientation = "up",
   angle = 0,
   scale = T,
   anchor_dist = 6,
+  layout_nrow = NULL,
+  layout_ncol = NULL,
   seed = 1115,
-  nrow = NULL
+  nrow = NULL,
+  ncol = NULL
 )
 }
 \arguments{
@@ -100,9 +116,8 @@ Options include "pearson", "kendall", and "spearman".}
 \item{proc}{Character.
 Correlation p-value adjustment methods.
 Options include:
-"Bonferroni", "Holm", "Hochberg", "
-SidakSS", "SidakSD","BH",
-"BY", "ABH", and "TSBH".}
+"holm", "hochberg", "hommel", "bonferroni",
+"BH", "BY", "fdr", and "none".}
 
 \item{module.method}{Character.
 Network community detection (module identification) method.
@@ -110,6 +125,10 @@ Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".}
 
 \item{SpiecEasi.method}{Character.
 Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".}
+
+\item{sparcc_R}{Integer.
+Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+Default 20.}
 
 \item{node_annotation}{Data frame.
 Optional node annotation table, containing metadata such as taxonomy or functional categories.}
@@ -140,6 +159,10 @@ Index of nodes to be emphasized or centered in the layout}
 \item{shrink}{Numeric (default = 1).
 Shrinkage factor applied to the center points.}
 
+\item{inner_shrink}{Numeric (default = 1).
+Intra-module compactness factor for \code{layout = "WGCNA"} only.
+See \code{\link{ggNetView}} for details.  Ignored by other layouts.}
+
 \item{k_nn}{Numeric (default = 8).
 Number of nearest neighbors used to build the local adjacency graph.}
 
@@ -147,6 +170,7 @@ Number of nearest neighbors used to build the local adjacency graph.}
 Radial offset applied to the "Others" module to slightly}
 
 \item{layout.module}{Character  (default = "random")
+- random : modules are distributed more randomly and independently.
 - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
 
@@ -160,6 +184,14 @@ The point alpha}
 The point size rang.}
 
 \item{pointstroke}{Integer  (default = 0.3).}
+
+\item{pointlabel}{Character (default = NULL).
+Optional node label mode for top Degree nodes within each module.
+Supported values: \code{"topN"} (e.g. \code{"top1"}, \code{"top7"}, \code{"top20"})
+and \code{"ALL"}.}
+
+\item{pointlabelsize}{Integer (default = 5).
+Change point label size.}
 
 \item{group.by}{Character (default = "Modularity").
 Change group for nodes}
@@ -200,8 +232,8 @@ Change  line alpha.}
 \item{linecolor}{Character  (default = "grey70").
 Change  line color.}
 
-\item{label}{Logical (default = FALSE).
-Whether to display node labels in the center points.}
+\item{label}{Logical or Character (default = FALSE).
+Whether to display module labels. If a character string, used as legend prefix.}
 
 \item{labelsize}{Integer  (default = 10).
 Change Module label size.}
@@ -212,8 +244,35 @@ Change  label segment size.}
 \item{labelsegmentalpha}{Integer  (default = 1).
 Change  label segment alpha.}
 
+\item{add_group_outer}{Logical (default = FALSE).
+Whether to add a circle boundary around the entire network (mimics \code{ggforce::geom_mark_circle}).}
+
+\item{add_group_outer_expand}{Numeric (default = 2).
+Expansion in mm for the group circle; passed to \code{geom_mark_circle(expand = ...)}.}
+
+\item{add_group_outer_color}{Character (default = "grey50").
+Color of the group outer circle border.}
+
+\item{add_group_outer_fill}{Character or NULL (default = NULL).
+Fill color of the group outer circle. \code{NULL} = no fill (transparent).}
+
+\item{add_group_outer_fill_alpha}{Numeric (default = 0.2).
+Alpha (transparency) of the group outer circle fill.}
+
+\item{add_group_outer_linetype}{Integer or character (default = 1).
+Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).}
+
+\item{add_group_outer_linewidth}{Numeric (default = 0.5).
+Line width of the group outer circle.}
+
 \item{add_outer}{Logical (default = FALSE).
-Whether to add an outer circle/border around the layout.}
+Whether to add an outer circle/border around each module.}
+
+\item{q_outer}{Numeric (default = 0.88).
+Quantile of radial distance used to construct the smooth outer boundary for each module.}
+
+\item{expand_outer}{Numeric (default = 1.02).
+Global scaling factor applied to the smoothed radial distances when drawing the outer boundary.}
 
 \item{outerwidth}{Integer  (default = 1.25).
 Change  outer linewidth.}
@@ -228,7 +287,10 @@ Change  outer alpha.}
 Change  node label size.}
 
 \item{remove}{Logical (default = FALSE).
-Delect nodes that are not modules.}
+Remove nodes that are not modules.}
+
+\item{dropOthers}{Logical (default = FALSE).
+If TRUE, remove nodes in the \code{"Others"} module before layout and visualization.}
 
 \item{orientation}{Character string.
 Custom orientation; one of "up","down","left","right".}
@@ -242,11 +304,20 @@ modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Penta
 \item{anchor_dist}{Integer (default = 6)
 the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
 
+\item{layout_nrow}{Integer (default = NULL).
+Number of layout rows passed to \code{ggNetView} when using consensus-module grid layouts.}
+
+\item{layout_ncol}{Integer (default = NULL).
+Number of layout columns passed to \code{ggNetView} when using consensus-module grid layouts.}
+
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}
 
-\item{nrwo}{Integer (default = NULL).
-Then nrow of combinme plot}
+\item{nrow}{Integer (default = NULL).
+Number of rows in the combined patchwork plot.}
+
+\item{ncol}{Integer (default = NULL).
+Number of columns in the combined patchwork plot.}
 }
 \value{
 A ggplot object representing the network visualization.
@@ -255,5 +326,14 @@ A ggplot object representing the network visualization.
 Visualize network with custom layouts in different samples
 }
 \examples{
-NULL
+\dontrun{
+# `mat` is a numeric matrix (features x samples) and
+# `group_info` is a data frame with columns Sample and Group.
+p <- ggNetView_multi(
+  mat        = mat,
+  group_info = group_info,
+  method     = "cor",
+  layout     = "fr"
+)
+}
 }

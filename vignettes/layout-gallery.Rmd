@@ -1,0 +1,335 @@
+---
+title: "Layout Gallery"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Layout Gallery}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  fig.width = 6,
+  fig.height = 6,
+  dpi       = 72
+)
+```
+
+## Overview
+
+`ggNetView` ships 60+ deterministic layouts. Every layout is selected
+by passing a single string to `ggNetView(layout = "...")`. The `seed`
+argument ensures identical node placement across runs.
+
+This vignette is a visual catalogue organised by family. All examples
+use the same graph object so differences come purely from the layout.
+
+```{r setup}
+library(ggNetView)
+```
+
+## Build a demo network
+
+We reuse the bundled OTU data and build a small, well-connected
+network with clear modules.
+
+```{r demo-graph}
+data(otu_rare_relative)
+data(tax_tab)
+
+mat <- as.matrix(otu_rare_relative)
+mat <- mat[order(rowSums(mat), decreasing = TRUE)[seq_len(80)], ]
+annot <- tax_tab[tax_tab$OTUID %in% rownames(mat), ]
+
+g <- build_graph_from_mat(
+  mat             = mat,
+  method          = "cor",
+  cor.method      = "spearman",
+  proc            = "BH",
+  r.threshold     = 0.6,
+  p.threshold     = 0.05,
+  module.method   = "Fast_greedy",
+  node_annotation = annot,
+  seed            = 1
+)
+```
+
+A small helper to keep the gallery code concise:
+
+```{r helper}
+show_layout <- function(layout_name, ...) {
+  ggNetView(
+    g,
+    layout    = layout_name,
+    seed      = 1,
+    pointsize = c(2, 6),
+    fill.by   = "Modularity",
+    label     = FALSE,
+    ...
+  ) +
+    ggplot2::ggtitle(layout_name)
+}
+```
+
+---
+
+## 1. Force-directed layouts
+
+Force-directed algorithms simulate physical forces (spring attraction,
+node repulsion) to produce organic, readable networks. These are the
+most common starting point.
+
+```{r force-fr, fig.cap = "Fruchterman-Reingold (fr)"}
+show_layout("fr")
+```
+
+```{r force-fr1, fig.cap = "Fruchterman-Reingold variant 1 (fr1)"}
+show_layout("fr1")
+```
+
+```{r force-fr2, fig.cap = "Fruchterman-Reingold variant 2 (fr2)"}
+show_layout("fr2")
+```
+
+```{r force-kk, fig.cap = "Kamada-Kawai (kk)"}
+show_layout("kk")
+```
+
+```{r force-stress, fig.cap = "Stress majorisation (stress)"}
+show_layout("stress")
+```
+
+```{r force-nicely, fig.cap = "igraph 'nicely' auto-selection (nicely)"}
+show_layout("nicely")
+```
+
+```{r force-nicely1, fig.cap = "nicely variant (nicely1)"}
+show_layout("nicely1")
+```
+
+```{r force-lgl, fig.cap = "Large Graph Layout (lgl)"}
+show_layout("lgl")
+```
+
+```{r force-gephi, fig.cap = "Gephi-style ForceAtlas2 (gephi)"}
+show_layout("gephi")
+```
+
+## 2. Geometric layouts
+
+Simple, deterministic shapes useful when structure clarity matters more
+than spatial clustering.
+
+```{r geom-circle, fig.cap = "Circle (circle)"}
+show_layout("circle")
+```
+
+```{r geom-circle-outline, fig.cap = "Circle outline (circle_outline)"}
+show_layout("circle_outline")
+```
+
+```{r geom-grid, fig.cap = "Grid (grid)"}
+show_layout("grid")
+```
+
+```{r geom-star, fig.cap = "Star (star)"}
+show_layout("star")
+```
+
+```{r geom-star-concentric, fig.cap = "Star concentric (star_concentric)"}
+show_layout("star_concentric")
+```
+
+```{r geom-diamond, fig.cap = "Diamond (diamond)"}
+show_layout("diamond")
+```
+
+```{r geom-square, fig.cap = "Square (square)"}
+show_layout("square")
+```
+
+```{r geom-square2, fig.cap = "Square variant (square2)"}
+show_layout("square2")
+```
+
+```{r geom-rectangle, fig.cap = "Rectangle (rectangle)"}
+show_layout("rectangle")
+```
+
+```{r geom-rectangle-outline, fig.cap = "Rectangle outline (rectangle_outline)"}
+show_layout("rectangle_outline")
+```
+
+```{r geom-petal, fig.cap = "Petal (petal)"}
+show_layout("petal")
+```
+
+```{r geom-petal2, fig.cap = "Petal variant (petal2)"}
+show_layout("petal2")
+```
+
+```{r geom-heart, fig.cap = "Heart (heart_centered)"}
+show_layout("heart_centered")
+```
+
+```{r geom-randomly, fig.cap = "Random (randomly)"}
+show_layout("randomly")
+```
+
+## 3. Hierarchical layouts
+
+```{r hier-rightiso, fig.cap = "Right-isometric layers (rightiso_layers)"}
+show_layout("rightiso_layers")
+```
+
+## 4. Circular module layouts
+
+These layouts arrange each module into a distinct geometric shape on a
+circle, making module boundaries visually explicit. Each comes in a
+standard version (module sizes proportional to node count) and an
+**equal** version (all modules the same size).
+
+Circular module layouts require `layout.module = "adjacent"` for best
+results. They work best with networks that have well-defined,
+moderately-sized modules.
+
+```{r cm-examples, eval = FALSE}
+# Standard (proportional) variants
+show_layout("circular_modules_gephi_layout", layout.module = "adjacent")
+show_layout("circular_modules_petal_layout", layout.module = "adjacent")
+show_layout("circular_modules_petal2_layout", layout.module = "adjacent")
+show_layout("circular_modules_diamond_layout", layout.module = "adjacent")
+show_layout("circular_modules_star_layout", layout.module = "adjacent")
+show_layout("circular_modules_star_concentric_layout", layout.module = "adjacent")
+show_layout("circular_modules_square_layout", layout.module = "adjacent")
+show_layout("circular_modules_square2_layout", layout.module = "adjacent")
+show_layout("circular_modules_grid_layout", layout.module = "adjacent")
+show_layout("circular_modules_heart_centered_layout", layout.module = "adjacent")
+
+# Equal-sized module variants
+show_layout("circular_modules_equal_gephi_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_petal_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_petal2_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_diamond_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_star_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_star_concentric_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_square_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_square2_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_grid_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_heart_centered_layout", layout.module = "adjacent")
+```
+
+## 5. Multipartite layouts
+
+Multipartite layouts separate nodes into two or more spatially distinct
+groups. Use them when nodes have a categorical block attribute
+(e.g. bacteria vs. fungi, or different experimental groups).
+
+The `layout.module` parameter controls how modules are arranged:
+
+- `"random"` -- modules distributed freely
+- `"adjacent"` -- modules positioned close together
+- `"order"` -- modules follow the block order (required for multipartite)
+
+These layouts require that the number of modules matches the expected
+block count (e.g. bipartite needs exactly 2, tripartite needs 3).
+
+```{r multi-examples, eval = FALSE}
+# Bipartite (2-block)
+show_layout("bipartite_layout", layout.module = "order")
+show_layout("bipartite_gephi_layout", layout.module = "order")
+
+# Tripartite (3-block)
+show_layout("tripartite_layout", layout.module = "order")
+show_layout("tripartite_gephi_layout", layout.module = "order")
+show_layout("tripartite_equal_gephi_layout", layout.module = "order")
+
+# Quadripartite (4-block)
+show_layout("quadripartite_layout", layout.module = "order")
+show_layout("quadripartite_gephi_layout", layout.module = "order")
+show_layout("quadripartite_equal_gephi_layout", layout.module = "order")
+show_layout("cross_quadripartite_gephi_layout", layout.module = "order")
+show_layout("cross_quadripartite_equal_gephi_layout", layout.module = "order")
+
+# Pentapartite (5-block)
+show_layout("pentapartite_layout", layout.module = "order")
+show_layout("pentapartite_gephi_layout", layout.module = "order")
+show_layout("pentapartite_equal_gephi_layout", layout.module = "order")
+```
+
+## 6. Consensus module layouts
+
+Consensus layouts align modules from different networks into a shared
+coordinate system. Useful for comparing network structures across
+conditions.
+
+```{r consensus-examples, eval = FALSE}
+show_layout("consensus_module_gephi")
+show_layout("consensus_module_equal_gephi")
+```
+
+## 7. The `layout.module` parameter
+
+All layouts accept `layout.module` to control how modules are spatially
+arranged. Here is the same layout with the three options:
+
+```{r lm-random, fig.cap = "layout.module = 'random'"}
+show_layout("gephi", layout.module = "random")
+```
+
+```{r lm-adjacent, fig.cap = "layout.module = 'adjacent'"}
+show_layout("gephi", layout.module = "adjacent")
+```
+
+## Quick reference table
+
+| Family | Layout string | Key feature |
+|--------|--------------|-------------|
+| **Force-directed** | `fr`, `fr1`, `fr2` | Fruchterman-Reingold variants |
+| | `kk` | Kamada-Kawai spring model |
+| | `stress` | Stress majorisation |
+| | `nicely`, `nicely1` | igraph auto-selection |
+| | `lgl` | Large graph layout |
+| | `gephi` | ForceAtlas2-style |
+| **Geometric** | `circle`, `circle_outline` | Circular |
+| | `grid` | Regular grid |
+| | `star`, `star_concentric` | Star / concentric rings |
+| | `diamond`, `diamond_outline` | Diamond shape |
+| | `square`, `square2`, `square_outline` | Square shapes |
+| | `rectangle`, `rectangle_outline` | Rectangle |
+| | `petal`, `petal2` | Petal / flower |
+| | `heart_centered` | Heart shape |
+| | `randomly` | Random placement |
+| **Hierarchical** | `dendrogram` | Circular dendrogram (directed graphs) |
+| | `multirings` | Concentric rings |
+| | `rightiso_layers` | Right-isometric layers |
+| **Circular modules** | `circular_modules_*_layout` | Module per petal/shape |
+| | `circular_modules_equal_*_layout` | Equal-sized variant |
+| **Multipartite** | `bipartite_layout`, `bipartite_gephi_layout` | 2-block |
+| | `tripartite_*` | 3-block |
+| | `quadripartite_*`, `cross_quadripartite_*` | 4-block |
+| | `pentapartite_*` | 5-block |
+| **Consensus** | `consensus_module_gephi` | Aligned multi-network |
+| | `consensus_module_equal_gephi` | Equal-sized variant |
+
+## Tips for choosing a layout
+
+1. **Start with `"fr"` or `"gephi"`** for an overview of community
+   structure.
+2. **Switch to `"circular_modules_*"`** when you want each module
+   clearly separated.
+3. **Use multipartite layouts** when nodes have a meaningful block
+   assignment (bacteria/fungi, treatment/control).
+4. **Use `"dendrogram"`** for directed / hierarchical graphs.
+5. **Use `layout.module = "adjacent"`** to pull related modules closer
+   together.
+6. **All layouts are deterministic** when `seed` is set -- figures are
+   reproducible across sessions.
+
+## Session information
+
+```{r sessioninfo}
+sessionInfo()
+```

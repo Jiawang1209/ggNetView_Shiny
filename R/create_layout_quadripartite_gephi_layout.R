@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_quadripartite_gephi_layout <- function(
     graph_obj,
     r = 1,
@@ -12,21 +13,21 @@ create_layout_quadripartite_gephi_layout <- function(
                        up = 0, right = -pi/2, down = pi, left = pi/2)
   theta_shift <- base_angle + angle
 
-  # ---- 正方形的四个锚点 ----
+
   radius <- r
   anchors <- list(
-    c(-anchor_dist, -anchor_dist),  # 左下
-    c(-anchor_dist,  anchor_dist),  # 左上
-    c( anchor_dist,  anchor_dist),  # 右上
-    c( anchor_dist, -anchor_dist)   # 右下
+    c(-anchor_dist, -anchor_dist),
+    c(-anchor_dist,  anchor_dist),
+    c( anchor_dist,  anchor_dist),
+    c( anchor_dist, -anchor_dist)
   )
 
-  # 平移到质心在原点
+
   A <- do.call(rbind, anchors)
   A_centered <- sweep(A, 2, colMeans(A), "-")
   anchors <- split(A_centered, row(A_centered))
 
-  # ---- 获取节点和模块 ----
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
@@ -36,16 +37,16 @@ create_layout_quadripartite_gephi_layout <- function(
   n_vec <- purrr::map_int(module_list, nrow)
 
   if (length(n_vec) < 4) {
-    stop("Quadripartite layout 需要至少 4 个模块（来自列 Modularity）。")
+    stop("Quadripartite layout requires at least 4 modules (from column `Modularity`).")
   }
   if (length(n_vec) > 4) {
-    message("检测到超过 4 个模块，仅使用前 4 个模块进行正方形布局。")
+    message("More than 4 modules detected; only the top 4 modules are used for the quadripartite layout.")
     module_list <- module_list[1:4]
     n_vec <- n_vec[1:4]
     mod_levels <- mod_levels[1:4]
   }
 
-  # ---- 同心圆节点分层 ----
+
   circle_layout <- function(n, node_add){
     counts <- 1
     total  <- 1
@@ -71,7 +72,7 @@ create_layout_quadripartite_gephi_layout <- function(
     )
   })
 
-  # ---- 同心圆布局函数 ----
+
   concentric_from_anchor <- function(cx, cy, info_df, r_step){
     ly <- data.frame(x = cx, y = cy)
     offset <- 0
@@ -92,7 +93,7 @@ create_layout_quadripartite_gephi_layout <- function(
     ly
   }
 
-  # ---- 按模块生成布局 ----
+
   ly_list <- list()
   for (i in 1:4) {
     cx <- anchors[[i]][1]; cy <- anchors[[i]][2]
@@ -103,7 +104,7 @@ create_layout_quadripartite_gephi_layout <- function(
 
   ly <- dplyr::bind_rows(ly_list)
 
-  # ---- 统一旋转 ----
+
   if (theta_shift != 0) {
     Rm <- matrix(c(cos(theta_shift), -sin(theta_shift),
                    sin(theta_shift),  cos(theta_shift)), nrow = 2)

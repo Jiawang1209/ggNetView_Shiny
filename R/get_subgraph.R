@@ -8,7 +8,15 @@
 #' @returns list
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation
+#' )
+#' sg <- get_subgraph(obj, select_module = "1")
+#' names(sg)
+#' sg$stat_module
 get_subgraph <- function(graph_obj, select_module = NULL){
 
   # get obj

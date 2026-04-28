@@ -5,16 +5,19 @@
 \title{Create network topology}
 \usage{
 get_network_topology(
-  graph_obj,
+  graph_obj = NULL,
+  graph_obj_list = NULL,
   mat = NULL,
+  graph_mat_list = NULL,
   transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy",
     "rrarefy_relative"),
   r.threshold = 0.7,
   p.threshold = 0.05,
   method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
   cor.method = c("pearson", "kendall", "spearman"),
-  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
-    "TSBH"),
+  proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
+  SpiecEasi.method = c("mb", "glasso"),
+  sparcc_R = 20,
   bootstrap = 100
 )
 }
@@ -22,8 +25,15 @@ get_network_topology(
 \item{graph_obj}{An graph object from build_graph_from_mat or build_graph_from_df.
 The network object to be visualized.}
 
+\item{graph_obj_list}{A list of graph objects. Optional alternative to
+\code{graph_obj}. Each element is analyzed separately.}
+
 \item{mat}{Numeric Matrix (default = NULL)
 The matrix to build graph_obj}
+
+\item{graph_mat_list}{A list of matrices corresponding to
+\code{graph_obj_list}. Optional. Each element is paired with the graph
+object at the same position and used for topology analysis separately.}
 
 \item{transfrom.method}{Character.
 Data transformation methods applied before correlation analysis.
@@ -54,20 +64,37 @@ Options include "pearson", "kendall", and "spearman".}
 \item{proc}{Character.
 Correlation p-value adjustment methods.
 Options include:
-"Bonferroni", "Holm", "Hochberg", "
-SidakSS", "SidakSD","BH",
-"BY", "ABH", and "TSBH".}
+"holm", "hochberg", "hommel", "bonferroni",
+"BH", "BY", "fdr", and "none".}
+
+\item{SpiecEasi.method}{Character. Inverse-covariance estimation method
+passed to SpiecEasi when \code{method = "SpiecEasi"}.
+One of \code{"mb"} (Meinshausen-Buehlmann, default) or \code{"glasso"}.}
+
+\item{sparcc_R}{Integer.
+Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+Default 20.}
 
 \item{bootstrap}{Numeric  (default = 100).
 Number of bootstrap iterations for stability analysis}
 }
 \value{
-data frame of network topolog
+A list containing topology output and robustness output for a single
+  network. When \code{graph_obj_list} is provided, returns a named list of
+  such results.
 }
 \description{
 Generates a data frame containing network topology information from either a
 pre-built graph object or directly from an adjacency matrix.
 }
 \examples{
-NULL
+\donttest{
+data(ppi_example)
+obj <- build_graph_from_df(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation
+)
+topo <- get_network_topology(graph_obj = obj, bootstrap = 10)
+head(topo$topology)
+}
 }

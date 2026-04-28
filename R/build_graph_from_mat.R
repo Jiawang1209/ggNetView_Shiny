@@ -19,21 +19,23 @@
 #' Significance threshold for correlations; edges are kept only if p < p.threshold.
 #' @param method Character.
 #' Relationship analysis methods.
-#' Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".
+#' Options include: "WGCNA", "SpiecEasi", "SPARCC", "cor", and "Hmisc".
 #' @param cor.method Character.
 #' Correlation analysis method.
 #' Options include "pearson", "kendall", and "spearman".
 #' @param proc Character.
 #' Correlation p-value adjustment methods.
 #' Options include:
-#' "Bonferroni", "Holm", "Hochberg", "
-#' SidakSS", "SidakSD","BH",
-#' "BY", "ABH", and "TSBH".
+#' "holm", "hochberg", "hommel", "bonferroni",
+#' "BH", "BY", "fdr", and "none".
 #' @param module.method Character.
 #' Network community detection (module identification) method.
 #' Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".
 #' @param SpiecEasi.method Character.
 #' Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".
+#' @param sparcc_R Integer.
+#' Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+#' Default 20.
 #' @param node_annotation Data frame.
 #' Optional node annotation table, containing metadata such as taxonomy or functional categories.
 #' @param top_modules Integer.
@@ -47,16 +49,33 @@
 #'
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \donttest{
+#' set.seed(1)
+#' mat <- matrix(stats::rnorm(40 * 20), nrow = 40, ncol = 20)
+#' rownames(mat) <- paste0("feature", seq_len(40))
+#' colnames(mat) <- paste0("sample",  seq_len(20))
+#' obj <- build_graph_from_mat(
+#'   mat           = mat,
+#'   method        = "cor",
+#'   cor.method    = "pearson",
+#'   proc          = "none",
+#'   r.threshold   = 0.3,
+#'   p.threshold   = 0.05,
+#'   module.method = "Fast_greedy"
+#' )
+#' obj
+#' }
 build_graph_from_mat <- function(mat,
                                  transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
                                  r.threshold = 0.7,
                                  p.threshold = 0.05,
-                                 method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
+                                 method = c("WGCNA", "SpiecEasi", "SPARCC", "cor", "Hmisc"),
                                  cor.method = c("pearson", "kendall", "spearman"),
-                                 proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
+                                 proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
                                  module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
                                  SpiecEasi.method = c("mb", "glasso"),
+                                 sparcc_R = 20,
                                  node_annotation = NULL,
                                  top_modules = 15,
                                  seed = 1115){
@@ -85,21 +104,6 @@ build_graph_from_mat <- function(mat,
     stop(sprintf("`mat` must contain only colname. The duplicated colname: %s", paste(dup, collapse = ", ")), call. = FALSE)
   }
 
-
-
-  allowed_proc <- c("Bonferroni","Holm","Hochberg","SidakSS","SidakSD","BH","BY","ABH","TSBH")
-  if (is.null(proc) || length(proc) < 1L) {
-    stop("`proc` provides at least one multi-correlation methods.", call. = FALSE)
-  }
-
-  if (!all(proc %in% allowed_proc)) {
-    bad <- proc[!proc %in% allowed_proc]
-    stop(sprintf("`proc` contains unsupported method: %s, Supported: %s",
-                 paste(bad, collapse = ", "),
-                 paste(allowed_proc, collapse = ", ")),
-         call. = FALSE)
-  }
-
   if (length(top_modules) != 1L || !is.numeric(top_modules) || top_modules < 1) {
     stop("`top_modules` must be a single numeric value >= 1.", call. = FALSE)
   }
@@ -108,7 +112,10 @@ build_graph_from_mat <- function(mat,
     stop("`seed` must be a single numeric.", call. = FALSE)
   }
   seed <- as.integer(seed)
-
+  sparcc_R <- as.integer(sparcc_R)[1L]
+  if (is.na(sparcc_R) || sparcc_R < 1L) {
+    stop("`sparcc_R` must be a positive integer.", call. = FALSE)
+  }
 
   if (!is.null(node_annotation)) {
     if (!is.data.frame(node_annotation)) {
@@ -120,6 +127,7 @@ build_graph_from_mat <- function(mat,
   }
 
   # argument check
+  method <- match.arg(method)
   transfrom.method <-  match.arg(transfrom.method)
   cor.method <- match.arg(cor.method)
   proc <- match.arg(proc)
@@ -138,27 +146,23 @@ build_graph_from_mat <- function(mat,
     tibble::column_to_rownames(var = "ID")
 
   # data transfrom
-  mat <- switch (
-    transfrom.method,
-    none = mat,
-    scale = t(scale(t(mat), scale = T, center = T)),
-    center = t(scale(t(mat), scale = F, center = T)),
-    log2 = log2(mat + 1),
-    log10 = log10(mat + 1),
-    ln = log(mat + 1),
-    rrarefy = t(vegan::rrarefy(t(mat), min(colSums(mat)))),
-    rrarefy_relative = t(vegan::rrarefy(t(mat), min(colSums(mat)))) / colSums(t(vegan::rrarefy(t(mat), min(colSums(mat)))))
-  )
+  mat <- apply_transform_method(mat, transfrom.method)
 
   # calculate correlation
+  adjust_p_matrix <- function(p_mat, proc_method) {
+    matrix(
+      stats::p.adjust(unlist(p_mat), method = proc_method),
+      nrow = nrow(p_mat),
+      ncol = ncol(p_mat),
+      dimnames = dimnames(p_mat)
+    )
+  }
 
   # WGCNA
   if (method == "WGCNA") {
     # WGCNA for correlation
     occor <- WGCNA::corAndPvalue(t(mat), method = cor.method)
-    mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
-    adpcor <- mtadj$adjp[order(mtadj$index),2]
-    occor.p <- matrix(adpcor, dim(t(mat))[2])
+    occor.p <- adjust_p_matrix(occor$p, proc)
 
     # R and pvalue
     occor.r <- occor$cor
@@ -170,45 +174,30 @@ build_graph_from_mat <- function(mat,
     g <- igraph::graph_from_adjacency_matrix(occor.r, weighted = TRUE, mode = 'undirected')
   }
 
-  # SpiecEasi
+  # SpiecEasi (spieceasi_matrix_rcpp: no p-value, filter by r.threshold only)
   if (method == "SpiecEasi") {
-    # SpiecEasi for correlation
-    SpiecEasi_obj <- SpiecEasi::spiec.easi(as.matrix(t(mat)),
-                                           method = SpiecEasi.method,
-                                           lambda.min.ratio=1e-2,
-                                           nlambda=20,
-                                           pulsar.params=list(rep.num=50)
-                                           )
-
-    # return adjacency matrix
-    am <- SpiecEasi::getRefit(SpiecEasi_obj)
-
+    # mat: ASV x samples -> t(mat): samples x taxa for spieceasi_matrix_rcpp
+    am <- spieceasi_matrix_rcpp(as.matrix(t(mat)), method = SpiecEasi.method, output = "adjacency",
+                                lambda.min.ratio = 1e-2, nlambda = 20, pulsar.params = list(rep.num = 50))
     rownames(am) <- rownames(mat)
     colnames(am) <- rownames(mat)
-
-    # Create igraph objects
+    am <- am * (abs(am) >= r.threshold)
+    am[is.na(am)] <- 0
+    diag(am) <- 0
     g <- igraph::graph_from_adjacency_matrix(am, weighted = TRUE, mode = 'undirected')
   }
 
-  # SparCC
-  if (method == "SparCC") {
-    # Sparcc for correlation
-    SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
-
-    # SparCC_graph <- abs(SparCC_obj$Cor) >= r.threshold
-
-    occor.r <- SparCC_obj$Cor
-
-    occor.r[abs(occor.r) < r.threshold] = 0
-
+  # SparCC (sparcc_matrix_rcpp: filter by r.threshold and p.threshold)
+  if (method == "SPARCC") {
+    # mat: ASV x samples -> t(mat): samples x taxa for sparcc_matrix_rcpp
+    occor.r <- sparcc_matrix_rcpp(as.matrix(t(mat)))
+    p_mat <- sparcc_pvalue_rcpp(as.matrix(t(mat)), R = sparcc_R)
     diag(occor.r) <- 0
-
+    occor.r[abs(occor.r) < r.threshold | is.na(p_mat) | p_mat > p.threshold] <- 0
+    occor.r[is.na(occor.r)] <- 0
     rownames(occor.r) <- rownames(mat)
     colnames(occor.r) <- rownames(mat)
-
-    occor.r <- Matrix::Matrix(occor.r, sparse=TRUE)
-
-    # Create igraph objects
+    occor.r <- Matrix::Matrix(occor.r, sparse = TRUE)
     g <- igraph::graph_from_adjacency_matrix(occor.r, weighted = TRUE, mode = 'undirected')
   }
 
@@ -216,9 +205,7 @@ build_graph_from_mat <- function(mat,
   if (method == "cor") {
     # WGCNA for correlation
     occor <- psych::corr.test(t(mat), method = cor.method)
-    mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
-    adpcor <- mtadj$adjp[order(mtadj$index),2]
-    occor.p <- matrix(adpcor, dim(t(mat))[2])
+    occor.p <- adjust_p_matrix(occor$p, proc)
 
     # R and pvalue
     occor.r <- occor$r
@@ -228,6 +215,35 @@ build_graph_from_mat <- function(mat,
 
     # create igraph object
     g <- igraph::graph_from_adjacency_matrix(occor.r, weighted = TRUE, mode = 'undirected')
+  }
+
+  # Hmisc::rcorr
+  if (method == "Hmisc") {
+    if (identical(cor.method, "kendall")) {
+      stop("`method = 'Hmisc'` uses `Hmisc::rcorr()` and only supports `cor.method = 'pearson'` or `cor.method = 'spearman'`.", call. = FALSE)
+    }
+
+    rcorr_type <- switch(
+      cor.method,
+      pearson = "pearson",
+      spearman = "spearman"
+    )
+
+    occor <- Hmisc::rcorr(t(mat), type = rcorr_type)
+    occor.r <- occor$r
+    occor.r[abs(occor.r) < r.threshold] <- 0
+
+    occor.p <- adjust_p_matrix(occor$P, proc)
+    occor.p[occor.p >= p.threshold] <- -1
+    occor.p[occor.p < p.threshold & occor.p >= 0] <- 1
+    occor.p[occor.p == -1] <- 0
+    occor.p[is.na(occor.p)] <- 0
+
+    z <- occor.r * occor.p
+    z[is.na(z)] <- 0
+    diag(z) <- 0
+
+    g <- igraph::graph_from_adjacency_matrix(z, weighted = TRUE, mode = "undirected")
   }
 
   # remove self correlation

@@ -20,5 +20,12 @@ list
 Extract subgrah from graph object
 }
 \examples{
-NULL
+data(ppi_example)
+obj <- build_graph_from_df(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation
+)
+sg <- get_subgraph(obj, select_module = "1")
+names(sg)
+sg$stat_module
 }

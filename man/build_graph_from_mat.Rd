@@ -10,12 +10,12 @@ build_graph_from_mat(
     "rrarefy_relative"),
   r.threshold = 0.7,
   p.threshold = 0.05,
-  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
+  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor", "Hmisc"),
   cor.method = c("pearson", "kendall", "spearman"),
-  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
-    "TSBH"),
+  proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
   module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
   SpiecEasi.method = c("mb", "glasso"),
+  sparcc_R = 20,
   node_annotation = NULL,
   top_modules = 15,
   seed = 1115
@@ -45,7 +45,7 @@ Significance threshold for correlations; edges are kept only if p < p.threshold.
 
 \item{method}{Character.
 Relationship analysis methods.
-Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".}
+Options include: "WGCNA", "SpiecEasi", "SPARCC", "cor", and "Hmisc".}
 
 \item{cor.method}{Character.
 Correlation analysis method.
@@ -54,9 +54,8 @@ Options include "pearson", "kendall", and "spearman".}
 \item{proc}{Character.
 Correlation p-value adjustment methods.
 Options include:
-"Bonferroni", "Holm", "Hochberg", "
-SidakSS", "SidakSD","BH",
-"BY", "ABH", and "TSBH".}
+"holm", "hochberg", "hommel", "bonferroni",
+"BH", "BY", "fdr", and "none".}
 
 \item{module.method}{Character.
 Network community detection (module identification) method.
@@ -64,6 +63,10 @@ Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".}
 
 \item{SpiecEasi.method}{Character.
 Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".}
+
+\item{sparcc_R}{Integer.
+Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+Default 20.}
 
 \item{node_annotation}{Data frame.
 Optional node annotation table, containing metadata such as taxonomy or functional categories.}
@@ -82,5 +85,20 @@ Node/edge attributes include correlation statistics and (optionally) module labe
 Build a correlation-based network from a matrix
 }
 \examples{
-NULL
+\donttest{
+set.seed(1)
+mat <- matrix(stats::rnorm(40 * 20), nrow = 40, ncol = 20)
+rownames(mat) <- paste0("feature", seq_len(40))
+colnames(mat) <- paste0("sample",  seq_len(20))
+obj <- build_graph_from_mat(
+  mat           = mat,
+  method        = "cor",
+  cor.method    = "pearson",
+  proc          = "none",
+  r.threshold   = 0.3,
+  p.threshold   = 0.05,
+  module.method = "Fast_greedy"
+)
+obj
+}
 }

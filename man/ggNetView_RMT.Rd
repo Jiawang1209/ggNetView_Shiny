@@ -28,8 +28,9 @@ ggNetView_RMT(
 }
 \arguments{
 \item{mat}{Numeric matrix.
-A numeric matrix with samples in colums and variables in rows
-#' @param transfrom.method Character.
+A numeric matrix with samples in colums and variables in rows}
+
+\item{transfrom.method}{Character.
 Data transformation methods applied before correlation analysis.
 Options include:
 "none" (raw data),
@@ -87,10 +88,11 @@ A list with: chosen_threshold, chosen_reason, tested_thresholds, scores (data.fr
 One-shot, non-interactive RMT threshold scan with auto selection
 }
 \examples{
-NULL
-
-
-# m <- cor(scale(matrix(rnorm(40000), 200, 200)))
-# res <- ggNetView_RMT(m, save_plots=TRUE)
-# res$chosen_threshold
+\dontrun{
+set.seed(1)
+m <- stats::cor(scale(matrix(stats::rnorm(40000), 200, 200)))
+rownames(m) <- colnames(m) <- paste0("g", seq_len(200))
+res <- ggNetView_RMT(m, method = "cor")
+res$chosen_threshold
+}
 }

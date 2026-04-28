@@ -28,14 +28,16 @@
 #' @param proc Character.
 #' Correlation p-value adjustment methods.
 #' Options include:
-#' "Bonferroni", "Holm", "Hochberg", "
-#' SidakSS", "SidakSD","BH",
-#' "BY", "ABH", and "TSBH".
+#' "holm", "hochberg", "hommel", "bonferroni",
+#' "BH", "BY", "fdr", and "none".
 #' @param module.method Character.
 #' Network community detection (module identification) method.
 #' Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".
 #' @param SpiecEasi.method Character.
 #' Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".
+#' @param sparcc_R Integer.
+#' Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+#' Default 20.
 #' @param node_annotation Data frame.
 #' Optional node annotation table, containing metadata such as taxonomy or functional categories.
 #' @param top_modules Integer.
@@ -56,12 +58,15 @@
 #' Index of nodes to be emphasized or centered in the layout
 #' @param shrink Numeric (default = 1).
 #' Shrinkage factor applied to the center points.
+#' @param inner_shrink Numeric (default = 1).
+#' Intra-module compactness factor for \code{layout = "WGCNA"} only.
+#' See \code{\link{ggNetView}} for details.  Ignored by other layouts.
 #' @param k_nn Numeric (default = 8).
 #' Number of nearest neighbors used to build the local adjacency graph.
 #' @param push_others_delta Numeric (default = 0).
 #' Radial offset applied to the "Others" module to slightly
 #' @param layout.module Character  (default = "random")
-#‘ - random : modules are distributed more randomly and independently.
+#' - random : modules are distributed more randomly and independently.
 #' - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 #' - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
 #' @param shape Integer  (default = 21).
@@ -71,6 +76,12 @@
 #' @param pointsize Vector (default =  c(1,10))
 #' The point size rang.
 #' @param pointstroke Integer  (default = 0.3).
+#' @param pointlabel Character (default = NULL).
+#' Optional node label mode for top Degree nodes within each module.
+#' Supported values: \code{"topN"} (e.g. \code{"top1"}, \code{"top7"}, \code{"top20"})
+#' and \code{"ALL"}.
+#' @param pointlabelsize Integer (default = 5).
+#' Change point label size.
 #' @param group.by Character (default = "Modularity").
 #' Change group for nodes
 #' @param fill.by Character (default = "Modularity").
@@ -97,16 +108,34 @@
 #' Change  line alpha.
 #' @param linecolor Character  (default = "grey70").
 #' Change  line color.
-#' @param label Logical (default = FALSE).
-#' Whether to display node labels in the center points.
+#' @param label Logical or Character (default = FALSE).
+#' Whether to display module labels. If a character string, used as legend prefix.
 #' @param labelsize Integer  (default = 10).
 #' Change Module label size.
 #' @param labelsegmentsize Integer  (default = 1).
 #' Change  label segment size.
 #' @param labelsegmentalpha Integer  (default = 1).
 #' Change  label segment alpha.
+#' @param add_group_outer Logical (default = FALSE).
+#' Whether to add a circle boundary around the entire network (mimics \code{ggforce::geom_mark_circle}).
+#' @param add_group_outer_expand Numeric (default = 2).
+#' Expansion in mm for the group circle; passed to \code{geom_mark_circle(expand = ...)}.
+#' @param add_group_outer_color Character (default = "grey50").
+#' Color of the group outer circle border.
+#' @param add_group_outer_fill Character or NULL (default = NULL).
+#' Fill color of the group outer circle. \code{NULL} = no fill (transparent).
+#' @param add_group_outer_fill_alpha Numeric (default = 0.2).
+#' Alpha (transparency) of the group outer circle fill.
+#' @param add_group_outer_linetype Integer or character (default = 1).
+#' Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).
+#' @param add_group_outer_linewidth Numeric (default = 0.5).
+#' Line width of the group outer circle.
 #' @param add_outer Logical (default = FALSE).
-#' Whether to add an outer circle/border around the layout.
+#' Whether to add an outer circle/border around each module.
+#' @param q_outer Numeric (default = 0.88).
+#' Quantile of radial distance used to construct the smooth outer boundary for each module.
+#' @param expand_outer Numeric (default = 1.02).
+#' Global scaling factor applied to the smoothed radial distances when drawing the outer boundary.
 #' @param outerwidth Integer  (default = 1.25).
 #' Change  outer linewidth.
 #' @param outerlinetype Integer  (default = 2).
@@ -116,7 +145,9 @@
 #' @param nodelabsize Integer  (default = 5).
 #' Change  node label size.
 #' @param remove Logical (default = FALSE).
-#' Delect nodes that are not modules.
+#' Remove nodes that are not modules.
+#' @param dropOthers Logical (default = FALSE).
+#' If TRUE, remove nodes in the \code{"Others"} module before layout and visualization.
 #' @param orientation Character string.
 #' Custom orientation; one of "up","down","left","right".
 #' @param angle Integer  (default = 0).
@@ -125,15 +156,31 @@
 #' modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius
 #' @param anchor_dist Integer (default = 6)
 #' the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
+#' @param layout_nrow Integer (default = NULL).
+#' Number of layout rows passed to \code{ggNetView} when using consensus-module grid layouts.
+#' @param layout_ncol Integer (default = NULL).
+#' Number of layout columns passed to \code{ggNetView} when using consensus-module grid layouts.
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
-#' @param nrwo Integer (default = NULL).
-#' Then nrow of combinme plot
+#' @param nrow Integer (default = NULL).
+#' Number of rows in the combined patchwork plot.
+#' @param ncol Integer (default = NULL).
+#' Number of columns in the combined patchwork plot.
 #'
 #' @returns  A ggplot object representing the network visualization.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `mat` is a numeric matrix (features x samples) and
+#' # `group_info` is a data frame with columns Sample and Group.
+#' p <- ggNetView_multi(
+#'   mat        = mat,
+#'   group_info = group_info,
+#'   method     = "cor",
+#'   layout     = "fr"
+#' )
+#' }
 ggNetView_multi <- function(mat,
                             group_info,
                             transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy",
@@ -142,10 +189,10 @@ ggNetView_multi <- function(mat,
                             p.threshold = 0.05,
                             method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
                             cor.method = c("pearson", "kendall", "spearman"),
-                            proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
-                                     "TSBH"),
+                            proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
                             module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
                             SpiecEasi.method = c("mb", "glasso"),
+                            sparcc_R = 20,
                             node_annotation = NULL,
                             top_modules = 15,
                             layout = NULL,
@@ -155,6 +202,7 @@ ggNetView_multi <- function(mat,
                             center = TRUE,
                             idx = NULL,
                             shrink = 1,
+                            inner_shrink = 1,
                             k_nn = 12,
                             push_others_delta = 0,
                             layout.module = c("random", "adjacent", "order"),
@@ -162,6 +210,8 @@ ggNetView_multi <- function(mat,
                             pointalpha = 1,
                             pointsize = c(1,10),
                             pointstroke = 0.3,
+                            pointlabel = NULL,
+                            pointlabelsize = 5,
                             group.by = "Modularity",
                             fill.by = "Modularity",
                             color.by = NULL,
@@ -179,28 +229,42 @@ ggNetView_multi <- function(mat,
                             labelsize = 10,
                             labelsegmentsize = 1,
                             labelsegmentalpha = 1,
+                            add_group_outer = FALSE,
+                            add_group_outer_expand = 2,
+                            add_group_outer_color = "grey50",
+                            add_group_outer_fill = NULL,
+                            add_group_outer_fill_alpha = 0.2,
+                            add_group_outer_linetype = 1,
+                            add_group_outer_linewidth = 0.5,
                             add_outer = FALSE,
+                            q_outer = 0.88,
+                            expand_outer = 1.02,
                             outerwidth = 1.25,
                             outerlinetype = 2,
                             outeralpha = 0.5,
                             nodelabsize = 5,
                             remove = FALSE,
+                            dropOthers = FALSE,
                             orientation = "up",
                             angle = 0,
                             scale = T,
                             anchor_dist = 6,
+                            layout_nrow = NULL,
+                            layout_ncol = NULL,
                             seed = 1115,
-                            nrow = NULL
+                            nrow = NULL,
+                            ncol = NULL
                             ){
 
+  method <- match.arg(method)
   p_list <- list()
 
   for (g in unique(group_info$Group)) {
-    print(g)
     group_info_sub <- group_info %>%
       dplyr::filter(Group %in% g)
 
     mat_sub <- mat %>%
+      as.data.frame() %>%
       dplyr::select(all_of(group_info_sub$Sample)) %>%
       tibble::rownames_to_column(var = "ID") %>%
       dplyr::rowwise() %>%
@@ -220,6 +284,7 @@ ggNetView_multi <- function(mat,
       proc = proc,
       module.method = module.method,
       SpiecEasi.method = SpiecEasi.method,
+      sparcc_R = sparcc_R,
       node_annotation = node_annotation,
       top_modules = top_modules,
       seed = seed
@@ -234,6 +299,7 @@ ggNetView_multi <- function(mat,
       center = center,
       idx = idx,
       shrink = shrink,
+      inner_shrink = inner_shrink,
       k_nn = k_nn,
       push_others_delta = push_others_delta,
       layout.module = layout.module,
@@ -241,6 +307,8 @@ ggNetView_multi <- function(mat,
       pointalpha = pointalpha,
       pointsize = pointsize,
       pointstroke = pointstroke,
+      pointlabel = pointlabel,
+      pointlabelsize = pointlabelsize,
       group.by = group.by,
       fill.by = fill.by,
       color.by = color.by,
@@ -258,16 +326,28 @@ ggNetView_multi <- function(mat,
       labelsize = labelsize,
       labelsegmentsize = labelsegmentsize,
       labelsegmentalpha = labelsegmentalpha,
+      add_group_outer = add_group_outer,
+      add_group_outer_expand = add_group_outer_expand,
+      add_group_outer_color = add_group_outer_color,
+      add_group_outer_fill = add_group_outer_fill,
+      add_group_outer_fill_alpha = add_group_outer_fill_alpha,
+      add_group_outer_linetype = add_group_outer_linetype,
+      add_group_outer_linewidth = add_group_outer_linewidth,
       add_outer = add_outer,
+      q_outer = q_outer,
+      expand_outer = expand_outer,
       outerwidth = outerwidth,
       outerlinetype = outerlinetype,
       outeralpha = outeralpha,
       nodelabsize = nodelabsize,
       remove = remove,
+      dropOthers = dropOthers,
       orientation = orientation,
       angle = angle,
       scale = scale,
       anchor_dist = anchor_dist,
+      nrow = layout_nrow,
+      ncol = layout_ncol,
       seed = seed
     )
 
@@ -277,7 +357,8 @@ ggNetView_multi <- function(mat,
 
   p_out <- patchwork::wrap_plots(p_list,
                                  # guides = "collect",
-                                 nrow = nrow)
+                                 nrow = nrow,
+                                 ncol = ncol)
 
   return(p_out)
 

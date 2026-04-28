@@ -1,0 +1,326 @@
+---
+title: "Network Topology and Keystone Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Network Topology and Keystone Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  fig.width = 7,
+  fig.height = 6,
+  dpi       = 72
+)
+```
+
+## Overview
+
+After building a network with any `build_graph_from_*()` function, the
+natural next step is to quantify its structure. `ggNetView` provides a
+family of topology functions that compute global metrics, per-sample
+subgraph metrics, robustness estimates, and node-role classification:
+
+| Function | Purpose |
+|----------|---------|
+| `get_network_topology()` | Global metrics + bootstrap robustness |
+| `get_network_topology_parallel()` | Same, parallelised across a list of networks |
+| `get_sample_subgraph_topology()` | Per-sample subgraph metrics |
+| `get_sample_subgraph_topology_parallel()` | Same, parallelised |
+| `ggnetview_zipi()` | Zi-Pi node-role classification |
+| `ggnetview_modularity_heatmaps()` | Module composition heatmaps |
+
+```{r setup}
+library(ggNetView)
+```
+
+## 1. Build a demo network
+
+```{r build}
+data(otu_rare_relative)
+data(tax_tab)
+
+mat <- as.matrix(otu_rare_relative)
+mat <- mat[order(rowSums(mat), decreasing = TRUE)[seq_len(80)], ]
+annot <- tax_tab[tax_tab$OTUID %in% rownames(mat), ]
+
+g <- build_graph_from_mat(
+  mat             = mat,
+  method          = "cor",
+  cor.method      = "spearman",
+  proc            = "BH",
+  r.threshold     = 0.6,
+  p.threshold     = 0.05,
+  module.method   = "Fast_greedy",
+  node_annotation = annot,
+  seed            = 1
+)
+
+g
+```
+
+## 2. Global network topology
+
+`get_network_topology()` returns a list with two key elements:
+
+- **`topology`** -- a one-row data frame of global metrics (nodes,
+  edges, average degree, clustering coefficient, modularity, etc.).
+- **`robustness`** -- bootstrap estimates of how metrics behave under
+  random node removal.
+
+```{r global-topo}
+topo <- get_network_topology(graph_obj = g, bootstrap = 30)
+```
+
+### Topology metrics
+
+```{r topo-table}
+t(topo$topology)
+```
+
+Key metrics to look for:
+
+| Metric | Interpretation |
+|--------|---------------|
+| Nodes / Edges | Network size |
+| Average degree | Mean connections per node |
+| Clustering coefficient | Local clustering tendency |
+| Modularity | Strength of community structure (> 0.4 is strong) |
+| Average path length | How many hops between any two nodes |
+| Density | Fraction of possible edges realised |
+| Positive / Negative edges | Cooperative vs. competitive interactions |
+
+### Robustness
+
+The robustness table shows how topology metrics degrade as nodes are
+randomly removed. This is useful for assessing network stability.
+
+```{r robustness}
+head(topo$robustness)
+```
+
+## 3. Comparing multiple networks
+
+When you have networks from different conditions (e.g. treatment vs.
+control, or different time points), pass them as a named list to
+compute topology in one call.
+
+```{r multi-topo}
+mat_a <- mat[, 1:9]
+mat_b <- mat[, 10:18]
+
+g_a <- build_graph_from_mat(
+  mat = mat_a, method = "cor", cor.method = "spearman",
+  proc = "BH", r.threshold = 0.6, p.threshold = 0.05,
+  module.method = "Fast_greedy", seed = 1
+)
+g_b <- build_graph_from_mat(
+  mat = mat_b, method = "cor", cor.method = "spearman",
+  proc = "BH", r.threshold = 0.6, p.threshold = 0.05,
+  module.method = "Fast_greedy", seed = 1
+)
+
+topo_list <- get_network_topology(
+  graph_obj_list = list(GroupA = g_a, GroupB = g_b),
+  bootstrap      = 20
+)
+
+names(topo_list)
+```
+
+Each element contains the same `topology` + `robustness` structure.
+Bind the topology rows to compare:
+
+```{r compare-table}
+topo_compare <- do.call(rbind, lapply(names(topo_list), function(nm) {
+  cbind(Group = nm, topo_list[[nm]]$topology)
+}))
+t(topo_compare)
+```
+
+## 4. Sample-level subgraph topology
+
+In microbiome studies, each sample contains a different subset of
+taxa. `get_sample_subgraph_topology()` extracts a subgraph per sample
+(keeping only taxa present in that sample) and computes topology for
+each.
+
+```{r sample-topo}
+sample_topo <- get_sample_subgraph_topology(
+  graph_obj = g,
+  mat       = mat,
+  bootstrap = 10
+)
+
+names(sample_topo)
+```
+
+The result contains:
+
+- **`subgraph_list`** -- per-sample `tbl_graph` objects
+- **`topology`** -- merged topology table (one row per sample)
+- **`Robustness`** -- merged robustness table
+- **`sample_stat`** -- summary of node/edge counts per sample
+
+```{r sample-stat}
+head(sample_topo$sample_stat)
+```
+
+```{r sample-topo-table}
+head(sample_topo$topology)
+```
+
+### Parallel version
+
+For large datasets with many samples, use the parallel variant to
+speed up computation:
+
+```{r sample-topo-parallel, eval = FALSE}
+sample_topo_par <- get_sample_subgraph_topology_parallel(
+  graph_obj = g,
+  mat       = mat,
+  bootstrap = 10
+)
+```
+
+The output structure is identical.
+
+## 5. Zi-Pi node-role classification
+
+The Zi-Pi framework (Guimera & Amaral, 2005) classifies each node by
+two metrics:
+
+- **Zi (within-module connectivity)** -- how well connected a node is
+  within its own module.
+- **Pi (participation coefficient)** -- how much a node connects to
+  other modules.
+
+Default thresholds (Zi = 2.5, Pi = 0.62) divide nodes into four
+roles:
+
+```
+                        Pi < 0.62          Pi >= 0.62
+             ┌─────────────────────┬─────────────────────┐
+  Zi >= 2.5  │   Module hubs       │   Network hubs      │
+             ├─────────────────────┼─────────────────────┤
+  Zi <  2.5  │   Peripherals       │   Connectors        │
+             └─────────────────────┴─────────────────────┘
+```
+
+### Computing Zi-Pi
+
+```{r zipi-compute}
+nodes_tbl <- get_graph_nodes(g)
+adj_mat   <- get_graph_adjacency(g)
+
+zipi <- ggnetview_zipi(
+  nodes_bulk     = nodes_tbl,
+  z_bulk_mat     = adj_mat,
+  modularity_col = "Modularity",
+  degree_col     = "Degree"
+)
+```
+
+The result contains a `data` frame and a ready-made `plot`:
+
+```{r zipi-data}
+head(zipi$data[, c("name", "within_module_connectivities",
+                    "among_module_connectivities", "type")])
+```
+
+```{r zipi-roles}
+table(zipi$data$type)
+```
+
+### Zi-Pi scatter plot
+
+```{r zipi-plot, fig.cap = "Zi-Pi scatter plot. Quadrants identify node roles."}
+zipi$plot
+```
+
+### Interpreting node roles
+
+- **Peripherals** (most nodes) -- loosely connected within and across
+  modules. They follow the community structure passively.
+- **Module hubs** -- highly connected within their module but not
+  bridging to others. Removal destabilises the module.
+- **Connectors** -- bridge nodes linking different modules. Important
+  for network-wide information flow.
+- **Network hubs** -- both intra- and inter-module hubs. The most
+  critical nodes; candidates for keystone species or genes.
+
+### Custom thresholds
+
+Adjust the classification boundaries when the defaults do not fit your
+system:
+
+```{r zipi-custom}
+zipi_strict <- ggnetview_zipi(
+  nodes_bulk     = nodes_tbl,
+  z_bulk_mat     = adj_mat,
+  modularity_col = "Modularity",
+  degree_col     = "Degree",
+  zi_threshold   = 2.0,
+  pi_threshold   = 0.5
+)
+
+table(zipi_strict$data$type)
+```
+
+## 6. Module composition summary
+
+You can summarise module composition by counting nodes and examining
+the dominant taxa per module:
+
+```{r mod-summary}
+nodes <- get_graph_nodes(g)
+module_summary <- as.data.frame(table(
+  Module = as.character(nodes$Modularity)
+))
+colnames(module_summary)[2] <- "Nodes"
+module_summary <- module_summary[order(-module_summary$Nodes), ]
+module_summary
+```
+
+For richer module-environment correlation heatmaps, see
+`ggnetview_modularity_heatmaps()` which links module eigengenes or
+abundances to environmental variables — it requires an environmental
+data frame and `env_select` specification.
+
+## 7. Putting it all together: a typical workflow
+
+```{r workflow-summary, eval = FALSE}
+# 1. Build network
+g <- build_graph_from_mat(mat, method = "cor", ...)
+
+# 2. Visualise
+ggNetView(g, layout = "fr", fill.by = "Modularity")
+
+# 3. Global topology
+topo <- get_network_topology(g, bootstrap = 100)
+
+# 4. Sample-level topology
+sample_topo <- get_sample_subgraph_topology(g, mat, bootstrap = 50)
+
+# 5. Keystone detection
+zipi <- ggnetview_zipi(
+  get_graph_nodes(g), get_graph_adjacency(g),
+  "Modularity", "Degree"
+)
+
+# 6. Module summary
+table(get_graph_nodes(g)$Modularity)
+```
+
+Steps 3-6 work with any graph produced by `build_graph_from_mat()`,
+`build_graph_from_df()`, `build_graph_from_wgcna()`, or any other
+builder -- the topology functions only need a `tbl_graph` input.
+
+## Session information
+
+```{r sessioninfo}
+sessionInfo()
+```

@@ -17,8 +17,16 @@
 #'   Node/edge attributes include correlation statistics and (optionally) module labels.
 #' @export
 #'
-#'
-#' @examples NULL
+#' @examples
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation,
+#'   directed        = FALSE,
+#'   module.method   = "Fast_greedy",
+#'   top_modules     = 5
+#' )
+#' obj
 #'
 build_graph_from_df <- function(df,
                                 node_annotation = NULL,
@@ -27,26 +35,28 @@ build_graph_from_df <- function(df,
                                 top_modules = 15,
                                 seed = 1115){
 
+  module.method <- match.arg(module.method)
+
   set.seed(seed)
 
-  # 构建igraph对象
+
   g <- igraph::graph_from_data_frame(
     d = df,
     vertices = node_annotation,
     directed = directed
   )
 
-  # 删除自相关
+
   g <- igraph::simplify(g)
 
-  # 删除孤立节点
+
   g <- igraph::delete_vertices(g, which(igraph::degree(g)==0))
 
-  ## 设置网络的weight，为计算模块性做准备
+
   igraph::E(g)$correlation <- igraph::E(g)$weight
   igraph::E(g)$weight <- abs(igraph::E(g)$weight)
 
-  # 模块化
+
   membership_vec <- switch(
     module.method,
     Fast_greedy = igraph::membership(igraph::cluster_fast_greedy(g)),
@@ -75,7 +85,7 @@ build_graph_from_df <- function(df,
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
 
-  # 构建ggraph对象
+
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
     tidygraph::mutate(modularity = factor(modularity),
                       modularity2 = factor(modularity2),

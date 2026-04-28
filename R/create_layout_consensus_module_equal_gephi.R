@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_consensus_module_equal_gephi <- function(
     graph_obj,
     scale = T,
@@ -20,7 +21,7 @@ create_layout_consensus_module_equal_gephi <- function(
   )
   theta_shift <- base_angle + angle
 
-  # ---- 获取节点和模块信息（保留原始节点顺序，方便最后对齐）----
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble() %>%
@@ -37,7 +38,7 @@ create_layout_consensus_module_equal_gephi <- function(
   n_vec <- purrr::map_int(module_list, base::nrow)
   n_mod <- length(n_vec)
 
-  # ---- 计算 grid 的行列（支持 nrow/ncol）----
+
   if (!is.null(nrow) && !is.null(ncol)) {
     rows <- as.integer(nrow)
     cols <- as.integer(ncol)
@@ -55,23 +56,23 @@ create_layout_consensus_module_equal_gephi <- function(
   rows <- max(1L, rows)
   cols <- max(1L, cols)
 
-  # index：从 0 到 n_mod-1
+
   idx <- 0:(n_mod - 1)
 
-  # 行号（从 0 开始）
+
   row_id <- idx %/% cols
 
-  # 列号（从 0 开始）
+
   col_id <- idx %% cols
 
 
-  # 生成每个模块的锚点：在 grid 上均匀排布
+
   anchors <- lapply(seq_len(n_mod), function(i) {
     c(col_id[i] * anchor_dist,
       -row_id[i] * anchor_dist)
   })
 
-  # ---- 同心圆节点分层：决定每圈放多少点 ----
+
   circle_layout <- function(n, node_add) {
     counts <- 1
     total  <- 1
@@ -90,14 +91,14 @@ create_layout_consensus_module_equal_gephi <- function(
     counts
   }
 
-  # 每个模块需要的圈数（用于统一“最大半径”标尺）
+
   n_circle_vec <- purrr::map_int(n_vec, ~ length(circle_layout(.x, node_add)))
   n_circle_max <- max(n_circle_vec)
 
-  # ---- 用最大模块定标：最大模块的圈间距仍为 r，其余模块填充到同一外半径 ----
+
   R_max <- (n_circle_max - 1) * r
 
-  # ---- 为每个模块准备“圈-点数”信息 ----
+
   n_vec_node <- purrr::map(n_vec, ~{
     data.frame(
       number_circle = seq_along(circle_layout(.x, node_add)),
@@ -105,9 +106,9 @@ create_layout_consensus_module_equal_gephi <- function(
     )
   })
 
-  # ---- 同心圆布局函数（从锚点出发，线性半径）----
+
   concentric_from_anchor <- function(cx, cy, info_df, r_step) {
-    # 第一圈：单点在锚点处
+
     ly <- data.frame(x = cx, y = cy)
     offset <- 0
     prev_n <- info_df$number_node
@@ -129,7 +130,7 @@ create_layout_consensus_module_equal_gephi <- function(
     ly
   }
 
-  # ---- 按模块生成布局：每个模块的最外圈半径都等于 R_max ----
+
   ly_list <- vector("list", n_mod)
 
   for (i in seq_len(n_mod)) {
@@ -139,17 +140,17 @@ create_layout_consensus_module_equal_gephi <- function(
     info_df <- n_vec_node[[i]]
     n_circle_i <- nrow(info_df)
 
-    # 线性半径步长：保证最外圈 = R_max
+
     if (n_circle_i <= 1) {
       r_step_i <- 0
     } else {
       r_step_i <- R_max / (n_circle_i - 1)
     }
 
-    # 生成该模块的点位
+
     coords_i <- concentric_from_anchor(cx, cy, info_df, r_step = r_step_i)
 
-    # 把坐标“按该模块节点顺序”绑定回去（非常关键，避免后续 join 对不上）
+
     nodes_i <- module_list[[i]] %>%
       dplyr::select(.node_index__)
 
@@ -176,7 +177,7 @@ create_layout_consensus_module_equal_gephi <- function(
     ly[, c("x", "y")] <- t(Rm %*% t(xy))
   }
 
-  # ---- scale（可选）：把整体缩放到 [-1, 1]，便于不同图对齐 ----
+
   if (isTRUE(scale)) {
     rescale01 <- function(v) {
       rng <- range(v, na.rm = TRUE)
@@ -187,7 +188,7 @@ create_layout_consensus_module_equal_gephi <- function(
     ly$y <- rescale01(ly$y) * 2 - 1
   }
 
-  # ---- 恢复为“原始节点顺序”的 layout（只返回坐标与 group）----
+
   ly <- ly %>%
     dplyr::arrange(.node_index__) %>%
     dplyr::select(x, y, group)

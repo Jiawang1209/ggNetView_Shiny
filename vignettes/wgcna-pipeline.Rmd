@@ -1,0 +1,363 @@
+---
+title: "WGCNA Network Pipeline"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{WGCNA Network Pipeline}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  fig.width = 7,
+  fig.height = 6,
+  dpi       = 72
+)
+has_wgcna <- requireNamespace("WGCNA", quietly = TRUE)
+```
+
+## Overview
+
+Weighted Gene Co-expression Network Analysis (WGCNA) is the standard
+approach for constructing gene co-expression networks from
+high-throughput expression data. `ggNetView` integrates with WGCNA at
+two levels:
+
+1. **Quick route** -- pass `method = "WGCNA"` to `build_graph_from_mat()`
+   and let ggNetView handle correlation, thresholding, and module
+   detection in a single call.
+2. **Full pipeline** -- run the classic WGCNA soft-thresholding and TOM
+   workflow yourself, then hand the results to `trans_TOM_in_WGCNA()`
+   and `build_graph_from_wgcna()` for visualisation.
+
+Both routes produce the same `tidygraph` object that `ggNetView()` can
+plot directly.
+
+```{r setup}
+library(ggNetView)
+```
+
+## 1. Quick route: `build_graph_from_mat(method = "WGCNA")`
+
+The simplest way to build a WGCNA-style network is to switch the
+`method` argument. Internally this calls `WGCNA::corAndPvalue()` for
+correlation and p-values, then applies the same thresholding and module
+detection as every other method.
+
+```{r quick-route, eval = has_wgcna}
+data(otu_rare_relative)
+mat <- as.matrix(otu_rare_relative)
+mat <- mat[order(rowSums(mat), decreasing = TRUE)[seq_len(80)], ]
+
+graph_wgcna <- build_graph_from_mat(
+  mat           = mat,
+  method        = "WGCNA",
+  cor.method    = "spearman",
+  proc          = "BH",
+  r.threshold   = 0.6,
+  p.threshold   = 0.05,
+  module.method = "Fast_greedy",
+  seed          = 1
+)
+
+graph_wgcna
+```
+
+The returned object is identical in structure to one produced with
+`method = "cor"` or `"Hmisc"`, so every downstream function
+(`ggNetView()`, `get_network_topology()`, `ggnetview_zipi()`) works
+unchanged.
+
+```{r quick-plot, eval = has_wgcna, fig.cap = "Quick-route WGCNA network coloured by module."}
+ggNetView(
+  graph_wgcna,
+  layout    = "fr",
+  seed      = 1,
+  pointsize = c(2, 7),
+  fill.by   = "Modularity",
+  label     = FALSE
+)
+```
+
+### Attaching taxonomy
+
+Pass a node annotation table to colour by taxonomy instead of module:
+
+```{r quick-annot, eval = has_wgcna}
+data(tax_tab)
+annot <- tax_tab[tax_tab$OTUID %in% rownames(mat), ]
+
+graph_wgcna_annot <- build_graph_from_mat(
+  mat             = mat,
+  method          = "WGCNA",
+  cor.method      = "spearman",
+  proc            = "BH",
+  r.threshold     = 0.6,
+  p.threshold     = 0.05,
+  module.method   = "Fast_greedy",
+  node_annotation = annot,
+  seed            = 1
+)
+```
+
+```{r quick-annot-plot, eval = has_wgcna, fig.cap = "WGCNA network coloured by Phylum."}
+ggNetView(
+  graph_wgcna_annot,
+  layout    = "fr",
+  seed      = 1,
+  pointsize = c(2, 7),
+  fill.by   = "Phylum",
+  label     = FALSE
+)
+```
+
+## 2. Full WGCNA pipeline
+
+When you need fine-grained control over soft-thresholding power, TOM
+type, or the dendrogram cut height, run the classic WGCNA steps
+yourself and feed the results into ggNetView.
+
+### Step 1: Prepare expression data
+
+WGCNA expects **samples in rows** and **genes/features in columns**.
+
+```{r full-prepare, eval = has_wgcna}
+expr_mat <- t(mat)
+dim(expr_mat)
+```
+
+### Step 2: Pick a soft-thresholding power
+
+```{r full-power, eval = has_wgcna, fig.cap = "Scale-free topology fit versus soft-thresholding power."}
+powers <- c(seq(1, 10, by = 1), seq(12, 30, by = 2))
+sft <- WGCNA::pickSoftThreshold(
+  expr_mat,
+  powerVector  = powers,
+  networkType  = "signed",
+  verbose      = 0
+)
+
+plot(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     xlab = "Soft Threshold (power)",
+     ylab = "Scale Free Topology Model Fit (signed R^2)",
+     main = "Scale independence",
+     type = "n")
+text(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     labels = powers, col = "red")
+abline(h = 0.85, col = "red")
+```
+
+Choose the lowest power where the model fit ($R^2$) exceeds 0.85.
+
+```{r full-pick-power, eval = has_wgcna}
+picked_power <- sft$powerEstimate
+if (is.na(picked_power)) picked_power <- 6
+message("Using soft-thresholding power: ", picked_power)
+```
+
+### Step 3: Build TOM and detect modules
+
+```{r full-tom, eval = has_wgcna}
+adjacency <- WGCNA::adjacency(
+  expr_mat,
+  power       = picked_power,
+  type        = "signed",
+  corFnc      = "cor",
+  corOptions  = list(method = "spearman", use = "pairwise.complete.obs")
+)
+
+TOM <- WGCNA::TOMsimilarity(adjacency, TOMType = "signed")
+dissTOM <- 1 - TOM
+
+gene_tree <- hclust(as.dist(dissTOM), method = "average")
+
+dynamic_mods <- dynamicTreeCut::cutreeDynamic(
+  dendro    = gene_tree,
+  distM     = dissTOM,
+  deepSplit = 2,
+  minClusterSize = 5
+)
+
+module_colors <- WGCNA::labels2colors(dynamic_mods)
+module_df <- data.frame(
+  ID     = colnames(expr_mat),
+  Module = module_colors,
+  stringsAsFactors = FALSE
+)
+head(module_df)
+```
+
+### Step 4: Convert TOM to edge list
+
+`trans_TOM_in_WGCNA()` converts the dense TOM matrix into a long-format
+edge list (`from`, `to`, `weight`). Use the `threshold` argument to
+keep only the strongest edges:
+
+```{r full-trans, eval = has_wgcna}
+edge_df <- trans_TOM_in_WGCNA(
+  TOM       = TOM,
+  mat       = t(expr_mat),
+  threshold = 0.1
+)
+head(edge_df)
+dim(edge_df)
+```
+
+### Step 5: Build the ggNetView graph object
+
+```{r full-build, eval = has_wgcna}
+graph_full <- build_graph_from_wgcna(
+  wgcna_tom       = edge_df,
+  module          = module_df,
+  node_annotation = annot,
+  seed            = 1
+)
+graph_full
+```
+
+### Step 6: Visualise
+
+```{r full-plot-fr, eval = has_wgcna, fig.cap = "Full WGCNA pipeline -- Fruchterman-Reingold layout."}
+ggNetView(
+  graph_full,
+  layout    = "fr",
+  seed      = 1,
+  pointsize = c(2, 7),
+  fill.by   = "Modularity",
+  label     = FALSE
+)
+```
+
+Try different layouts to highlight module structure:
+
+```{r full-plot-circular, eval = has_wgcna, fig.cap = "Circular module layout groups nodes by WGCNA module."}
+ggNetView(
+  graph_full,
+  layout    = "circular_modules_petal",
+  seed      = 1,
+  pointsize = c(2, 6),
+  fill.by   = "Modularity",
+  label     = FALSE
+)
+```
+
+## 3. RMT-guided threshold selection
+
+When you are unsure what `r.threshold` to use, Random Matrix Theory
+(RMT) can pick one automatically. `ggNetView_RMT()` scans a range of
+thresholds and selects the one whose nearest-neighbour spacing
+distribution best fits the Poisson (non-random) model.
+
+```{r rmt-scan, eval = has_wgcna, fig.cap = "RMT auto-score across thresholds."}
+rmt_res <- ggNetView_RMT(
+  mat     = mat,
+  method  = "WGCNA",
+  cor.method = "spearman",
+  nr_thresholds = 31,
+  verbose = FALSE,
+  seed    = 1
+)
+
+message("RMT chosen threshold: ", round(rmt_res$chosen_threshold, 4))
+```
+
+Feed the chosen threshold back into the builder:
+
+```{r rmt-build, eval = has_wgcna}
+graph_rmt <- build_graph_from_mat(
+  mat           = mat,
+  method        = "WGCNA",
+  cor.method    = "spearman",
+  proc          = "BH",
+  r.threshold   = rmt_res$chosen_threshold,
+  p.threshold   = 0.05,
+  module.method = "Fast_greedy",
+  seed          = 1
+)
+```
+
+```{r rmt-plot, eval = has_wgcna, fig.cap = "Network built with RMT-selected threshold."}
+ggNetView(
+  graph_rmt,
+  layout    = "fr",
+  seed      = 1,
+  pointsize = c(2, 7),
+  fill.by   = "Modularity",
+  label     = FALSE
+)
+```
+
+### Visualising the RMT scan
+
+The `scores` element contains per-threshold diagnostics. A quick plot
+helps verify the choice:
+
+```{r rmt-scores-plot, eval = has_wgcna, fig.cap = "KS p-value (higher = more Poisson-like) across thresholds."}
+scores <- rmt_res$scores
+plot(scores$threshold, scores$ks_p,
+     type = "b", pch = 16,
+     xlab = "Correlation threshold",
+     ylab = "KS p-value (Exponential fit)",
+     main = "RMT threshold scan")
+abline(v = rmt_res$chosen_threshold, lty = 2, col = "red")
+```
+
+## 4. Topology and keystone analysis
+
+Once you have a graph object (from either route), the topology and
+Zi-Pi functions work identically.
+
+### Global topology
+
+```{r topology, eval = has_wgcna}
+topo <- get_network_topology(graph_obj = graph_wgcna, bootstrap = 20)
+head(topo$topology)
+```
+
+### Zi-Pi classification
+
+```{r zipi, eval = has_wgcna}
+nodes_tbl <- get_graph_nodes(graph_wgcna)
+adj_mat   <- get_graph_adjacency(graph_wgcna)
+
+zipi <- ggnetview_zipi(
+  nodes_bulk     = nodes_tbl,
+  z_bulk_mat     = adj_mat,
+  modularity_col = "Modularity",
+  degree_col     = "Degree"
+)
+```
+
+```{r zipi-plot, eval = has_wgcna, fig.cap = "Zi-Pi scatter plot identifying keystone taxa."}
+zipi$plot
+```
+
+Nodes in the upper-right quadrant (high Zi **and** high Pi) are
+**network hubs** -- candidates for keystone species or genes that bridge
+multiple functional modules.
+
+## 5. Quick-route vs full-pipeline: when to use which
+
+| Feature | Quick route | Full pipeline |
+|---------|-------------|---------------|
+| Lines of code | ~10 | ~40 |
+| Soft-thresholding power | Not applicable (hard threshold) | User-selected |
+| TOM-based edges | No (correlation-based) | Yes |
+| Module detection | igraph algorithms | WGCNA `dynamicTreeCut` |
+| Best for | Exploratory analysis, microbiome data | Gene expression, publication-grade networks |
+
+The **quick route** treats WGCNA purely as a fast correlation engine and
+applies the same hard-threshold + igraph-module pipeline as all other
+methods. The **full pipeline** preserves the topological overlap
+information and WGCNA's own hierarchical module detection, which is
+the standard for gene co-expression studies.
+
+## Session information
+
+```{r sessioninfo}
+sessionInfo()
+```

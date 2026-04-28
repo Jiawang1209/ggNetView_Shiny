@@ -1,4 +1,4 @@
-#' Visualize multi-orientation environmental–species correlation heatmaps2
+#' Visualize multi-orientation environmental-species correlation heatmaps2
 #'
 #' @param Environment character or data.frame
 #' File path or data frame of environment data.
@@ -19,7 +19,15 @@
 #' @returns a ggplot2 object
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' p <- gglink_heatmap_triple(
+#'   Environment = env_df,
+#'   Experiment  = exp_df,
+#'   edge        = edge_df,
+#'   node        = node_df
+#' )
+#' }
 gglink_heatmap_triple <- function(
     Environment,
     Experiment,

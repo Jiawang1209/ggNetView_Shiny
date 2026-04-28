@@ -20,7 +20,25 @@
 #' @returns A graph object representing the correlation-based multi numeric matrix.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \donttest{
+#' set.seed(1)
+#' mat1 <- matrix(stats::rnorm(10 * 20), nrow = 10, ncol = 20)
+#' mat2 <- matrix(stats::rnorm(10 * 20), nrow = 10, ncol = 20)
+#' mat3 <- matrix(stats::rnorm(10 * 20), nrow = 10, ncol = 20)
+#' rownames(mat1) <- paste0("A", seq_len(10))
+#' rownames(mat2) <- paste0("B", seq_len(10))
+#' rownames(mat3) <- paste0("C", seq_len(10))
+#' colnames(mat1) <- colnames(mat2) <- colnames(mat3) <-
+#'   paste0("sample", seq_len(20))
+#' obj <- build_graph_from_multi_mat(
+#'   mat1          = mat1,
+#'   mat2          = mat2,
+#'   mat3,
+#'   module.method = "Fast_greedy"
+#' )
+#' obj
+#' }
 build_graph_from_multi_mat <- function(mat1,
                                        mat2,
                                        ...,
@@ -62,7 +80,7 @@ build_graph_from_multi_mat <- function(mat1,
     as.data.frame() %>%
     tibble::rownames_to_column(var = "from") %>%
     tidyr::pivot_longer(cols = -from, names_to = "to", values_to = "Pvalue") %>%
-    dplyr::mutate(signif = case_when(
+    dplyr::mutate(signif = dplyr::case_when(
       Pvalue > 0.05 ~ "",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "*",
       Pvalue < 0.01 & Pvalue > 0.001 ~ "**",
@@ -85,11 +103,11 @@ build_graph_from_multi_mat <- function(mat1,
     dplyr::rename(to_group = group) %>%
     dplyr::filter(from_group != to_group) %>%
     purrr::set_names(c("from", "to", "Correlation", "Pvalue", "Signif", "from_group", "to_group")) %>%
-    dplyr::mutate(Correlated = case_when(
+    dplyr::mutate(Correlated = dplyr::case_when(
       Correlation > 0 ~ "Positive",
       Correlation < 0 ~ "Negative"
     )) %>%
-    dplyr::mutate(Signif2 = case_when(
+    dplyr::mutate(Signif2 = dplyr::case_when(
       Pvalue > 0.05 ~ "P > 0.05",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "0.01 < P < 0.05",
       Pvalue < 0.01 & Pvalue > 0.001 ~ "0.001 < P < 0.01",
@@ -106,18 +124,19 @@ build_graph_from_multi_mat <- function(mat1,
     directed = directed
   )
 
-  # 删除自相关
+
   g <- igraph::simplify(g)
 
-  # 删除孤立节点
+
   g <- igraph::delete_vertices(g, which(igraph::degree(g) == 0))
 
-  ## 设置网络的weight，为计算模块性做准备
+
   igraph::E(g)$correlation <- igraph::E(g)$weight
   igraph::E(g)$weight <- abs(igraph::E(g)$weight)
   igraph::E(g)$corr_direction <- ifelse(igraph::E(g)$correlation > 0, "Positive", "Negative")
 
-  # 模块化
+
+  module.method <- match.arg(module.method)
   membership_vec <- switch(
     module.method,
     Fast_greedy = igraph::membership(igraph::cluster_fast_greedy(g)),
@@ -143,7 +162,7 @@ build_graph_from_multi_mat <- function(mat1,
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
 
-  # 构建ggraph对象
+
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
     tidygraph::mutate(modularity = factor(modularity),
                       modularity2 = factor(modularity2),

@@ -18,12 +18,22 @@
 #' Index of nodes to be emphasized or centered in the layout
 #' @param shrink Numeric (default = 1).
 #' Shrinkage factor applied to the center points.
+#' @param inner_shrink Numeric (default = 1).
+#' Intra-module compactness factor for \code{layout = "WGCNA"} only.
+#' Controls how tightly nodes fill each module's allocated disc during
+#' the WGCNA bubble-pack layout: at \code{1} (default) nodes spread to
+#' fill 95\% of the disc (original behaviour); smaller values
+#' (e.g. \code{0.65}) contract the FR/uniform fill toward each module
+#' centre, exposing hub/periphery structure and producing visible
+#' inter-module whitespace.  Module disc centres and radii are
+#' invariant under \code{inner_shrink}; this parameter only affects
+#' the point cloud inside each module.  Ignored by all other layouts.
 #' @param k_nn Numeric (default = 8).
 #' Number of nearest neighbors used to build the local adjacency graph.
 #' @param push_others_delta Numeric (default = 0).
 #' Radial offset applied to the "Others" module to slightly
 #' @param layout.module Character  (default = "random")
-#‘ - random : modules are distributed more randomly and independently.
+#' - random : modules are distributed more randomly and independently.
 #' - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 #' - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
 #' @param shape Integer  (default = 21).
@@ -84,8 +94,22 @@
 #' Change  label segment size.
 #' @param labelsegmentalpha Integer  (default = 1).
 #' Change  label segment alpha.
+#' @param add_group_outer Logical (default = FALSE).
+#' Whether to add a circle boundary around the entire network (mimics \code{ggforce::geom_mark_circle}).
+#' @param add_group_outer_expand Numeric (default = 2).
+#' Expansion in mm for the group circle to account for point size; passed to \code{geom_mark_circle(expand = ...)}.
+#' @param add_group_outer_color Character (default = "grey50").
+#' Color of the group outer circle border.
+#' @param add_group_outer_fill Character or NULL (default = NULL).
+#' Fill color of the group outer circle. \code{NULL} = no fill (transparent).
+#' @param add_group_outer_fill_alpha Numeric (default = 0.2).
+#' Alpha (transparency) of the group outer circle fill; 0 = fully transparent, 1 = opaque.
+#' @param add_group_outer_linetype Integer or character (default = 1).
+#' Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).
+#' @param add_group_outer_linewidth Numeric (default = 0.5).
+#' Line width of the group outer circle.
 #' @param add_outer Logical (default = FALSE).
-#' Whether to add an outer circle/border around the layout.
+#' Whether to add an outer circle/border around each module.
 #' @param q_outer Numeric (default = 0.88).
 #' Quantile of radial distance used to construct the smooth outer boundary for each module.
 #' Higher values make the boundary more expanded; lower values make it tighter.
@@ -101,7 +125,12 @@
 #' @param nodelabsize Integer  (default = 5).
 #' Change  node label size.
 #' @param remove Logical (default = FALSE).
-#' Delect nodes that are not modules.
+#' Remove \code{"Others"} only at the visualization stage (post-layout),
+#' so the layout of remaining modules is kept unchanged.
+#' @param dropOthers Logical (default = FALSE).
+#' If TRUE, remove nodes in the \code{"Others"} module from \code{graph_obj}
+#' before layout and visualization, then recompute layout/plot from the
+#' updated graph.
 #' @param orientation Character string.
 #' Custom orientation; one of "up","down","left","right".
 #' @param angle Integer  (default = 0).
@@ -116,12 +145,45 @@
 #' the ncol of network with layout is "consensus_module_equal_gephi" or "consensus_module_gephi"
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
+#' @param scale_radius Numeric or NULL (default = NULL).
+#' When non-NULL, scale the layout so the network fits within this radius.
+#' Used by \code{ggnetview_modularity_heatmaps} for coordinate alignment.
+#' @param return_layout Logical (default = FALSE).
+#' When TRUE, return a list with \code{$plot} (ggplot) and \code{$layout_data}
+#' (graph_ly_final, graph_obj, ggplot_data, module_centroids) for downstream
+#' use (e.g. adding heatmaps and links).
 #'
-#'
-#' @returns A ggplot object representing the network visualization.
+#' @returns A ggplot object, or when \code{return_layout = TRUE}, a list with
+#' \code{$plot} and \code{$layout_data}.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation,
+#'   module.method   = "Fast_greedy",
+#'   top_modules     = 5
+#' )
+#'
+#' ggNetView(
+#'   graph_obj     = obj,
+#'   layout        = "fr",
+#'   layout.module = "adjacent",
+#'   pointsize     = c(3, 8),
+#'   seed          = 1115
+#' )
+#' \donttest{
+#' ggNetView(
+#'   graph_obj       = obj,
+#'   layout          = "gephi",
+#'   layout.module   = "adjacent",
+#'   pointsize       = c(3, 8),
+#'   label           = TRUE,
+#'   add_group_outer = TRUE,
+#'   seed            = 1115
+#' )
+#' }
 ggNetView <- function(graph_obj,
                       layout = NULL,
                       node_add = 7,
@@ -130,6 +192,7 @@ ggNetView <- function(graph_obj,
                       center = TRUE,
                       idx = NULL,
                       shrink = 1,
+                      inner_shrink = 1,
                       k_nn = 12,
                       push_others_delta = 0,
                       layout.module = c("random", "adjacent", "order"),
@@ -156,6 +219,13 @@ ggNetView <- function(graph_obj,
                       labelsize = 10,
                       labelsegmentsize = 1,
                       labelsegmentalpha = 1,
+                      add_group_outer = FALSE,
+                      add_group_outer_expand = 2,
+                      add_group_outer_color = "grey50",
+                      add_group_outer_fill = NULL,
+                      add_group_outer_fill_alpha = 0.2,
+                      add_group_outer_linetype = 1,
+                      add_group_outer_linewidth = 0.5,
                       add_outer = FALSE,
                       q_outer = 0.88,
                       expand_outer = 1.02,
@@ -164,17 +234,51 @@ ggNetView <- function(graph_obj,
                       outeralpha = 0.5,
                       nodelabsize = 5,
                       remove = FALSE,
+                      dropOthers = FALSE,
                       orientation = "up",
                       angle = 0,
                       scale = T,
                       anchor_dist = 6,
                       nrow = NULL,
                       ncol = NULL,
-                      snake = FALSE,
-                      seed = 1115
+                      seed = 1115,
+                      scale_radius = NULL,
+                      return_layout = FALSE
                       ){
 
+  layout.module <- match.arg(layout.module)
+
   set.seed(seed)
+
+  # dropOthers acts on the source graph_obj BEFORE layout:
+  # it removes "Others" nodes first, then downstream layout/plot are rebuilt.
+  if (isTRUE(dropOthers)) {
+    node_tbl <- graph_obj %>%
+      tidygraph::activate(nodes) %>%
+      tidygraph::as_tibble()
+
+    module_candidates <- c("Modularity", "modularity3", "modularity2")
+    module_col <- module_candidates[module_candidates %in% colnames(node_tbl)]
+    module_col <- if (length(module_col) > 0) module_col[[1]] else NULL
+
+    if (!is.null(module_col)) {
+      if ("name" %in% colnames(node_tbl)) {
+        keep_names <- node_tbl %>%
+          dplyr::filter(as.character(.data[[module_col]]) != "Others") %>%
+          dplyr::pull(name)
+
+        graph_obj <- graph_obj %>%
+          tidygraph::activate(nodes) %>%
+          tidygraph::filter(name %in% keep_names)
+      } else {
+        graph_obj <- graph_obj %>%
+          tidygraph::activate(nodes) %>%
+          tidygraph::filter(as.character(.data[[module_col]]) != "Others")
+      }
+    } else {
+      warning("`dropOthers = TRUE` but no module column found in `graph_obj` nodes.")
+    }
+  }
 
   if (is.logical(label)) {
     if (length(label) != 1 || is.na(label)) {
@@ -243,6 +347,19 @@ ggNetView <- function(graph_obj,
                    angle = angle,
                    nrow = nrow,
                    ncol = ncol)
+  }else if (layout == "WGCNA") {
+    # WGCNA layout has an extra `inner_shrink` parameter that controls
+    # intra-module compactness independently of inter-module spacing.
+    # Other layouts do not accept this argument, so we dispatch it here
+    # only.  Default `inner_shrink = 1` reproduces historical behaviour.
+    ly1 = lay_func(graph_obj = graph_obj,
+                   node_add = node_add,
+                   r = r,
+                   inner_shrink = inner_shrink,
+                   scale = scale,
+                   anchor_dist = anchor_dist,
+                   orientation = orientation,
+                   angle = angle)
   }else{
     ly1 = lay_func(graph_obj = graph_obj,
                    node_add = node_add,
@@ -256,7 +373,7 @@ ggNetView <- function(graph_obj,
 
 
   # get ly1_1
-  # 圆形布局 添加模块化 获取模块
+
   if (layout.module == "random") {
     ly1_1 <- module_layout(graph_obj,
                            layout = ly1,
@@ -270,19 +387,48 @@ ggNetView <- function(graph_obj,
   }
 
   if (layout.module == "adjacent") {
-    ly1_1 <- module_layout3(graph_obj,
-                            layout = ly1,
-                            center = center,
-                            k_nn = k_nn,
-                            push_others_delta = push_others_delta,
-                            shrink = shrink,
-                            jitter = jitter,
-                            jitter_sd = jitter_sd
-                            # seed = seed
-    )
+    k_nn_try <- k_nn
+    k_nn_cap <- max(1, nrow(ly1) - 1)
+    ly1_1 <- NULL
+    while (is.null(ly1_1)) {
+      ly_try <- tryCatch(
+        module_layout3(graph_obj,
+                       layout = ly1,
+                       center = center,
+                       k_nn = k_nn_try,
+                       push_others_delta = push_others_delta,
+                       shrink = shrink,
+                       jitter = jitter,
+                       jitter_sd = jitter_sd
+                       # seed = seed
+        ),
+        error = function(e) e
+      )
+
+      if (!inherits(ly_try, "error")) {
+        ly1_1 <- ly_try
+        break
+      }
+
+      err_msg <- conditionMessage(ly_try)
+      is_slot_error <- grepl("consecutive slots", err_msg, ignore.case = TRUE)
+      if (!is_slot_error || k_nn_try >= k_nn_cap) {
+        stop(ly_try)
+      }
+
+      next_k <- min(k_nn_cap, max(k_nn_try + 20, ceiling(k_nn_try * 1.25)))
+      if (next_k <= k_nn_try) {
+        stop(ly_try)
+      }
+      warning(sprintf(
+        "`layout.module = 'adjacent'` failed at k_nn = %d; retrying with k_nn = %d.",
+        k_nn_try, next_k
+      ))
+      k_nn_try <- next_k
+    }
   }
 
-  if (layout.module == "order" & func_name != "create_layout_rings") {
+  if (layout.module == "order" & func_name != "create_layout_multirings") {
     ly1_1 <- module_layout4(graph_obj,
                             layout = ly1,
                             center = center,
@@ -309,11 +455,27 @@ ggNetView <- function(graph_obj,
   }
 
   # Normal layout
-  # 只有当我们需要模块的时候，我们才要获取模块的布局
-  # 并且只有模块化之后，我们才有必要去remove无模块的节点
+
+
   if (group.by != "pie") {
 
-    # 为了变得更加普适性
+    # Optional: scale layout to fit in radius (for use with ggnetview_modularity_heatmaps)
+    if (!is.null(scale_radius) && is.finite(scale_radius) && scale_radius > 0) {
+      xr_net <- range(ly1_1$graph_ly_final$x, na.rm = TRUE)
+      yr_net <- range(ly1_1$graph_ly_final$y, na.rm = TRUE)
+      scale_net <- max(diff(xr_net), diff(yr_net), 1e-8)
+      cx <- mean(xr_net)
+      cy <- mean(yr_net)
+      ly1_1[["graph_ly_final"]] <- ly1_1[["graph_ly_final"]] %>%
+        dplyr::mutate(
+          x = (x - cx) / scale_net * scale_radius,
+          y = (y - cy) / scale_net * scale_radius
+        )
+      ly1_1[["layout"]] <- dplyr::select(ly1_1[["graph_ly_final"]], x, y)
+      ly1_1[["ggplot_data"]] <- get_location(ly1_1[["graph_ly_final"]], ly1_1[["graph_obj"]])
+    }
+
+
 
     module_number <- ly1_1$graph_ly_final$Modularity %>% as.character() %>% unique() %>% length()
 
@@ -334,7 +496,8 @@ ggNetView <- function(graph_obj,
       module_info <- module_info[module_info!="Others"]
     }
 
-    # remove Others
+    # remove acts only at the visualization stage (post-layout):
+    # it drops "Others" from rendered data while keeping the existing layout.
     if (isFALSE(remove)) {
       ly1_1 <- ly1_1
     }else{
@@ -350,6 +513,9 @@ ggNetView <- function(graph_obj,
       ly1_1[["ggplot_data"]] <- get_location(ly1_1[["graph_ly_final"]],
                                              ly1_1[["graph_obj"]])
     }
+
+    xr <- NULL; yr <- NULL; x_mid <- NULL
+    dx <- NULL; pad <- NULL; lab_df <- NULL
 
     .build_label_location <- function(){
       # compute label location
@@ -368,10 +534,10 @@ ggNetView <- function(graph_obj,
         dplyr::arrange(y, .by_group = TRUE) %>%
         dplyr::mutate(
           y_rank   = dplyr::row_number(),
-          y_target = scales::rescale(y_rank, to = yr),                    # 把 rank 均匀映射到全局 y 范围
+          y_target = scales::rescale(y_rank, to = yr),
           x_anchor = dplyr::if_else(side == "left", xr[1] - dx, xr[2] + dx),
-          nudge_x  = x_anchor - x,                                # 横向把标签推到两侧锚点
-          nudge_y  = y_target - y,                                # 纵向把标签均匀拉开
+          nudge_x  = x_anchor - x,
+          nudge_y  = y_target - y,
           hjust    = dplyr::if_else(side == "left", 1, 0)
         ) %>%
         dplyr::ungroup()
@@ -397,6 +563,27 @@ ggNetView <- function(graph_obj,
     ####----Plot----####
     # base plot
     p1_1 <- ggplot2::ggplot()
+
+
+    if (isTRUE(add_group_outer) && nrow(ly1_1[["ggplot_data"]][[1]]) > 0) {
+      group_circle_df <- ly1_1[["ggplot_data"]][[1]] %>%
+        dplyr::mutate(.group_outer = 1L)
+      circle_n_grp <- max(40, min(300, as.integer(round(8 * sqrt(nrow(group_circle_df))))))
+      fill_grp <- if (is.null(add_group_outer_fill) || length(add_group_outer_fill) == 0L) NA else add_group_outer_fill[1L]
+      alpha_grp <- if (is.na(fill_grp)) 1 else add_group_outer_fill_alpha
+      p1_1 <- p1_1 +
+        ggforce::geom_mark_circle(
+          data = group_circle_df,
+          mapping = ggplot2::aes(x = x, y = y, group = .group_outer),
+          fill = fill_grp,
+          alpha = alpha_grp,
+          color = add_group_outer_color,
+          linetype = add_group_outer_linetype,
+          linewidth = add_group_outer_linewidth,
+          n = circle_n_grp,
+          expand = grid::unit(add_group_outer_expand, "mm")
+        )
+    }
 
   # line parameter
   line_color_by <- NULL
@@ -569,7 +756,7 @@ ggNetView <- function(graph_obj,
           dplyr::ungroup()
       }
     }
-    fill_classes <- unique(ly1_1[["graph_ly_final"]][[fill.by]])
+    fill_classes <- .ggnv_class_order(ly1_1[["graph_ly_final"]][[fill.by]])
     merge_point_legends <- is.character(shape) && identical(shape, fill.by)
     fill_scale_points <- if (is.null(fill)) {
       scale_fill_ggnetview(fill_classes,
@@ -594,7 +781,7 @@ ggNetView <- function(graph_obj,
         )
       } else if (is.null(color)) {
         color_scale_points <- scale_color_ggnetview(
-          unique(color_values),
+          .ggnv_class_order(color_values),
           labels = function(x) point_legend_label_fun(x, color.by),
           guide = if (same_fill_color_mapping) "none" else ggplot2::guide_legend(ncol = 1, order = 2)
         )
@@ -608,7 +795,7 @@ ggNetView <- function(graph_obj,
     }
     shape_scale_points <- NULL
     if (is.character(shape)) {
-      shape_classes <- unique(ly1_1[["graph_ly_final"]][[shape]])
+      shape_classes <- .ggnv_class_order(ly1_1[["graph_ly_final"]][[shape]])
       shape_values <- rep(21:25, length.out = length(shape_classes))
       shape_scale_points <- ggplot2::scale_shape_manual(
         values = shape_values,
@@ -738,12 +925,10 @@ ggNetView <- function(graph_obj,
 
       .build_label_location()
 
-      lab_classes <- sort(unique(lab_df$Modularity))
-      fill_scale_lab <- if (is.null(fill)) scale_fill_ggnetview(lab_classes, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
+      lab_classes <- .ggnv_class_order(lab_df$Modularity)
       color_scale_lab <- if (is.null(color)) scale_color_ggnetview(lab_classes, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
 
       p1_1 <- p1_1 +
-        ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
         ggrepel::geom_text_repel(data = lab_df %>% dplyr::mutate(.label_text = module_label_fun(modularity3)),
                                  mapping = ggplot2::aes(x = x,
@@ -763,7 +948,6 @@ ggNetView <- function(graph_obj,
                                  force = 0.05,
                                  show.legend = F
         ) +
-        fill_scale_lab +
         color_scale_lab +
         ggplot2::coord_equal(clip = "off",
                              xlim = c(xr[1] - pad, xr[2] + pad),
@@ -778,7 +962,7 @@ ggNetView <- function(graph_obj,
 
       maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = T))
 
-      mask_classes <- levels(maskTable$cluster)
+      mask_classes <- .ggnv_class_order(maskTable$cluster)
       fill_scale_mask <- if (is.null(fill)) scale_fill_ggnetview(mask_classes, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
       color_scale_mask <- if (is.null(color)) scale_color_ggnetview(mask_classes, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
 
@@ -806,15 +990,13 @@ ggNetView <- function(graph_obj,
 
       maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = T))
 
-      lab_classes_outer <- levels(lab_df$Modularity)
-      mask_classes_outer <- levels(maskTable$cluster)
-      fill_scale_lab_outer <- if (is.null(fill)) scale_fill_ggnetview(lab_classes_outer, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
+      lab_classes_outer <- .ggnv_class_order(lab_df$Modularity)
+      mask_classes_outer <- .ggnv_class_order(maskTable$cluster)
       color_scale_lab_outer <- if (is.null(color)) scale_color_ggnetview(lab_classes_outer, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
       fill_scale_mask_outer <- if (is.null(fill)) scale_fill_ggnetview(mask_classes_outer, na_value = NA, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
       color_scale_mask_outer <- if (is.null(color)) scale_color_ggnetview(mask_classes_outer, na_value = NA, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
 
       p1_1 <- p1_1 +
-        ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
         ggrepel::geom_text_repel(data = lab_df %>% dplyr::mutate(.label_text = module_label_fun(modularity3)),
                                  mapping = ggplot2::aes(x = x,
@@ -834,7 +1016,6 @@ ggNetView <- function(graph_obj,
                                  force = 0.05,
                                  show.legend = F
         ) +
-        fill_scale_lab_outer +
         color_scale_lab_outer +
         ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
@@ -884,37 +1065,6 @@ ggNetView <- function(graph_obj,
   }
 
   # specific layout dendrogram
-  if (func_name == "create_layout_rings") {
-    fill_default_rings <- c('#8dd3c7','#ffffb3','#bebada','#fb8072','#80b1d3',
-                            '#fdb462','#b3de69','#fccde5','#cab2d6','#bc80bd',
-                            '#ccebc5','#ffed6f','#a6cee3','#b2df8a', '#fb9a99',
-                            '#bdbdbd',
-                            '#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99',
-                            '#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a',
-                            '#ffff99','#b15928')
-    fill_scale_rings <- if (is.null(fill)) {
-      ggplot2::scale_fill_manual(values = fill_default_rings, name = "Group")
-    } else {
-      ggplot2::scale_fill_manual(values = fill)
-    }
-    p1_1 <- ggraph::ggraph(ly1)  +
-      ggraph::geom_edge_link(alpha = linealpha, colour = linecolor) +
-      ggraph::geom_node_point(ggplot2::aes(fill = group, size = Degree), shape = 21, alpha = pointalpha) +
-      ggraph::geom_node_text(
-        ggplot2::aes(x = 1.1 * x,
-            y = 1.1 * y,
-            label = name,
-            angle = -((-ggraph::node_angle(x, y) + 90) %% 180) + 90),
-        size = nodelabsize, hjust = 'outward'
-      ) +
-      ggplot2::scale_shape_manual(values = 20:25) +
-      fill_scale_rings +
-      ggraph::scale_edge_width(range = c(0.1, 1)) +
-      ggplot2::coord_equal(clip = "off") +
-      theme_ggnetview()
-
-  }
-
   if (layout == "dendrogram") {
     color_default_dendro <- c('#66c2a5','#fc8d62','#a6d854','#e78ac3')
     color_scale_dendro <- if (is.null(color)) {
@@ -962,7 +1112,7 @@ ggNetView <- function(graph_obj,
     col_index_end = which(colnames(ly) == ".ggraph.orig_index")
     col_index = colnames(ly)[(col_index_start+1) : (col_index_end -1)]
 
-    # 然后开始可视化
+
     fill_default_pie <- c('#66c2a5','#fc8d62','#a6d854','#e78ac3')
     fill_scale_pie <- if (is.null(fill)) {
       ggplot2::scale_fill_manual(values = fill_default_pie)
@@ -982,6 +1132,23 @@ ggNetView <- function(graph_obj,
       theme_ggnetview()
 
     return(p1_1)
+  }
+
+  if (isTRUE(return_layout) && exists("ly1_1", inherits = FALSE) &&
+      !is.null(ly1_1$graph_ly_final) && "Modularity" %in% colnames(ly1_1$graph_ly_final)) {
+    module_centroids <- ly1_1$graph_ly_final %>%
+      dplyr::filter(as.character(.data$Modularity) != "Others") %>%
+      dplyr::group_by(.data$Modularity) %>%
+      dplyr::summarise(x = mean(.data$x, na.rm = TRUE), y = mean(.data$y, na.rm = TRUE), .groups = "drop") %>%
+      dplyr::mutate(ID = as.character(.data$Modularity)) %>%
+      dplyr::select("ID", "x", "y")
+    layout_data <- list(
+      graph_ly_final = ly1_1$graph_ly_final,
+      graph_obj = ly1_1$graph_obj,
+      ggplot_data = ly1_1$ggplot_data,
+      module_centroids = module_centroids
+    )
+    return(list(plot = p1_1, layout_data = layout_data))
   }
 
   return(p1_1)
