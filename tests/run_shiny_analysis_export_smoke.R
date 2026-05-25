@@ -1,0 +1,115 @@
+# Run with: NOT_CRAN=true /usr/local/bin/Rscript tests/run_shiny_analysis_export_smoke.R
+# or: /usr/local/bin/Rscript --vanilla tests/run_shiny_analysis_export_smoke.R
+
+Sys.setenv(NOT_CRAN = Sys.getenv("NOT_CRAN", "true"))
+
+args <- commandArgs(trailingOnly = FALSE)
+file_arg <- grep("^--file=", args, value = TRUE)
+script_path <- if (length(file_arg)) {
+  normalizePath(sub("^--file=", "", file_arg[[1]]), mustWork = TRUE)
+} else {
+  normalizePath(file.path("tests", "run_shiny_analysis_export_smoke.R"), mustWork = TRUE)
+}
+repo_root <- normalizePath(file.path(dirname(script_path), ".."), mustWork = TRUE)
+setwd(repo_root)
+
+if (!requireNamespace("shinytest2", quietly = TRUE)) {
+  stop("shinytest2 is required for analysis/export browser smoke.", call. = FALSE)
+}
+
+message("Starting ggNetView Shiny analysis/export smoke")
+
+app <- shinytest2::AppDriver$new(
+  app_dir = repo_root,
+  name = "analysis_export",
+  seed = 1115,
+  height = 900,
+  width = 1400,
+  load_timeout = 60000,
+  timeout = 120000
+)
+on.exit(app$stop(), add = TRUE)
+
+set_input <- function(id, value, wait = FALSE) {
+  args <- c(stats::setNames(list(value), id), list(wait_ = wait))
+  do.call(app$set_inputs, args)
+}
+
+click <- function(selector) {
+  app$click(selector = selector)
+  app$wait_for_idle(timeout = 30000)
+}
+
+click_tab <- function(label) {
+  click(sprintf("a[data-value='%s']", label))
+}
+
+wait_for_text <- function(text, timeout = 120000) {
+  script <- sprintf(
+    "document.body && document.body.innerText.includes(%s)",
+    jsonlite::toJSON(text, auto_unbox = TRUE)
+  )
+  app$wait_for_js(script, timeout = timeout)
+}
+
+wait_for_element <- function(id, timeout = 60000) {
+  script <- sprintf(
+    "document.getElementById(%s) !== null",
+    jsonlite::toJSON(id, auto_unbox = TRUE)
+  )
+  app$wait_for_js(script, timeout = timeout)
+}
+
+assert_download_nonempty <- function(output_id) {
+  path <- NULL
+  deadline <- Sys.time() + 30
+  last_error <- NULL
+  while (Sys.time() < deadline) {
+    path <- tryCatch(
+      app$get_download(output_id),
+      error = function(e) {
+        last_error <<- e
+        NULL
+      }
+    )
+    if (!is.null(path) && file.exists(path) && file.info(path)$size > 0) {
+      return(invisible(path))
+    }
+    Sys.sleep(1)
+  }
+  if (!is.null(last_error)) {
+    stop(conditionMessage(last_error), call. = FALSE)
+  }
+  stop("Expected non-empty download for output: ", output_id, call. = FALSE)
+}
+
+click("#data_hub-load_gallery")
+wait_for_text("gallery_rmt_matrix")
+
+click_tab("Graph Explorer")
+set_input("graph_explorer-sample_ids", "S1")
+click("#graph_explorer-register_sample_subgraph")
+wait_for_text("Registered sample subgraph")
+
+click_tab("Topology")
+click("#topology_results-calculate_centrality")
+wait_for_text("Registered node_centrality")
+click("#topology_results-calculate_ivi")
+wait_for_text("Registered node_ivi")
+
+click_tab("Compare & Environment")
+click("#compare_environment-run_mantel")
+wait_for_text("Registered Mantel result")
+
+click_tab("Visual Lab")
+click("#visual_lab-draw")
+wait_for_text("Registered plot:")
+
+click_tab("Export")
+set_input("export_center-object_id", "obj_0015")
+wait_for_element("export_center-download_png")
+wait_for_element("export_center-download_pdf")
+assert_download_nonempty("export_center-download_png")
+assert_download_nonempty("export_center-download_pdf")
+
+cat("analysis/export browser smoke passed\n")

@@ -17,13 +17,15 @@ Date: 2026-05-26
 - `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison, environment links, Mantel, and object-aware exports.
 - `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, and Export graph-node downloads.
 - `tests/run_shiny_graph_builder_modes_smoke.R` now runs real browser builds for RMT, matrix, edge+module, adjacency+module, double matrix, multi-matrix, WGCNA/TOM, and consensus builder paths.
+- `tests/run_shiny_analysis_export_smoke.R` now covers sample subgraphs, centrality, IVI, Mantel, Visual Lab plot registration, and plot PNG/PDF downloads in a real browser.
 
 ## Remaining Gaps
 
 1. Full browser-level workflow smoke.
    - Current smoke covers startup, the original core programmatic workflow, the broad manual-backed backend workflow, and a real browser click-through for the main Phase 2/3 path.
    - Current browser smoke also covers every major graph-builder mode.
-   - Still needed: browser coverage for sample subgraph registration, centrality/IVI buttons, Mantel button, plot PNG/PDF downloads, and mobile-width layout checks.
+   - Current browser smoke also covers sample subgraph registration, centrality/IVI buttons, Mantel button, and plot PNG/PDF downloads.
+   - Still needed: mobile-width layout checks and deeper browser coverage for additional layout presets.
 
 2. Long-running operation feedback.
    - Add progress/status indicators for graph build, plot draw, topology, comparison, environment, and Mantel calculations.
