@@ -18,7 +18,7 @@ Date: 2026-05-26
 - Graph Builder, Visual Lab, Topology, Compare & Environment, and Gallery recipe execution now wrap real ggNetView calls with progress feedback and temporary action-button busy states.
 - Compare & Environment can register multi-network comparison plots with optional pair restrictions, normalized link detail tables, pair-level link summaries, topology comparison summaries, environment-link plots/statistics with environment/spec block selectors, env/spec pair restrictions, multi-core geometry controls, module-level environment heatmaps, Mantel pairwise tables, and report-oriented interpretation summaries with domain labels, signal levels, narrative text, and caveats.
 - Compare Networks now exposes the broader manual-backed multi-network group layouts, including row/column/geometric/snake/sine/cosine/center-pairs arrangements plus advanced rotation, anchor, row/column, sine-period, and label controls for real `ggNetView_multi_link()` and compatible grouped `ggNetView_multi()` paths.
-- `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports.
+- `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph/RMT/multi-matrix builders, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports. It also writes an ignored machine-readable smoke coverage JSON covering all ten manual areas.
 - `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, Export graph-node/workflow-manifest downloads, workflow manifest replay preview, and gallery recipe execution.
 - `tests/run_shiny_graph_builder_modes_smoke.R` now runs real browser builds for RMT, matrix, edge+module, node+edge, STRINGDB/PPI, igraph object, adjacency+module, double matrix, multi-matrix, WGCNA/TOM, and consensus builder paths.
 - `tests/run_shiny_analysis_export_smoke.R` now covers sample subgraphs, direct parallel topology, sample topology, centrality, IVI, Mantel, Visual Lab plot registration, and plot PNG/PDF downloads in a real browser.
@@ -34,6 +34,7 @@ Date: 2026-05-26
    - Current browser smoke also covers every major graph-builder mode.
    - Current browser smoke also covers sample subgraph registration, centrality/IVI buttons, a circular-module Visual Lab preset, Mantel button, and plot PNG/PDF downloads.
    - Current browser smoke also covers mobile-width navigation, page-level overflow checks, and every individual Visual Lab layout preset.
+   - Manual backend smoke now writes a coverage log that audits all ten manual areas.
 
 2. Long-running operation feedback.
    - Graph build, RMT scan, plot draw, topology, centrality, IVI, Zi-Pi, comparison, grouped multi-network, environment heatmaps, Mantel, and Gallery recipe paths now use shared progress feedback and temporary button busy states.

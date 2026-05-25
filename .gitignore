@@ -9,3 +9,4 @@
 ggNetView.Rcheck/
 ggNetView_*.tar.gz
 package/
+tests/_smoke_coverage/

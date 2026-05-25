@@ -136,10 +136,23 @@ source_repo_file("R", "app_topology_adapters.R")
 source_repo_file("R", "app_compare_environment.R")
 source_repo_file("R", "app_gallery_presets.R")
 source_repo_file("R", "app_exports.R")
+source_repo_file("R", "app_smoke_coverage.R")
 source_repo_file("R", "apply_transform_method.R")
+
+coverage <- smoke_coverage_new("manual_workflow")
+record_coverage <- function(manual_area, workflow, evidence) {
+  coverage <<- smoke_coverage_record(
+    coverage,
+    manual_area = manual_area,
+    workflow = workflow,
+    evidence = evidence,
+    smoke_script = "tests/run_shiny_manual_workflow_smoke.R"
+  )
+}
 
 registry <- registry_new()
 register_gallery_examples(registry, root = repo_root)
+record_coverage("10", "Gallery examples", "Registered manual gallery starter objects.")
 listed <- shiny::isolate(registry_list(registry))
 
 required_types <- c("matrix", "edge_table", "module_table", "sample_metadata", "adjacency", "wgcna_tom", "result", "graph")
@@ -218,9 +231,26 @@ graph_b_result <- safe_graph_builder(
   params = list(method = "cor", r.threshold = 0.2, p.threshold = 1)
 )
 graph_b <- assert_app_ok(graph_b_result, "second matrix graph")
+record_coverage("01", "Create graph object", "Built matrix graph from gallery matrix and a second matrix fixture.")
+
+rmt_result <- safe_rmt_threshold(
+  read_phase2_fixture("phase2_example_rmt_matrix.csv"),
+  params = list(transfrom.method = "none", method = "cor", cor.method = "pearson", min.mat.dim = 20, verbose = FALSE)
+)
+assert_app_ok(rmt_result, "RMT threshold")
+record_coverage("02", "RMT", "Ran ggNetView_RMT threshold workflow on the RMT fixture.")
+
+multi_matrix_result <- safe_graph_builder(
+  "multi_matrix",
+  inputs = list(matrices = list(matrix_a = read_phase2_fixture("phase2_example_matrix.csv"), matrix_b = mat_b)),
+  params = list()
+)
+assert_app_ok(multi_matrix_result, "multi-omics multi-matrix graph")
+record_coverage("09", "Multi-omics network", "Built a multi-matrix graph from two omics-like matrix fixtures.")
 
 multi <- safe_multi_network_compare(list(A = graph, B = graph_b))
 assert_app_ok(multi, "multi-network comparison")
+record_coverage("07", "Network compare", "Ran ggNetView_multi_link comparison between two graph objects.")
 
 multi_group <- safe_multi_group_network(
   matrix_item$data,
@@ -228,6 +258,7 @@ multi_group <- safe_multi_group_network(
   params = list(r.threshold = 0.2, p.threshold = 1)
 )
 assert_app_ok(multi_group, "custom metadata grouped network")
+record_coverage("07", "Network compare", "Ran ggNetView_multi grouped matrix workflow with sample metadata.")
 
 env_spec <- phase2_env_spec()
 environment <- safe_environment_link(
@@ -237,6 +268,7 @@ environment <- safe_environment_link(
   spec_select = list(Species = seq_len(ncol(env_spec$spec)))
 )
 assert_app_ok(environment, "environment link")
+record_coverage("08", "Network environment", "Ran environment link workflow from environment/spec matrices.")
 
 triple_environment <- safe_environment_triple_heatmap(
   env = env_spec$env,
@@ -245,6 +277,7 @@ triple_environment <- safe_environment_triple_heatmap(
   params = list(feature_count = 3L, r = 6)
 )
 assert_app_ok(triple_environment, "triple environment heatmap")
+record_coverage("08", "Network environment", "Ran triple environment heatmap from graph-backed tables.")
 
 mantel <- safe_mantel_pairwise(
   spec = env_spec$spec[, 1:2],
@@ -253,6 +286,9 @@ mantel <- safe_mantel_pairwise(
 )
 if (!isTRUE(mantel$ok) && !(requireNamespace("vegan", quietly = TRUE) == FALSE && grepl("vegan", mantel$trace %||% ""))) {
   assert_app_ok(mantel, "Mantel pairwise")
+}
+if (isTRUE(mantel$ok)) {
+  record_coverage("08", "Network environment", "Ran Mantel pairwise helper.")
 }
 
 tmpdir <- tempfile("ggnetview-manual-smoke-")
@@ -263,11 +299,27 @@ write_graph_edges_csv(graph, file.path(tmpdir, "edges.csv"))
 write_graph_adjacency_csv(graph, file.path(tmpdir, "adjacency.csv"))
 write_registry_params(list(builder = "manual_gallery", layout = "nicely"), file.path(tmpdir, "params.json"))
 write_plot_png(plot_nicely$value, file.path(tmpdir, "plot.png"), width = 6, height = 4, dpi = 96)
+record_coverage("03", "Graph info", "Registered graph info tables from get_info_from_graph adapter.")
+record_coverage("04", "Subgraph", "Extracted module and sample subgraphs.")
+record_coverage("05", "Layout", "Rendered ggNetView layouts including manual layout families.")
+record_coverage("06", "Network topology", "Computed topology, centrality, Zi-Pi, and IVI boundary behavior.")
 
 invisible(vapply(
   file.path(tmpdir, c("graph.rds", "nodes.csv", "edges.csv", "adjacency.csv", "params.json", "plot.png")),
   assert_file_nonempty,
   character(1)
 ))
+
+coverage_audit <- smoke_coverage_audit(coverage)
+if (!isTRUE(coverage_audit$ok)) {
+  stop("Manual smoke coverage missing required areas: ", paste(coverage_audit$missing_required, collapse = ", "), call. = FALSE)
+}
+coverage_path <- Sys.getenv("GGNV_SMOKE_COVERAGE_PATH", "")
+if (!nzchar(coverage_path)) {
+  coverage_dir <- file.path(repo_root, "tests", "_smoke_coverage")
+  dir.create(coverage_dir, recursive = TRUE, showWarnings = FALSE)
+  coverage_path <- file.path(coverage_dir, "manual_workflow_coverage.json")
+}
+smoke_coverage_write(coverage, coverage_path)
 
 cat("manual workflow smoke passed\n")
