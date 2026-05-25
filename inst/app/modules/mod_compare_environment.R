@@ -72,10 +72,12 @@ mod_compare_environment_ui <- function(id) {
       shiny::selectInput(
         ns("env_group_layout"),
         "Core group layout",
-        choices = c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake")
+        choices = c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake", "arc")
       ),
+      shiny::numericInput(ns("env_group_angle"), "Core group rotation", value = 0, step = 15),
+      shiny::numericInput(ns("env_group_arc_angle"), "Core arc angle", value = 90, step = 15),
       shiny::numericInput(ns("env_anchor_dist"), "Core anchor distance", value = 6, min = 0.5, step = 0.5),
-      shiny::numericInput(ns("env_distance"), "Heatmap distance", value = 3, min = 0, step = 0.5),
+      shiny::numericInput(ns("env_distance"), "Heatmap distance", value = 3, step = 0.5),
       shiny::numericInput(ns("env_nrow"), "Core rows", value = 1, min = 1, step = 1),
       shiny::checkboxInput(ns("env_scale_networks"), "Scale core networks", value = TRUE),
       shiny::numericInput(ns("env_core_point_size"), "Core point size", value = 8.5, min = 0.5, step = 0.5),
@@ -387,6 +389,8 @@ mod_compare_environment_server <- function(id, registry) {
         orientation_text = input$env_orientation,
         spec_layout_text = input$env_spec_layouts,
         group_layout = input$env_group_layout,
+        group_angle = input$env_group_angle,
+        group_arc_angle = input$env_group_arc_angle,
         anchor_dist = input$env_anchor_dist,
         distance = input$env_distance,
         nrow = input$env_nrow,
@@ -452,6 +456,8 @@ mod_compare_environment_server <- function(id, registry) {
         orientation_text = input$env_orientation,
         spec_layout_text = input$env_spec_layouts,
         group_layout = input$env_group_layout,
+        group_angle = input$env_group_angle,
+        group_arc_angle = input$env_group_arc_angle,
         anchor_dist = input$env_anchor_dist,
         distance = input$env_distance,
         nrow = input$env_nrow,

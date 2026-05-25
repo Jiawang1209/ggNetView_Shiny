@@ -40,7 +40,8 @@ test_that("gallery recipe manifest exposes one-click workflows", {
     "multi_omics_network",
     "multi_omics_double_matrix",
     "multi_omics_environment_blocks",
-    "environment_collapsed_core"
+    "environment_collapsed_core",
+    "environment_arc_collapsed_core"
   ) %in% recipes$recipe))
 })
 
@@ -82,6 +83,9 @@ test_that("gallery recipes register reproducible outputs", {
   collapsed_core <- run_gallery_recipe(registry, "environment_collapsed_core")
   expect_true(isTRUE(collapsed_core$ok), info = collapsed_core$trace %||% collapsed_core$message)
 
+  arc_collapsed_core <- run_gallery_recipe(registry, "environment_arc_collapsed_core")
+  expect_true(isTRUE(arc_collapsed_core$ok), info = arc_collapsed_core$trace %||% arc_collapsed_core$message)
+
   listed <- shiny::isolate(registry_list(registry))
   expect_true(any(listed$name == "gallery_recipe_circle_plot"))
   expect_true(any(listed$name == "gallery_recipe_grouped_network_plot"))
@@ -103,4 +107,6 @@ test_that("gallery recipes register reproducible outputs", {
   expect_true(any(listed$name == "gallery_recipe_multi_omics_environment_stats"))
   expect_true(any(listed$name == "gallery_recipe_environment_collapsed_core_heatmap"))
   expect_true(any(listed$name == "gallery_recipe_environment_collapsed_core_stats"))
+  expect_true(any(listed$name == "gallery_recipe_environment_arc_collapsed_core_heatmap"))
+  expect_true(any(listed$name == "gallery_recipe_environment_arc_collapsed_core_stats"))
 })

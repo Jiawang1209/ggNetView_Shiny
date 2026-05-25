@@ -240,6 +240,87 @@ test_that("environment multi-core geometry params parse and pass through", {
   expect_equal(result$value$call_params$CorePointSize, 6)
 })
 
+test_that("environment geometry supports arc rotation and inward heatmap distance", {
+  data <- phase2_env_spec()
+  data$env$conductivity <- c(100, 105, 112, 119, 126)
+  params <- environment_geometry_params(
+    orientation_text = "top_right,bottom_right",
+    spec_layout_text = "circle_outline,square_outline",
+    group_layout = "arc",
+    group_angle = 45,
+    group_arc_angle = 120,
+    anchor_dist = 4,
+    distance = -1,
+    nrow = 1,
+    scale_networks = TRUE,
+    core_point_size = 10
+  )
+
+  expect_equal(params$group_layout, "arc")
+  expect_equal(params$group_angle, 45)
+  expect_equal(params$group_arc_angle, 120)
+  expect_equal(params$distance, -1)
+
+  result <- safe_environment_heatmap(
+    env = data$env,
+    spec = data$spec,
+    env_blocks = "Climate: temperature,pH\nWater: moisture,conductivity",
+    spec_blocks = "Early: OTU1,OTU2,OTU3\nLate: OTU4,OTU5,OTU6",
+    env_spec_pairs = "Climate,Early\nWater,Late",
+    params = c(
+      list(
+        relation_method = "correlation",
+        spec_collapse = TRUE
+      ),
+      params
+    )
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_s3_class(result$value$plot, "ggplot")
+  expect_equal(result$value$call_params$group_layout, "arc")
+  expect_equal(result$value$call_params$group_angle, 45)
+  expect_equal(result$value$call_params$group_arc_angle, 120)
+  expect_equal(result$value$call_params$distance, -1)
+})
+
+test_that("environment link ignores heatmap-only arc geometry controls", {
+  data <- phase2_env_spec()
+  data$env$conductivity <- c(100, 105, 112, 119, 126)
+  params <- environment_geometry_params(
+    orientation_text = "top_right,bottom_right",
+    spec_layout_text = "circle_outline,square_outline",
+    group_layout = "arc",
+    group_angle = 45,
+    group_arc_angle = 120,
+    anchor_dist = 4,
+    distance = 1,
+    nrow = 1,
+    scale_networks = TRUE,
+    core_point_size = 10
+  )
+
+  result <- safe_environment_link(
+    env = data$env,
+    spec = data$spec,
+    env_blocks = "Climate: temperature,pH\nWater: moisture,conductivity",
+    spec_blocks = "Early: OTU1,OTU2,OTU3\nLate: OTU4,OTU5,OTU6",
+    env_spec_pairs = "Climate,Early\nWater,Late",
+    params = c(
+      list(
+        relation_method = "correlation",
+        cor.method = "pearson"
+      ),
+      params
+    )
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_equal(result$value$call_params$group_layout, "circle")
+  expect_null(result$value$call_params$group_angle)
+  expect_null(result$value$call_params$group_arc_angle)
+})
+
 test_that("manual environment heatmap returns plot and statistics", {
   data <- phase2_env_spec()
   result <- safe_environment_heatmap(

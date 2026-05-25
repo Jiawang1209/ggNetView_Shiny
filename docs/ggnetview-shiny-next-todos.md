@@ -9,7 +9,7 @@ Date: 2026-05-26
 - Local source loading now keeps same-package helper dependencies and common ggNetView plotting/data-manipulation helper functions available.
 - Export is object-aware: graph objects expose node, edge, and adjacency CSV exports; plot PNG/PDF buttons remain plot-only; workflow JSON manifests preserve registry provenance, params, warnings, and recipe metadata; the selected object summary shows type, source, supported formats, summary, and parameter keys. Export Center can import a workflow JSON, preview a replay plan, and identify supported gallery recipes for guarded reruns.
 - Data Hub can load manual workflow examples for matrix, edge-table-with-module, adjacency, TOM-like, and starter graph workflows.
-- Data Hub can run one-click gallery recipes that register final plot/result objects from those starters, including network layout, grouped comparison, graph info/topology, multi-network comparison, multi-omics network construction, multi-omics double-matrix and environment-block presets, environment heatmaps, collapsed-core environment heatmaps, and Mantel pairwise workflows.
+- Data Hub can run one-click gallery recipes that register final plot/result objects from those starters, including network layout, grouped comparison, graph info/topology, multi-network comparison, multi-omics network construction, multi-omics double-matrix and environment-block presets, environment heatmaps, collapsed-core and rotated arc collapsed-core environment heatmaps, and Mantel pairwise workflows.
 - Data Hub can load sample metadata and Compare & Environment can use it for grouped matrix network plots.
 - Graph Builder has real API-backed entry points for matrix, RMT-assisted matrix, edge table, adjacency, double matrix, multi-matrix, WGCNA/TOM, and consensus graph construction.
 - Graph Explorer can register graph info, module subgraphs, and sample subgraphs.
@@ -40,8 +40,8 @@ Date: 2026-05-26
 3. Environment and multi-omics depth.
    - The environment workflow now uses `gglink_heatmaps_2()`, original `gglink_heatmaps()`, `gglink_heatmap_triple()`, block-vs-column Mantel controls, and Mantel pairwise helpers. Gallery recipes can reproduce the heatmap, triple-heatmap, and Mantel starter paths.
    - Gallery recipes now include multi-omics starter paths that build multi-matrix and double-matrix graphs, plus a block-restricted multi-omics environment heatmap from two omics-like matrices.
-   - Environment/spec block selectors, block-pair restrictions, multi-core geometry controls, and a collapsed-core Gallery recipe are now exposed for heatmap workflows.
-   - Still needed: broader visual-regression coverage for all environment geometry variants such as arc and rotated collapsed-core layouts.
+   - Environment/spec block selectors, block-pair restrictions, multi-core geometry controls, inward heatmap distance, arc/rotation controls, and collapsed-core Gallery recipes are now exposed for heatmap workflows.
+   - Still needed: broader visual-regression coverage for the full environment geometry matrix beyond the representative row and rotated-arc collapsed-core paths.
 
 4. Multi-network comparison depth.
    - The comparison workflow now uses `ggNetView_multi_link()` with graph objects and `ggNetView_multi()` from a matrix plus generated or uploaded/custom group metadata.
@@ -55,7 +55,7 @@ Date: 2026-05-26
    - Consider grouping controls into object-specific sections.
 
 6. Gallery completion.
-   - Manual workflow examples are now loadable as starter objects, and one-click recipes can register final plot/result outputs for layout, grouped comparison, multi-network comparison, multi-omics graph construction, double-matrix omics construction, multi-omics environment links, collapsed-core environment links, graph-info/topology, environment, triple heatmap, and Mantel manual areas.
+   - Manual workflow examples are now loadable as starter objects, and one-click recipes can register final plot/result outputs for layout, grouped comparison, multi-network comparison, multi-omics graph construction, double-matrix omics construction, multi-omics environment links, collapsed-core/rotated-arc environment links, graph-info/topology, environment, triple heatmap, and Mantel manual areas.
    - Workflow JSON manifests now export registered objects with source IDs, params, warnings, summaries, and recipe metadata.
    - Exported manifests can be re-imported as a replay plan preview, with supported gallery recipes identified for guarded reruns.
    - Still needed: fuller rerun support for non-gallery imported objects.

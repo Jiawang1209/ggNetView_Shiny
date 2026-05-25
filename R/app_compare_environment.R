@@ -498,6 +498,17 @@ optional_positive_numeric <- function(x) {
   value
 }
 
+optional_numeric <- function(x) {
+  if (is.null(x) || length(x) == 0L || is.na(x[[1]])) {
+    return(NULL)
+  }
+  value <- suppressWarnings(as.numeric(x[[1]]))
+  if (!is.finite(value)) {
+    return(NULL)
+  }
+  value
+}
+
 optional_nonnegative_numeric <- function(x) {
   if (is.null(x) || length(x) == 0L || is.na(x[[1]])) {
     return(NULL)
@@ -521,6 +532,8 @@ environment_geometry_params <- function(
   orientation_text = NULL,
   spec_layout_text = NULL,
   group_layout = NULL,
+  group_angle = NULL,
+  group_arc_angle = NULL,
   anchor_dist = NULL,
   distance = NULL,
   nrow = NULL,
@@ -529,7 +542,7 @@ environment_geometry_params <- function(
 ) {
   allowed_orientations <- c("top_right", "bottom_right", "top_left", "bottom_left")
   allowed_spec_layouts <- c("circle_outline", "diamond_outline", "rectangle_outline", "square_outline")
-  allowed_group_layouts <- c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake")
+  allowed_group_layouts <- c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake", "arc")
 
   params <- list()
   orientation <- parse_environment_option_list(orientation_text, allowed_orientations)
@@ -543,11 +556,19 @@ environment_geometry_params <- function(
   if (!is.null(group_layout) && length(group_layout) && group_layout[[1]] %in% allowed_group_layouts) {
     params$group_layout <- group_layout[[1]]
   }
+  group_angle <- optional_numeric(group_angle)
+  if (!is.null(group_angle)) {
+    params$group_angle <- group_angle
+  }
+  group_arc_angle <- optional_numeric(group_arc_angle)
+  if (!is.null(group_arc_angle)) {
+    params$group_arc_angle <- group_arc_angle
+  }
   anchor_dist <- optional_positive_numeric(anchor_dist)
   if (!is.null(anchor_dist)) {
     params$anchor_dist <- anchor_dist
   }
-  distance <- optional_nonnegative_numeric(distance)
+  distance <- optional_numeric(distance)
   if (!is.null(distance)) {
     params$distance <- distance
   }
@@ -585,6 +606,24 @@ apply_environment_pair_params <- function(params, env_select, spec_select) {
     ))
   }
   list(ok = TRUE, params = params, pairs = parsed_pairs$pairs, warnings = parsed_pairs$warnings)
+}
+
+filter_function_call_args <- function(fn, call_args) {
+  fn_formals <- formals(fn)
+  allowed_names <- names(fn_formals)
+  call_args <- call_args[names(call_args) %in% allowed_names]
+
+  if ("group_layout" %in% names(call_args) && "group_layout" %in% allowed_names) {
+    group_choices <- tryCatch(
+      eval(fn_formals$group_layout, envir = baseenv()),
+      error = function(e) NULL
+    )
+    if (is.character(group_choices) && length(group_choices) && !call_args$group_layout %in% group_choices) {
+      call_args$group_layout <- group_choices[[1]]
+    }
+  }
+
+  call_args
 }
 
 safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, env_spec_pairs = NULL, params = list()) {
@@ -636,6 +675,7 @@ safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NU
     group_layout = "circle"
   )
   call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
+  call_args <- filter_function_call_args(fn, call_args)
 
   result <- safe_call(
     do.call(fn, call_args),
@@ -715,6 +755,7 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
     spec_layout = "circle_outline"
   )
   call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
+  call_args <- filter_function_call_args(fn, call_args)
 
   result <- safe_call(
     do.call(fn, call_args),
