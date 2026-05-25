@@ -132,3 +132,16 @@ test_that("visual lab params JSON is stable before drawing", {
   expect_match(json, '"layout": "nicely"', fixed = TRUE)
   expect_match(json, '"bandwidth_scale": 1', fixed = TRUE)
 })
+
+source(test_path("../../inst/app/modules/mod_export_center.R"))
+
+test_that("registry manifest captures export metadata", {
+  registry <- registry_new()
+  registry_add(registry, name = "m", type = "matrix", data = matrix(1, nrow = 1), source = "unit")
+  registry_add(registry, name = "g", type = "graph", data = list(), source = "obj_1", params = list(builder = "matrix"))
+
+  manifest <- registry_manifest(registry)
+
+  expect_true(all(c("id", "name", "type", "source", "created_at") %in% names(manifest)))
+  expect_equal(nrow(manifest), 2L)
+})
