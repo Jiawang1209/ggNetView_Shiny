@@ -14,12 +14,13 @@ Date: 2026-05-26
 - Visual Lab exposes major manual layout families and common `ggNetView()` parameters.
 - Topology can register global topology, robustness, centrality, IVI, and Zi-Pi/keystone result tables.
 - Compare & Environment can register multi-network comparison plots, environment-link plots/statistics, and Mantel pairwise tables.
+- `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison, environment links, Mantel, and object-aware exports.
 
 ## Remaining Gaps
 
 1. Full browser-level workflow smoke.
-   - Current smoke covers startup and the core programmatic workflow.
-   - Still needed: real browser click-through for Phase 2/3 paths, including graph builder modes, subgraph registration, Visual Lab layout selection, topology/keystone, comparison/environment, and export downloads.
+   - Current smoke covers startup, the original core programmatic workflow, and the broad manual-backed backend workflow.
+   - Still needed: real browser click-through for Phase 2/3 paths, including graph builder modes, subgraph registration, Visual Lab layout selection, topology/keystone, comparison/environment, and export-download controls.
 
 2. Long-running operation feedback.
    - Add progress/status indicators for graph build, plot draw, topology, comparison, environment, and Mantel calculations.
@@ -49,10 +50,11 @@ Date: 2026-05-26
    - Plot downloads hidden for non-plot objects.
    - Graph node/edge/adjacency export behavior.
    - Comparison/environment adapter dependency behavior.
+   - Sample subgraph matrix orientation and selected sample ID behavior.
 
 ## Suggested Next Work Session
 
-Start with browser workflow smoke and UX stabilization, because the manual coverage surface is now broad enough that regressions are more likely to come from cross-tab interactions than isolated helpers.
+Start with browser workflow smoke and UX stabilization, because the manual-backed backend workflow is now protected and the remaining regression risk is mostly cross-tab interaction and visible UI state.
 
 Target outcome:
 
