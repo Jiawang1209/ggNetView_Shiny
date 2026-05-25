@@ -18,6 +18,7 @@ test_that("builder modes are discoverable", {
     "matrix_rmt",
     "edge_table",
     "node_edge",
+    "igraph",
     "adjacency",
     "double_matrix",
     "multi_matrix",
@@ -84,6 +85,25 @@ test_that("node+edge graph builder preserves isolated nodes", {
   expect_true("OTU7" %in% igraph::V(result$value)$name)
   expect_equal(unname(igraph::degree(result$value)["OTU7"]), 0)
   expect_equal(igraph::V(result$value)$type[igraph::V(result$value)$name == "OTU7"], "isolated")
+})
+
+test_that("igraph graph builder standardizes existing graph objects", {
+  mat <- read_phase2_fixture("phase2_example_matrix.csv")
+  graph <- safe_graph_builder(
+    mode = "matrix",
+    inputs = list(matrix = mat),
+    params = list(method = "cor", cor.method = "pearson", r.threshold = 0.2, p.threshold = 1)
+  )$value
+
+  result <- safe_graph_builder(
+    mode = "igraph",
+    inputs = list(graph = graph),
+    params = list(use_existing_modules = TRUE, module.method = "Walktrap")
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_s3_class(result$value, "igraph")
+  expect_true(all(c("Modularity", "Degree", "Strength") %in% igraph::vertex_attr_names(result$value)))
 })
 
 test_that("adjacency graph builder returns app_result", {

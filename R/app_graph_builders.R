@@ -8,6 +8,7 @@ graph_builder_modes <- function() {
     "Matrix + RMT" = "matrix_rmt",
     "Edge table" = "edge_table",
     "Node + edge table" = "node_edge",
+    "Igraph object" = "igraph",
     "Adjacency matrix" = "adjacency",
     "Double matrix" = "double_matrix",
     "Multi matrix" = "multi_matrix",
@@ -80,6 +81,14 @@ normalize_graph_builder_params <- function(mode, params = list()) {
     return(utils::modifyList(defaults, params, keep.null = TRUE))
   }
 
+  if (identical(mode, "igraph")) {
+    defaults <- list(
+      use_existing_modules = TRUE,
+      module.method = "Fast_greedy"
+    )
+    return(utils::modifyList(defaults, params, keep.null = TRUE))
+  }
+
   params
 }
 
@@ -89,6 +98,7 @@ required_builder_inputs <- function(mode) {
     matrix_rmt = c("matrix"),
     edge_table = c("edge_table"),
     node_edge = c("edge_table", "node_table"),
+    igraph = c("graph"),
     adjacency = c("adjacency"),
     double_matrix = c("matrix_a", "matrix_b"),
     multi_matrix = c("matrices"),
@@ -112,6 +122,7 @@ graph_builder_function_name <- function(mode, inputs) {
     matrix_rmt = "build_graph_from_mat",
     edge_table = if (!is.null(inputs$module_table)) "build_graph_from_module" else "build_graph_from_df",
     node_edge = "build_graph_from_node_edge",
+    igraph = "build_graph_from_igraph",
     adjacency = if (!is.null(inputs$module_table)) "build_graph_from_adj_mat_module" else "build_graph_from_adj_mat",
     double_matrix = if (!is.null(inputs$module_table)) "build_graph_from_double_mat_with_module" else "build_graph_from_double_mat",
     multi_matrix = "build_graph_from_multi_mat",
@@ -159,6 +170,7 @@ graph_builder_call_args <- function(mode, inputs, params) {
       c(list(inputs$edge_table), params)
     },
     node_edge = c(list(node = inputs$node_table, edge = inputs$edge_table), params),
+    igraph = c(list(igraph = inputs$graph), params),
     adjacency = if (!is.null(module_annotation)) {
       c(list(inputs$adjacency, node_annotation = module_annotation), params)
     } else {

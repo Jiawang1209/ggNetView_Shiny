@@ -64,7 +64,7 @@ New dependencies relative to the old root package:
 
 | Manual chapter | Core workflow | Current Shiny coverage |
 | --- | --- | --- |
-| `01-create_graph_object.Rmd` | Build graphs from matrix, edge list, node+edge tables, module annotation, adjacency, double matrix, igraph, WGCNA, consensus | Covered for matrix, RMT-fed matrix, edge table, node+edge table, adjacency, double matrix, multi matrix, WGCNA/TOM, and consensus. Direct igraph and STRINGDB paths remain candidates for advanced import. |
+| `01-create_graph_object.Rmd` | Build graphs from matrix, edge list, node+edge tables, module annotation, adjacency, double matrix, igraph, WGCNA, consensus | Covered for matrix, RMT-fed matrix, edge table, node+edge table, igraph object, adjacency, double matrix, multi matrix, WGCNA/TOM, and consensus. Direct STRINGDB remains a candidate for advanced import. |
 | `02-RMT.Rmd` | RMT threshold scan, then build graph with chosen threshold | Covered in Graph Builder and smoke-tested through the graph builder modes workflow. |
 | `03-graph_info.Rmd` | Node/edge info, module subgraph info, sample subgraph info | Covered in Graph Explorer with graph info plus module/sample subgraph registration. |
 | `04-subgraph.Rmd` | Extract module and sample subgraphs | Covered through module/sample subgraph workflows, registry handoff, plotting, topology, and export. |
@@ -91,7 +91,7 @@ Status definitions:
 | `build_graph_from_consensus` | covered_shiny | `01-create_graph_object.Rmd`; consensus builder mode. |
 | `build_graph_from_df` | covered_shiny | `01-create_graph_object.Rmd`; edge table mode. |
 | `build_graph_from_double_mat` | covered_shiny | `01-create_graph_object.Rmd`; double matrix mode. |
-| `build_graph_from_igraph` | not_exposed | Useful for advanced import, but not a primary manual-driven Shiny path yet. |
+| `build_graph_from_igraph` | covered_shiny | Advanced Graph Builder path for standardizing existing graph objects while reusing module attributes. |
 | `build_graph_from_mat` | covered_shiny | Chapters 01, 02, 03, 04, 05, 06, 10; default matrix builder. |
 | `build_graph_from_module` | covered_shiny | `01-create_graph_object.Rmd`; module annotation builder. |
 | `build_graph_from_multi_mat` | covered_shiny | Multi-matrix graph builder and multi-omics starter path. |
@@ -155,8 +155,9 @@ Recent focused checks and browser smokes cover the rebuilt workflow surface:
    clearer for publication users.
 6. Gallery is usable for curated recipes and guarded reruns, but fuller replay
    for non-gallery imported objects remains a follow-up.
-7. Direct advanced import paths for `build_graph_from_igraph()` and
-   `build_graph_from_stringdb()` are not yet exposed.
+7. Direct advanced import path for `build_graph_from_stringdb()` is not yet
+   exposed because it needs external identifier/service UX and careful
+   dependency handling.
 
 ## Architecture Direction
 

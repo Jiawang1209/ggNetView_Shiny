@@ -8,7 +8,7 @@ builder_choices_for_type <- function(type) {
     adjacency = c("Adjacency matrix" = "adjacency", "Consensus" = "consensus"),
     edge_table = c("Edge table" = "edge_table", "Node + edge table" = "node_edge"),
     wgcna_tom = c("WGCNA/TOM" = "wgcna_tom"),
-    graph = c("Consensus" = "consensus"),
+    graph = c("Igraph object" = "igraph", "Consensus" = "consensus"),
     graph_builder_modes()
   )
 }
@@ -30,6 +30,19 @@ graph_builder_params <- function(
   module_method = "Fast_greedy",
   transform_method = "none"
 ) {
+  if (identical(builder, "node_edge")) {
+    return(list(
+      module.method = module_method
+    ))
+  }
+
+  if (identical(builder, "igraph")) {
+    return(list(
+      use_existing_modules = TRUE,
+      module.method = module_method
+    ))
+  }
+
   if (!builder %in% c("matrix", "matrix_rmt")) {
     return(list())
   }
@@ -217,9 +230,9 @@ mod_graph_builder_server <- function(id, registry) {
           node_item <- registry_get(registry, input$node_id)
           shiny::req(node_item)
           source_ids <- c(input$source_id, input$node_id)
-          params$module.method <- input$module_method
           list(edge_table = source$data, node_table = node_item$data)
         },
+        igraph = list(graph = source$data),
         adjacency = list(adjacency = source$data),
         double_matrix = {
           shiny::req(input$source_id_b)

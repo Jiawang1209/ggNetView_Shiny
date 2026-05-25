@@ -92,6 +92,7 @@ build_graph("browser_adjacency_module", "obj_0006", "adjacency", module = "obj_0
 build_graph("browser_double", "obj_0001", "double_matrix", source_b = "obj_0002", module = "")
 build_graph("browser_multi", "obj_0001", "multi_matrix", multi = "obj_0002", module = "")
 build_graph("browser_wgcna", "obj_0007", "wgcna_tom", module = "obj_0004")
+build_graph("browser_igraph", "obj_0009", "igraph", module = "")
 build_graph("browser_consensus", "obj_0006", "consensus", consensus = "obj_0009", module = "")
 
 cat("graph builder modes browser smoke passed\n")

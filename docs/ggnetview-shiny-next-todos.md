@@ -11,7 +11,7 @@ Date: 2026-05-26
 - Data Hub can load manual workflow examples for matrix, edge-table-with-module, adjacency, TOM-like, and starter graph workflows.
 - Data Hub can run one-click gallery recipes that register final plot/result objects from those starters, including network layout, grouped comparison, graph info/topology, multi-network comparison, multi-omics network construction, multi-omics double-matrix and environment-block presets, environment heatmaps, collapsed-core and rotated arc collapsed-core environment heatmaps, and Mantel pairwise workflows.
 - Data Hub can load sample metadata and Compare & Environment can use it for grouped matrix network plots.
-- Graph Builder has real API-backed entry points for matrix, RMT-assisted matrix, edge table, node+edge table, adjacency, double matrix, multi-matrix, WGCNA/TOM, and consensus graph construction.
+- Graph Builder has real API-backed entry points for matrix, RMT-assisted matrix, edge table, node+edge table, igraph object, adjacency, double matrix, multi-matrix, WGCNA/TOM, and consensus graph construction.
 - Graph Explorer can register graph info, module subgraphs, and sample subgraphs.
 - Visual Lab exposes major manual layout families and common `ggNetView()` parameters, including outline/geometric variants plus additional circular-module petal, square, star, diamond, and heart layouts that pass real `ggNetView()` smoke checks.
 - Topology can register global topology, robustness, sample-level topology/statistics, centrality, IVI, and Zi-Pi/keystone result tables.
@@ -19,7 +19,7 @@ Date: 2026-05-26
 - Compare & Environment can register multi-network comparison plots with optional pair restrictions, normalized link detail tables, pair-level link summaries, topology comparison summaries, environment-link plots/statistics with environment/spec block selectors, env/spec pair restrictions, multi-core geometry controls, module-level environment heatmaps, and Mantel pairwise tables.
 - `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports.
 - `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, Export graph-node/workflow-manifest downloads, workflow manifest replay preview, and gallery recipe execution.
-- `tests/run_shiny_graph_builder_modes_smoke.R` now runs real browser builds for RMT, matrix, edge+module, node+edge, adjacency+module, double matrix, multi-matrix, WGCNA/TOM, and consensus builder paths.
+- `tests/run_shiny_graph_builder_modes_smoke.R` now runs real browser builds for RMT, matrix, edge+module, node+edge, igraph object, adjacency+module, double matrix, multi-matrix, WGCNA/TOM, and consensus builder paths.
 - `tests/run_shiny_analysis_export_smoke.R` now covers sample subgraphs, sample topology, centrality, IVI, Mantel, Visual Lab plot registration, and plot PNG/PDF downloads in a real browser.
 - `tests/run_shiny_mobile_layout_smoke.R` now checks 390px-wide navigation across the main workflow tabs and guards against page-level horizontal overflow.
 - `tests/run_shiny_visual_layouts_smoke.R` now draws every Visual Lab layout preset in a real browser, including general, geometric, circular-module, multipartite, WGCNA, dendrogram, and multirings layouts.
