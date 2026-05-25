@@ -69,7 +69,7 @@ New dependencies relative to the old root package:
 | `03-graph_info.Rmd` | Node/edge info, module subgraph info, sample subgraph info | Covered in Graph Explorer with graph info plus module/sample subgraph registration. |
 | `04-subgraph.Rmd` | Extract module and sample subgraphs | Covered through module/sample subgraph workflows, registry handoff, plotting, topology, and export. |
 | `05-layout.Rmd` | Full graph and subgraph visual layout gallery | Covered for major layout families and every current Visual Lab layout preset in browser smoke. |
-| `06-network_topology.Rmd` | Network topology, sample topology, node centrality, IVI, Zi-Pi | Covered for global topology, robustness, centrality, IVI, and Zi-Pi. Direct parallel topology and dedicated sample-topology runners remain partial. |
+| `06-network_topology.Rmd` | Network topology, sample topology, node centrality, IVI, Zi-Pi | Covered for global topology, direct parallel topology, robustness, sample topology, centrality, IVI, and Zi-Pi. |
 | `07-network_compare.Rmd` | Multi-network comparison via `ggNetView_multi_link()` | Covered with comparison plotting and task feedback. Richer topology comparison displays and link-info tables remain. |
 | `08-network_environment.Rmd` | Advanced `gglink_heatmaps()` with correlation/Mantel, multi-core, collapse modes | Covered for environment links, module-level heatmaps, statistics, Mantel helpers, and Gallery-backed geometry presets. Direct non-gallery geometry controls remain a polish area. |
 | `09-multi-omics_netwotk.Rmd` | Multi-omics graph and plot workflows | Starter coverage through multi-matrix graph building and gallery/plot presets. More multi-omics-specific recipes remain. |
@@ -101,7 +101,7 @@ Status definitions:
 | `get_graph_adjacency` | covered_indirect | Used for object/export style workflows rather than as a standalone tab. |
 | `get_info_from_graph` | covered_shiny | `03-graph_info.Rmd`; Graph Explorer info panels. |
 | `get_network_topology` | covered_shiny | `06-network_topology.Rmd`; Topology module. |
-| `get_network_topology_parallel` | partial | Parallel/list depth remains a follow-up. |
+| `get_network_topology_parallel` | covered_shiny | Direct Topology option with conservative sequential defaults plus bootstrap/worker controls. |
 | `get_node_centrality` | covered_shiny | Node metric table and ranking workflow. |
 | `get_node_ivi` | covered_shiny | Keystone/IVI workflow with graceful dependency handling. |
 | `get_sample_subgraph` | covered_shiny | Chapters 03, 04; sample subgraph extraction and registry handoff. |

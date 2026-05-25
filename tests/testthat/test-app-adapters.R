@@ -1,3 +1,6 @@
+source(testthat::test_path("../../R/app_validation.R"))
+source(testthat::test_path("../../R/app_adapters.R"))
+
 test_that("safe_build_graph returns failure for unknown builder", {
   result <- safe_build_graph(
     data = matrix(1:4, nrow = 2, dimnames = list(c("A", "B"), c("S1", "S2"))),
@@ -162,4 +165,31 @@ test_that("safe_topology rejects non-graph input", {
 
   expect_false(result$ok)
   expect_match(result$message, "graph")
+})
+
+test_that("safe_topology can use the parallel topology API in sequential mode", {
+  source(testthat::test_path("../../R/app_graph_builders.R"))
+
+  edges <- utils::read.csv(testthat::test_path("../../inst/extdata/phase2_example_edges.csv"), check.names = FALSE)
+  modules <- utils::read.csv(testthat::test_path("../../inst/extdata/phase2_example_modules.csv"), check.names = FALSE)
+  graph_result <- safe_graph_builder(
+    mode = "edge_table",
+    inputs = list(edge_table = edges, module_table = modules),
+    params = list()
+  )
+  expect_true(isTRUE(graph_result$ok), info = graph_result$trace %||% graph_result$message)
+
+  result <- safe_topology(
+    graph_result$value,
+    params = list(
+      parallel_api = TRUE,
+      bootstrap = 0,
+      parallel = FALSE,
+      n_workers = 1L
+    )
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_true(is.data.frame(result$value$topology))
+  expect_true(is.data.frame(result$value$Robustness))
 })

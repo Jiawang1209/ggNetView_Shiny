@@ -4,6 +4,10 @@ mod_topology_results_ui <- function(id) {
     bslib::card(
       bslib::card_header("Calculate"),
       shiny::selectInput(ns("graph_id"), "Graph object", choices = character()),
+      shiny::checkboxInput(ns("topology_parallel_api"), "Use topology parallel API", value = FALSE),
+      shiny::numericInput(ns("topology_bootstrap"), "Topology bootstrap", value = 0, min = 0, step = 1),
+      shiny::checkboxInput(ns("topology_parallel"), "Run topology workers in parallel", value = FALSE),
+      shiny::numericInput(ns("topology_workers"), "Topology workers", value = 1, min = 1, step = 1),
       shiny::actionButton(ns("calculate"), "Calculate topology"),
       shiny::hr(),
       shiny::selectInput(ns("matrix_id"), "Matrix for sample topology", choices = character()),
@@ -108,12 +112,18 @@ mod_topology_results_server <- function(id, registry) {
       graph_item <- registry_get(registry, input$graph_id)
       shiny::req(graph_item)
 
+      params <- list(
+        parallel_api = isTRUE(input$topology_parallel_api),
+        bootstrap = as.integer(input$topology_bootstrap %||% 0),
+        parallel = isTRUE(input$topology_parallel),
+        n_workers = as.integer(input$topology_workers %||% 1)
+      )
       status(task_feedback_message("network topology", "running"))
       result <- with_task_feedback(
         session,
         "network topology",
         session$ns("calculate"),
-        safe_topology(graph_item$data)
+        safe_topology(graph_item$data, params = params)
       )
       if (!result$ok) {
         topology_table(empty_result_table())
@@ -135,7 +145,7 @@ mod_topology_results_server <- function(id, registry) {
         type = "result",
         data = table,
         source = graph_item$id,
-        params = list(metric = "network_topology")
+        params = c(list(metric = "network_topology"), params)
       )
       if (nrow(robustness) > 0L) {
         registry_add(
@@ -144,7 +154,7 @@ mod_topology_results_server <- function(id, registry) {
           type = "result",
           data = robustness,
           source = graph_item$id,
-          params = list(metric = "network_robustness")
+          params = c(list(metric = "network_robustness"), params)
         )
       }
       status(paste("Registered topology:", topology_name))

@@ -158,13 +158,23 @@ safe_topology <- function(graph, params = list()) {
     return(app_failure("Topology Results requires an igraph graph object."))
   }
 
-  fn <- resolve_ggnetview_function("get_network_topology")
+  use_parallel_api <- isTRUE(params$parallel_api)
+  params$parallel_api <- NULL
+  fn_name <- if (use_parallel_api) "get_network_topology_parallel" else "get_network_topology"
+  fn <- resolve_ggnetview_function(fn_name)
   if (is.null(fn)) {
-    return(app_failure("Cannot find ggNetView function: get_network_topology"))
+    return(app_failure(paste("Cannot find ggNetView function:", fn_name)))
   }
 
+  if (use_parallel_api && is.null(params$bootstrap)) {
+    params$bootstrap <- 0L
+  }
+
+  call_args <- c(list(graph_obj = graph), params)
+  fn_args <- names(formals(fn))
+  call_args <- call_args[names(call_args) %in% fn_args]
   safe_call(
-    do.call(fn, c(list(graph), params)),
+    do.call(fn, call_args),
     "Failed to calculate network topology."
   )
 }
