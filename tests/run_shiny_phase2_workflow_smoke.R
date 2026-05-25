@@ -100,6 +100,8 @@ click("#compare_environment-run_environment")
 wait_for_text("Registered environment link plot:", timeout = 120000)
 click("#compare_environment-run_environment_manual")
 wait_for_text("Registered manual environment heatmap:", timeout = 120000)
+click("#compare_environment-run_environment_triple")
+wait_for_text("Registered triple environment heatmap:", timeout = 120000)
 
 set_input("graph_builder-graph_name", "browser_matrix_graph")
 click_tab("Graph Builder")

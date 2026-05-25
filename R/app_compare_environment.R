@@ -200,6 +200,117 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
   ))
 }
 
+graph_to_triple_tables <- function(graph) {
+  if (!inherits(graph, "igraph")) {
+    stop("Triple heatmap requires a graph object for edge/node tables.", call. = FALSE)
+  }
+
+  edges <- igraph::as_data_frame(graph, what = "edges")
+  if (!all(c("from", "to") %in% names(edges))) {
+    stop("Graph edge table must contain from/to columns.", call. = FALSE)
+  }
+  if (!"weight" %in% names(edges)) {
+    edges$weight <- 1
+  }
+  edges <- edges[, c("from", "to", "weight"), drop = FALSE]
+
+  nodes <- igraph::as_data_frame(graph, what = "vertices")
+  if (!"name" %in% names(nodes)) {
+    vertex_names <- igraph::V(graph)$name
+    if (is.null(vertex_names)) {
+      vertex_names <- as.character(seq_len(igraph::vcount(graph)))
+    }
+    nodes$name <- vertex_names
+  }
+  annotation_col <- intersect(c("Modularity", "modularity2", "modularity", "module", "annotation"), names(nodes))
+  annotation <- if (length(annotation_col)) {
+    as.character(nodes[[annotation_col[[1]]]])
+  } else {
+    rep("Feature", nrow(nodes))
+  }
+  node_table <- data.frame(
+    node = as.character(nodes$name),
+    annotation = annotation,
+    stringsAsFactors = FALSE
+  )
+
+  list(edges = edges, nodes = node_table)
+}
+
+sample_table_for_triple <- function(x, sample_col = "Sample") {
+  x <- as.data.frame(x, check.names = FALSE)
+  if (sample_col %in% names(x)) {
+    return(x)
+  }
+  samples <- rownames(x)
+  if (is.null(samples) || any(!nzchar(samples))) {
+    samples <- paste0("S", seq_len(nrow(x)))
+  }
+  data.frame(Sample = samples, x, check.names = FALSE)
+}
+
+safe_environment_triple_heatmap <- function(env, experiment, graph, params = list()) {
+  fn <- resolve_ggnetview_function("gglink_heatmap_triple")
+  if (is.null(fn)) {
+    return(app_failure("Cannot find ggNetView function: gglink_heatmap_triple"))
+  }
+
+  tables <- tryCatch(graph_to_triple_tables(graph), error = function(e) e)
+  if (inherits(tables, "error")) {
+    return(app_failure(conditionMessage(tables)))
+  }
+
+  env <- as.data.frame(env, check.names = FALSE)
+  experiment <- as.data.frame(experiment, check.names = FALSE)
+  common_samples <- intersect(rownames(env), rownames(experiment))
+  if (length(common_samples) >= 3L) {
+    env <- env[common_samples, , drop = FALSE]
+    experiment <- experiment[common_samples, , drop = FALSE]
+  }
+
+  graph_nodes <- tables$nodes$node
+  feature_count_param <- params$feature_count
+  if (is.null(feature_count_param)) {
+    feature_count_param <- min(3L, ncol(experiment))
+  }
+  feature_count <- as.integer(feature_count_param)
+  feature_count <- max(1L, min(feature_count, ncol(experiment), max(1L, length(graph_nodes) - 1L)))
+  preferred_features <- intersect(graph_nodes, colnames(experiment))
+  if (length(preferred_features) >= feature_count) {
+    feature_names <- preferred_features[seq_len(feature_count)]
+  } else {
+    feature_names <- unique(c(preferred_features, colnames(experiment)))[seq_len(feature_count)]
+  }
+  experiment <- experiment[, feature_names, drop = FALSE]
+
+  defaults <- list(
+    Environment = sample_table_for_triple(env),
+    Experiment = sample_table_for_triple(experiment),
+    edge = tables$edges,
+    node = tables$nodes,
+    sample_col = "Sample",
+    hub_n = ncol(experiment),
+    r = 6
+  )
+  call_args <- utils::modifyList(defaults, params[names(params) != "feature_count"], keep.null = TRUE)
+
+  result <- safe_call(
+    do.call(fn, call_args),
+    "Failed to calculate triple environment heatmap."
+  )
+  if (!result$ok) {
+    return(result)
+  }
+
+  app_success(list(
+    plot = result$value,
+    nodes = tables$nodes,
+    edges = tables$edges,
+    experiment = experiment,
+    raw = result$value
+  ))
+}
+
 safe_mantel_pairwise <- function(spec, env, params = list()) {
   fn <- resolve_ggnetview_function("mantel_pairwise")
   if (is.null(fn)) {

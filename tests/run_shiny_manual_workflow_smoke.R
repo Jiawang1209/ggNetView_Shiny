@@ -218,6 +218,14 @@ environment <- safe_environment_link(
 )
 assert_app_ok(environment, "environment link")
 
+triple_environment <- safe_environment_triple_heatmap(
+  env = env_spec$env,
+  experiment = env_spec$spec,
+  graph = graph,
+  params = list(feature_count = 3L, r = 6)
+)
+assert_app_ok(triple_environment, "triple environment heatmap")
+
 mantel <- safe_mantel_pairwise(
   spec = env_spec$spec[, 1:2],
   env = env_spec$env[, 1:2],

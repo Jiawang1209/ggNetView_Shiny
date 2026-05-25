@@ -117,6 +117,23 @@ test_that("manual environment heatmap supports block Mantel links or dependency 
   }
 })
 
+test_that("triple environment heatmap returns a plot from graph-backed tables", {
+  data <- phase2_env_spec()
+  graph <- phase2_graph_pair()[[1]]
+  result <- safe_environment_triple_heatmap(
+    env = data$env,
+    experiment = data$spec,
+    graph = graph,
+    params = list(feature_count = 3L, r = 6)
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_s3_class(result$value$plot, "ggplot")
+  expect_true(is.data.frame(result$value$nodes))
+  expect_true(is.data.frame(result$value$edges))
+  expect_true(ncol(result$value$experiment) <= ncol(data$spec))
+})
+
 test_that("Mantel pairwise returns a statistics table or dependency error", {
   data <- phase2_env_spec()
   result <- safe_mantel_pairwise(data$spec[, 1:2], data$env[, 1:2], params = list(permutations = 9L))

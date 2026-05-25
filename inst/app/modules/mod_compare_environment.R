@@ -26,8 +26,11 @@ mod_compare_environment_ui <- function(id) {
       shiny::selectInput(ns("mantel_kind"), "Mantel kind", choices = c("block_vs_col", "col_vs_col")),
       shiny::checkboxInput(ns("spec_collapse"), "Collapse species block", value = FALSE),
       shiny::checkboxInput(ns("drop_nonsig"), "Drop non-significant links", value = FALSE),
+      shiny::selectInput(ns("triple_graph_id"), "Triple heatmap graph", choices = character()),
+      shiny::numericInput(ns("triple_feature_count"), "Triple feature count", value = 3, min = 1, step = 1),
       shiny::actionButton(ns("run_environment"), "Run environment link"),
       shiny::actionButton(ns("run_environment_manual"), "Run manual heatmap"),
+      shiny::actionButton(ns("run_environment_triple"), "Run triple heatmap"),
       shiny::actionButton(ns("run_mantel"), "Run Mantel table")
     ),
     bslib::card(
@@ -57,6 +60,11 @@ mod_compare_environment_server <- function(id, registry) {
     shiny::observe({
       graph_choices <- registry_choices(registry, type = "graph")
       shiny::updateSelectizeInput(session, "compare_graph_ids", choices = graph_choices, server = TRUE)
+      selected_triple <- input$triple_graph_id
+      if (is.null(selected_triple) || !selected_triple %in% graph_choices) {
+        selected_triple <- if (length(graph_choices)) graph_choices[[1]] else character()
+      }
+      shiny::updateSelectInput(session, "triple_graph_id", choices = graph_choices, selected = selected_triple)
     })
 
     shiny::observe({
@@ -303,6 +311,60 @@ mod_compare_environment_server <- function(id, registry) {
       )
       status(paste("Registered manual environment heatmap:", plot_item$name))
       shiny::showNotification(paste("Registered manual environment heatmap:", plot_item$name), type = "message")
+    })
+
+    shiny::observeEvent(input$run_environment_triple, {
+      shiny::req(input$spec_id, input$env_id, input$triple_graph_id)
+      spec_item <- registry_get(registry, input$spec_id)
+      env_item <- registry_get(registry, input$env_id)
+      graph_item <- registry_get(registry, input$triple_graph_id)
+      shiny::req(spec_item, env_item, graph_item)
+
+      experiment <- as.data.frame(t(as.matrix(spec_item$data)), check.names = FALSE)
+      env <- as.data.frame(env_item$data, check.names = FALSE)
+      if (nrow(env) != nrow(experiment)) {
+        env <- as.data.frame(t(as.matrix(env_item$data)), check.names = FALSE)
+      }
+
+      params <- list(
+        feature_count = input$triple_feature_count,
+        r = 6
+      )
+      result <- safe_environment_triple_heatmap(
+        env = env,
+        experiment = experiment,
+        graph = graph_item$data,
+        params = params
+      )
+      if (!result$ok) {
+        detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
+        status(detail)
+        shiny::showNotification(result$message, type = "error")
+        return()
+      }
+
+      plot_obj(result$value$plot)
+      stats <- data.frame(
+        table = c("nodes", "edges", "experiment_features"),
+        rows = c(nrow(result$value$nodes), nrow(result$value$edges), ncol(result$value$experiment)),
+        stringsAsFactors = FALSE
+      )
+      stats_table(stats)
+      source_ids <- paste(input$spec_id, input$env_id, input$triple_graph_id, sep = ",")
+      plot_item <- register_plot_result(
+        unique_output_name("triple_environment_heatmap_plot"),
+        result$value$plot,
+        source_ids,
+        params
+      )
+      register_stats_result(
+        unique_output_name("triple_environment_heatmap_summary"),
+        stats,
+        source_ids,
+        params
+      )
+      status(paste("Registered triple environment heatmap:", plot_item$name))
+      shiny::showNotification(paste("Registered triple environment heatmap:", plot_item$name), type = "message")
     })
 
     shiny::observeEvent(input$run_mantel, {
