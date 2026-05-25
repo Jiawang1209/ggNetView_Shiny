@@ -144,6 +144,7 @@ test_that("visual lab params JSON is stable before drawing", {
   expect_match(json, '"bandwidth_scale": 1', fixed = TRUE)
 })
 
+source(test_path("../../R/app_exports.R"))
 source(test_path("../../inst/app/modules/mod_export_center.R"))
 
 test_that("registry manifest captures export metadata", {
@@ -171,4 +172,14 @@ test_that("plot downloads are limited to plot objects", {
 
   expect_null(plot_download_controls(list(type = "matrix")))
   expect_s3_class(plot_download_controls(list(type = "plot")), "shiny.tag.list")
+})
+
+test_that("type download controls expose graph exports", {
+  controls <- type_download_controls(list(type = "graph"))
+  text <- paste(capture.output(print(controls)), collapse = "\n")
+
+  expect_s3_class(controls, "shiny.tag.list")
+  expect_match(text, "download_nodes_csv")
+  expect_match(text, "download_edges_csv")
+  expect_match(text, "download_adjacency_csv")
 })

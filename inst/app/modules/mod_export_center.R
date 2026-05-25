@@ -7,7 +7,7 @@ mod_export_center_ui <- function(id) {
     shiny::downloadButton(ns("download_rds"), "Download RDS"),
     shiny::downloadButton(ns("download_csv"), "Download CSV"),
     shiny::downloadButton(ns("download_params"), "Download Parameters"),
-    shiny::uiOutput(ns("plot_downloads"))
+    shiny::uiOutput(ns("type_downloads"))
   )
 }
 
@@ -70,6 +70,28 @@ plot_download_controls <- function(item, ns = identity) {
   )
 }
 
+type_download_controls <- function(item, ns = identity) {
+  if (is.null(item)) {
+    return(NULL)
+  }
+
+  formats <- export_formats_for_type(item$type)
+  controls <- list()
+  if ("nodes_csv" %in% formats) {
+    controls <- c(controls, list(shiny::downloadButton(ns("download_nodes_csv"), "Download Nodes CSV")))
+  }
+  if ("edges_csv" %in% formats) {
+    controls <- c(controls, list(shiny::downloadButton(ns("download_edges_csv"), "Download Edges CSV")))
+  }
+  if ("adjacency_csv" %in% formats) {
+    controls <- c(controls, list(shiny::downloadButton(ns("download_adjacency_csv"), "Download Adjacency CSV")))
+  }
+  if ("png" %in% formats || "pdf" %in% formats) {
+    controls <- c(controls, list(plot_download_controls(item, ns)))
+  }
+  do.call(shiny::tagList, controls)
+}
+
 mod_export_center_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     shiny::observe({
@@ -83,9 +105,9 @@ mod_export_center_server <- function(id, registry) {
       item
     })
 
-    output$plot_downloads <- shiny::renderUI({
+    output$type_downloads <- shiny::renderUI({
       item <- selected_item()
-      plot_download_controls(item, session$ns)
+      type_download_controls(item, session$ns)
     })
 
     output$download_manifest <- shiny::downloadHandler(
@@ -112,6 +134,30 @@ mod_export_center_server <- function(id, registry) {
     output$download_params <- shiny::downloadHandler(
       filename = function() paste0(safe_download_base(selected_item()), "_params.json"),
       content = function(file) write_registry_params(selected_item()$params, file)
+    )
+
+    output$download_nodes_csv <- shiny::downloadHandler(
+      filename = function() paste0(safe_download_base(selected_item()), "_nodes.csv"),
+      content = function(file) {
+        shiny::validate(shiny::need(identical(selected_item()$type, "graph"), "Node export requires a graph object."))
+        write_graph_nodes_csv(selected_item()$data, file)
+      }
+    )
+
+    output$download_edges_csv <- shiny::downloadHandler(
+      filename = function() paste0(safe_download_base(selected_item()), "_edges.csv"),
+      content = function(file) {
+        shiny::validate(shiny::need(identical(selected_item()$type, "graph"), "Edge export requires a graph object."))
+        write_graph_edges_csv(selected_item()$data, file)
+      }
+    )
+
+    output$download_adjacency_csv <- shiny::downloadHandler(
+      filename = function() paste0(safe_download_base(selected_item()), "_adjacency.csv"),
+      content = function(file) {
+        shiny::validate(shiny::need(identical(selected_item()$type, "graph"), "Adjacency export requires a graph object."))
+        write_graph_adjacency_csv(selected_item()$data, file)
+      }
     )
 
     output$download_png <- shiny::downloadHandler(
