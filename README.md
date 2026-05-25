@@ -36,6 +36,21 @@ After installing/loading the package-style project, run:
 ggNetView::launch_ggNetView()
 ```
 
+### Local Shiny Development
+
+This project should be verified with the system R runtime that has the
+ggNetView dependency stack installed:
+
+```bash
+make shiny-startup
+make shiny-test-helpers
+make shiny-smoke
+make shiny-build
+make shiny-run
+```
+
+The Makefile defaults to `/usr/local/bin/R` and `/usr/local/bin/Rscript`.
+
 The real workflow smoke test requires the scientific imports listed in
 `DESCRIPTION`. On this machine, the current blockers are: `FNN`, `future`,
 `future.apply`, `ggraph`, `Hmisc`, `huge`, `progressr`, `psych`, `qgraph`,
