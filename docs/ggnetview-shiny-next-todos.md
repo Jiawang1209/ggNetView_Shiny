@@ -25,6 +25,7 @@ Date: 2026-05-26
 - `tests/run_shiny_mobile_layout_smoke.R` now checks 390px-wide navigation across the main workflow tabs and guards against page-level horizontal overflow.
 - `tests/run_shiny_visual_layouts_smoke.R` now draws every Visual Lab layout preset in a real browser, including general, geometric, circular-module, multipartite, WGCNA, dendrogram, and multirings layouts.
 - `tests/run_shiny_environment_geometry_smoke.R` now runs Gallery-backed environment geometry recipes in a real browser and checks Export plot controls for default heatmap, multi-omics blocks, collapsed-core, and rotated-arc collapsed-core outputs.
+- `tests/run_shiny_task_feedback_smoke.R` now deliberately slows a real Shiny action and asserts the shared busy-state button class/disabled state appears and clears in the browser.
 
 ## Remaining Gaps
 
@@ -36,7 +37,8 @@ Date: 2026-05-26
 
 2. Long-running operation feedback.
    - Graph build, RMT scan, plot draw, topology, centrality, IVI, Zi-Pi, comparison, grouped multi-network, environment heatmaps, Mantel, and Gallery recipe paths now use shared progress feedback and temporary button busy states.
-   - Still needed: add deeper browser-level assertions for the busy-state handler on deliberately slow test actions.
+   - Browser smoke now asserts a deliberately slow task enters and exits the shared busy state.
+   - Still needed: keep adding targeted busy-state assertions if future long-running actions add new button paths.
 
 3. Environment and multi-omics depth.
    - The environment workflow now uses `gglink_heatmaps_2()`, original `gglink_heatmaps()`, `gglink_heatmap_triple()`, `ggnetview_modularity_heatmaps()`, block-vs-column Mantel controls, distance/permutation Mantel controls, Mantel pairwise/block helpers, and interpretation summaries that identify strongest/significant links by block and method. Gallery recipes can reproduce the heatmap, triple-heatmap, and Mantel starter paths.

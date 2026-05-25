@@ -48,7 +48,8 @@ load_app_helper <- function(name) {
 
 invisible(lapply(c(
   "app_result", "app_success", "app_failure",
-  "task_feedback_message", "task_busy_payload", "app_task_feedback_script", "send_task_busy", "with_task_feedback",
+  "task_feedback_message", "task_busy_payload", "app_task_feedback_script", "send_task_busy",
+  "task_feedback_test_delay", "with_task_feedback",
   "read_user_table", "detect_upload_type", "validate_matrix_like",
   "safe_call", "safe_build_graph", "safe_graph_builder", "safe_rmt_threshold", "safe_plot_ggnetview", "safe_topology",
   "graph_builder_modes", "normalize_graph_builder_params", "required_builder_inputs",
@@ -69,9 +70,10 @@ invisible(lapply(c(
   "registry_get", "registry_delete", "registry_count", "registry_list",
   "registry_choices", "registry_choices_by_type", "registry_log_error",
   "write_registry_table", "write_registry_object", "write_registry_params", "write_workflow_manifest",
-  "read_workflow_manifest", "workflow_replay_plan", "workflow_replay_recipes",
-  "workflow_restore_manifest_inputs",
-  "workflow_replay_builder_items", "workflow_replay_graph_builder", "workflow_replay_graph_builders",
+  "read_workflow_manifest", "workflow_replay_plan", "workflow_restore_plan",
+  "workflow_filter_replay_plan", "workflow_filter_manifest_items", "workflow_replay_recipes",
+  "workflow_restore_manifest_inputs", "workflow_replay_builder_items",
+  "workflow_replay_graph_builder", "workflow_replay_graph_builders",
   "export_formats_for_type", "write_graph_nodes_csv", "write_graph_edges_csv",
   "write_graph_adjacency_csv", "write_plot_png", "write_plot_pdf"
 ), load_app_helper))

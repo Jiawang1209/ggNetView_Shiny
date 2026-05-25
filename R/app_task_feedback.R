@@ -45,8 +45,21 @@ send_task_busy <- function(session, button_ids, busy) {
   invisible(TRUE)
 }
 
+task_feedback_test_delay <- function() {
+  delay <- suppressWarnings(as.numeric(Sys.getenv("GGNV_TASK_FEEDBACK_TEST_DELAY", "0")))
+  if (is.na(delay) || delay <= 0) {
+    return(invisible(FALSE))
+  }
+  Sys.sleep(delay)
+  invisible(TRUE)
+}
+
 with_task_feedback <- function(session, label, button_ids = character(), expr) {
   send_task_busy(session, button_ids, TRUE)
+  if (!is.null(session) && is.function(session$flushReact)) {
+    session$flushReact()
+  }
+  task_feedback_test_delay()
   on.exit(send_task_busy(session, button_ids, FALSE), add = TRUE)
 
   if (is.null(shiny::getDefaultReactiveDomain())) {

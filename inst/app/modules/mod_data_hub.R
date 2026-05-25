@@ -182,19 +182,24 @@ mod_data_hub_server <- function(id, registry) {
     })
 
     shiny::observeEvent(input$load_gallery, {
-      result <- tryCatch(
-        {
+      result <- with_task_feedback(
+        session,
+        "manual examples",
+        session$ns("load_gallery"),
+        tryCatch(
+          {
           items <- register_gallery_examples(registry)
           if (length(items)) {
             current_table(items[[1]]$data)
           }
           shiny::showNotification("Registered manual example workflow objects", type = "message")
           items
-        },
-        error = function(e) {
-          shiny::showNotification(conditionMessage(e), type = "error")
-          NULL
-        }
+          },
+          error = function(e) {
+            shiny::showNotification(conditionMessage(e), type = "error")
+            NULL
+          }
+        )
       )
 
       invisible(result)

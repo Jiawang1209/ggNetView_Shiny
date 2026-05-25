@@ -26,6 +26,20 @@ test_that("with_task_feedback works without an active Shiny session", {
   expect_equal(value, 42)
 })
 
+test_that("task feedback test delay is opt-in for browser smoke", {
+  old <- Sys.getenv("GGNV_TASK_FEEDBACK_TEST_DELAY", unset = NA)
+  on.exit({
+    if (is.na(old)) {
+      Sys.unsetenv("GGNV_TASK_FEEDBACK_TEST_DELAY")
+    } else {
+      Sys.setenv(GGNV_TASK_FEEDBACK_TEST_DELAY = old)
+    }
+  }, add = TRUE)
+
+  Sys.setenv(GGNV_TASK_FEEDBACK_TEST_DELAY = "0")
+  expect_false(task_feedback_test_delay())
+})
+
 test_that("long-running Shiny actions use shared task feedback", {
   module_sources <- c(
     paste(readLines(test_path("../../inst/app/modules/mod_data_hub.R"), warn = FALSE), collapse = "\n"),
@@ -34,6 +48,7 @@ test_that("long-running Shiny actions use shared task feedback", {
   source_text <- paste(module_sources, collapse = "\n")
 
   expected_buttons <- c(
+    "load_gallery",
     "run_gallery_recipe",
     "run_compare",
     "run_multi_group",
