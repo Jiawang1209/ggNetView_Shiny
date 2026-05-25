@@ -61,6 +61,10 @@ test_that("graph builder params are empty for edge table builder", {
 })
 
 test_that("graph builder validates source type matches", {
+  expect_equal(
+    unname(builder_choices_for_type(NULL)),
+    c("matrix", "adjacency", "edge_table")
+  )
   expect_true(builder_matches_source_type("matrix", "matrix"))
   expect_true(builder_matches_source_type("adjacency", "adjacency"))
   expect_true(builder_matches_source_type("edge_table", "edge_table"))

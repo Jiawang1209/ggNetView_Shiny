@@ -1,4 +1,8 @@
 builder_choices_for_type <- function(type) {
+  if (is.null(type) || length(type) != 1L || is.na(type) || !nzchar(type)) {
+    return(c("Matrix" = "matrix", "Adjacency matrix" = "adjacency", "Edge table" = "edge_table"))
+  }
+
   switch(type,
     matrix = c("Matrix" = "matrix"),
     adjacency = c("Adjacency matrix" = "adjacency"),
