@@ -58,7 +58,7 @@ invisible(lapply(c(
   "safe_node_centrality", "safe_sample_topology", "safe_node_ivi", "safe_zipi", "node_table_from_graph", "adjacency_from_graph",
   "safe_multi_network_compare", "default_group_info_for_matrix", "align_group_info_for_matrix", "safe_multi_group_network",
   "interpret_multi_network_links", "interpret_environment_links",
-  "environment_report_presets",
+  "multi_network_report_presets", "environment_report_presets",
   "environment_geometry_params", "environment_mantel_params",
   "safe_environment_link", "safe_environment_heatmap", "safe_module_environment_heatmap",
   "safe_environment_triple_heatmap", "safe_mantel_pairwise", "safe_mantel_table",

@@ -433,21 +433,29 @@ run_gallery_recipe <- function(registry, recipe) {
     if (!result$ok) {
       return(result)
     }
+    source_ids <- paste(graph_item$id, edge_graph_item$id, sep = ",")
     plot_item <- add_recipe_item(
       "gallery_recipe_multi_network_compare",
       "plot",
       result$value$plot,
-      paste(graph_item$id, edge_graph_item$id, sep = ","),
+      source_ids,
       list(layout = "fr", layout.module = "adjacent")
     )
     link_item <- add_recipe_item(
       "gallery_recipe_multi_network_links",
       "result",
       result$value$link_info %||% data.frame(),
-      paste(graph_item$id, edge_graph_item$id, sep = ","),
+      source_ids,
       list(kind = "multi_network_link_info")
     )
-    return(app_success(list(items = list(plot_item, link_item))))
+    report_item <- add_recipe_item(
+      "gallery_recipe_multi_network_report",
+      "result",
+      result$value$link_report %||% data.frame(),
+      source_ids,
+      list(kind = "multi_network_report")
+    )
+    return(app_success(list(items = list(plot_item, link_item, report_item))))
   }
 
   if (identical(recipe, "triple_environment_heatmap")) {

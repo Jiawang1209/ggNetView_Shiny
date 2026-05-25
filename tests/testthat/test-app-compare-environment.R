@@ -106,6 +106,13 @@ test_that("multi-network link interpretation summarizes pair-level links", {
   expect_equal(interpreted$summary$link_count[interpreted$summary$link_level == "module"], 2L)
   expect_equal(interpreted$summary$link_count[interpreted$summary$link_level == "node"], 1L)
   expect_equal(interpreted$summary$unique_sources[interpreted$summary$link_level == "module"], 2L)
+  expect_true(is.data.frame(interpreted$report))
+  expect_true(all(c(
+    "workflow", "pair", "link_level", "signal_scope", "evidence_label", "report_text"
+  ) %in% names(interpreted$report)))
+  expect_equal(nrow(interpreted$report), nrow(interpreted$summary))
+  expect_true(any(grepl("A vs B", interpreted$report$pair, fixed = TRUE)))
+  expect_true(any(grepl("shared module", interpreted$report$report_text, fixed = TRUE)))
 })
 
 test_that("grouped matrix workflow returns a multi-network plot", {

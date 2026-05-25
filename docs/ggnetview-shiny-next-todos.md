@@ -49,7 +49,8 @@ Date: 2026-05-26
    - The comparison workflow now uses `ggNetView_multi_link()` with graph objects and `ggNetView_multi()` from a matrix plus generated or uploaded/custom group metadata.
    - Users can restrict comparisons to selected group pairs, which are passed to the real `comparisons_groups` argument.
    - Link information is normalized into detail and pair-level summary result tables, and graph-level topology comparison summaries are displayed and registered for export.
-   - Still needed: richer biological/statistical interpretation of what each shared node/module link means.
+   - Multi-network comparison outputs now register report-ready presets that summarize shared node/module connections by comparison pair, link level, source/target diversity, and layout distance.
+   - Still needed: deeper biological/statistical interpretation after longer real-use sessions and domain-specific labels for shared modules/nodes.
 
 5. Polish layout and wording after real use.
    - Export Center buttons are now grouped into selected-object, type-specific, and session/workflow sections.

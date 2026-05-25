@@ -311,6 +311,7 @@ mod_compare_environment_server <- function(id, registry) {
       stats_table(stats)
       compare_link_summary_table(result$value$link_summary)
       compare_topology_table(result$value$topology_table)
+      report_preset_table(result$value$link_report %||% data.frame())
 
       source_ids <- paste(input$compare_graph_ids, collapse = ",")
       plot_params <- params[names(params) != "include_topology_summary"]
@@ -332,6 +333,14 @@ mod_compare_environment_server <- function(id, registry) {
           result$value$link_summary,
           source_ids,
           list(kind = "comparison_link_summary")
+        )
+      }
+      if (nrow(result$value$link_report %||% data.frame())) {
+        register_stats_result(
+          unique_output_name("multi_network_compare_report"),
+          result$value$link_report,
+          source_ids,
+          list(kind = "multi_network_compare_report")
         )
       }
       if (nrow(result$value$topology_table)) {
@@ -403,6 +412,7 @@ mod_compare_environment_server <- function(id, registry) {
       stats_table(result$value$group_info)
       compare_link_summary_table(data.frame())
       compare_topology_table(data.frame())
+      report_preset_table(data.frame())
       plot_item <- register_plot_result(
         unique_output_name("multi_group_network_plot"),
         result$value$plot,

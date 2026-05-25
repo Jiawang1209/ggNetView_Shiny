@@ -122,6 +122,7 @@ test_that("gallery recipes register reproducible outputs", {
   expect_true(any(listed$name == "gallery_recipe_mantel_pairwise"))
   expect_true(any(listed$name == "gallery_recipe_multi_network_compare"))
   expect_true(any(listed$name == "gallery_recipe_multi_network_links"))
+  expect_true(any(listed$name == "gallery_recipe_multi_network_report"))
   expect_true(any(listed$name == "gallery_recipe_triple_environment_heatmap"))
   expect_true(any(listed$name == "gallery_recipe_triple_environment_nodes"))
   expect_true(any(listed$name == "gallery_recipe_multi_omics_graph"))

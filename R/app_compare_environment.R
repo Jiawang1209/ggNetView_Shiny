@@ -108,6 +108,7 @@ safe_multi_network_compare <- function(graphs, params = list()) {
     link_info = link_info,
     link_table = link_table,
     link_summary = link_summary,
+    link_report = link_interpretation$report,
     topology_table = topology_table,
     comparison_pairs = parsed_pairs$pairs,
     comparison_warnings = parsed_pairs$warnings,
@@ -157,7 +158,84 @@ normalize_multi_network_link_table <- function(link_info) {
 empty_multi_network_link_interpretation <- function() {
   list(
     details = data.frame(),
-    summary = data.frame()
+    summary = data.frame(),
+    report = data.frame()
+  )
+}
+
+multi_network_report_presets <- function(summary, workflow = "multi_network_compare") {
+  columns <- c(
+    "workflow",
+    "pair",
+    "group_a",
+    "group_b",
+    "link_level",
+    "signal_scope",
+    "evidence_label",
+    "report_text"
+  )
+  if (is.null(summary) || !is.data.frame(summary) || !nrow(summary)) {
+    return(stats::setNames(data.frame(matrix(ncol = length(columns), nrow = 0)), columns))
+  }
+
+  summary <- as.data.frame(summary, check.names = FALSE)
+  defaults <- list(
+    pair = "",
+    group_a = "",
+    group_b = "",
+    link_level = "unknown",
+    link_count = 0,
+    unique_sources = 0,
+    unique_targets = 0,
+    mean_distance = NA_real_
+  )
+  for (name in names(defaults)) {
+    if (!name %in% names(summary)) {
+      summary[[name]] <- defaults[[name]]
+    }
+  }
+
+  as_number <- function(x) suppressWarnings(as.numeric(x))
+  link_count <- as_number(summary$link_count)
+  unique_sources <- as_number(summary$unique_sources)
+  unique_targets <- as_number(summary$unique_targets)
+  mean_distance <- as_number(summary$mean_distance)
+
+  link_level <- as.character(summary$link_level)
+  signal_scope <- ifelse(
+    identical(length(link_level), 0L),
+    character(),
+    ifelse(
+      link_level == "module",
+      "shared module",
+      ifelse(link_level == "node", "shared node", paste("shared", link_level))
+    )
+  )
+  evidence_label <- sprintf(
+    "%s link(s); %s source(s); %s target(s); mean distance=%s",
+    ifelse(is.na(link_count), 0, link_count),
+    ifelse(is.na(unique_sources), 0, unique_sources),
+    ifelse(is.na(unique_targets), 0, unique_targets),
+    ifelse(is.na(mean_distance), "NA", format(round(mean_distance, 3), nsmall = 3))
+  )
+  report_text <- sprintf(
+    "%s comparison contains %s %s connection(s): %s.",
+    as.character(summary$pair),
+    ifelse(is.na(link_count), 0, link_count),
+    signal_scope,
+    evidence_label
+  )
+
+  data.frame(
+    workflow = rep(workflow, nrow(summary)),
+    pair = as.character(summary$pair),
+    group_a = as.character(summary$group_a),
+    group_b = as.character(summary$group_b),
+    link_level = link_level,
+    signal_scope = signal_scope,
+    evidence_label = evidence_label,
+    report_text = report_text,
+    stringsAsFactors = FALSE
   )
 }
 
@@ -207,7 +285,11 @@ interpret_multi_network_links <- function(link_info) {
   rownames(summary) <- NULL
   summary <- summary[order(summary$pair, summary$link_level), , drop = FALSE]
 
-  list(details = details, summary = summary)
+  list(
+    details = details,
+    summary = summary,
+    report = multi_network_report_presets(summary)
+  )
 }
 
 empty_environment_link_interpretation <- function() {
