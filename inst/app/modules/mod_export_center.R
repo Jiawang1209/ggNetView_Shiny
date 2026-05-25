@@ -4,12 +4,9 @@ mod_export_center_ui <- function(id) {
     bslib::card_header("Export Center"),
     shiny::selectInput(ns("object_id"), "Object", choices = character()),
     shiny::tableOutput(ns("object_summary")),
-    shiny::downloadButton(ns("download_manifest"), "Download Manifest"),
-    shiny::downloadButton(ns("download_workflow_manifest"), "Download Workflow JSON"),
-    shiny::downloadButton(ns("download_rds"), "Download RDS"),
-    shiny::downloadButton(ns("download_csv"), "Download CSV"),
-    shiny::downloadButton(ns("download_params"), "Download Parameters"),
+    object_download_controls(ns),
     shiny::uiOutput(ns("type_downloads")),
+    workflow_download_controls(ns),
     bslib::card_header("Replay Plan"),
     shiny::fileInput(ns("workflow_manifest"), "Workflow JSON", accept = c(".json", "application/json")),
     shiny::actionButton(ns("run_replay_recipes"), "Run Replay Recipes"),
@@ -30,6 +27,42 @@ safe_download_base <- function(item) {
     name <- item$id
   }
   name
+}
+
+export_control_section <- function(title, ...) {
+  controls <- list(...)
+  controls <- controls[!vapply(controls, is.null, logical(1))]
+  if (!length(controls)) {
+    return(NULL)
+  }
+
+  shiny::tagList(
+    shiny::tags$div(
+      class = "ggnv-export-section",
+      shiny::tags$h5(title),
+      shiny::tags$div(
+        class = "ggnv-export-buttons",
+        controls
+      )
+    )
+  )
+}
+
+object_download_controls <- function(ns = identity) {
+  export_control_section(
+    "Selected Object Downloads",
+    shiny::downloadButton(ns("download_rds"), "Download Object RDS"),
+    shiny::downloadButton(ns("download_csv"), "Download Object CSV"),
+    shiny::downloadButton(ns("download_params"), "Download Parameters JSON")
+  )
+}
+
+workflow_download_controls <- function(ns = identity) {
+  export_control_section(
+    "Session & Workflow Downloads",
+    shiny::downloadButton(ns("download_manifest"), "Download Session Manifest CSV"),
+    shiny::downloadButton(ns("download_workflow_manifest"), "Download Workflow Manifest JSON")
+  )
 }
 
 registry_manifest <- function(registry) {
@@ -96,7 +129,16 @@ type_download_controls <- function(item, ns = identity) {
   if ("png" %in% formats || "pdf" %in% formats) {
     controls <- c(controls, list(plot_download_controls(item, ns)))
   }
-  do.call(shiny::tagList, controls)
+  if (!length(controls)) {
+    return(NULL)
+  }
+
+  title <- switch(item$type,
+    graph = "Graph Downloads",
+    plot = "Plot Downloads",
+    paste(tools::toTitleCase(gsub("_", " ", item$type %||% "Object")), "Downloads")
+  )
+  do.call(export_control_section, c(list(title = title), controls))
 }
 
 export_format_labels <- function(type) {

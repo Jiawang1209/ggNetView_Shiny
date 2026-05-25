@@ -208,14 +208,56 @@ test_that("plot downloads are limited to plot objects", {
   expect_s3_class(plot_download_controls(list(type = "plot")), "shiny.tag.list")
 })
 
+test_that("object download controls use explicit selected-object labels", {
+  controls <- object_download_controls()
+  text <- paste(capture.output(print(controls)), collapse = "\n")
+
+  expect_s3_class(controls, "shiny.tag.list")
+  expect_match(text, "Selected Object Downloads")
+  expect_match(text, "download_rds")
+  expect_match(text, "Download Object RDS")
+  expect_match(text, "download_csv")
+  expect_match(text, "Download Object CSV")
+  expect_match(text, "download_params")
+  expect_match(text, "Download Parameters JSON")
+})
+
 test_that("type download controls expose graph exports", {
   controls <- type_download_controls(list(type = "graph"))
   text <- paste(capture.output(print(controls)), collapse = "\n")
 
   expect_s3_class(controls, "shiny.tag.list")
+  expect_match(text, "Graph Downloads")
   expect_match(text, "download_nodes_csv")
+  expect_match(text, "Download Nodes CSV")
   expect_match(text, "download_edges_csv")
+  expect_match(text, "Download Edges CSV")
   expect_match(text, "download_adjacency_csv")
+  expect_match(text, "Download Adjacency CSV")
+})
+
+test_that("type download controls group plot exports separately", {
+  controls <- type_download_controls(list(type = "plot"))
+  text <- paste(capture.output(print(controls)), collapse = "\n")
+
+  expect_s3_class(controls, "shiny.tag.list")
+  expect_match(text, "Plot Downloads")
+  expect_match(text, "download_png")
+  expect_match(text, "Download Plot PNG")
+  expect_match(text, "download_pdf")
+  expect_match(text, "Download Plot PDF")
+})
+
+test_that("workflow download controls use workflow-level labels", {
+  controls <- workflow_download_controls()
+  text <- paste(capture.output(print(controls)), collapse = "\n")
+
+  expect_s3_class(controls, "shiny.tag.list")
+  expect_match(text, "Session (&|&amp;) Workflow Downloads")
+  expect_match(text, "download_manifest")
+  expect_match(text, "Download Session Manifest CSV")
+  expect_match(text, "download_workflow_manifest")
+  expect_match(text, "Download Workflow Manifest JSON")
 })
 
 test_that("export center summarizes the selected object and formats", {
