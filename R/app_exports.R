@@ -28,6 +28,8 @@ write_registry_params <- function(params, path) {
 
 workflow_snapshot_types <- function() {
   c(
+    "graph",
+    "plot",
     "matrix",
     "adjacency",
     "edge_table",
@@ -40,13 +42,52 @@ workflow_snapshot_types <- function() {
   )
 }
 
+workflow_item_has_replay_metadata <- function(item) {
+  params <- item$params %||% list()
+  recipe <- params$recipe %||% ""
+  recipe <- if (length(recipe)) as.character(recipe[[1]]) else ""
+  if (nzchar(recipe) && !identical(recipe, "manual_starter")) {
+    return(TRUE)
+  }
+
+  builder <- params$builder %||% ""
+  builder <- if (length(builder)) as.character(builder[[1]]) else ""
+  identical(item$type %||% "", "graph") && builder %in% workflow_replay_builder_modes()
+}
+
+workflow_snapshot_max_bytes <- function() {
+  2 * 1024^2
+}
+
+workflow_data_snapshot_supported <- function(item) {
+  data <- item$data
+  if (is.matrix(data) || is.data.frame(data)) {
+    return(TRUE)
+  }
+  if (identical(item$type %||% "", "graph") && inherits(data, "igraph")) {
+    return(TRUE)
+  }
+  if (identical(item$type %||% "", "plot") && inherits(data, "ggplot")) {
+    return(TRUE)
+  }
+  FALSE
+}
+
 workflow_item_data_snapshot <- function(item) {
   if (!item$type %in% workflow_snapshot_types()) {
     return(NULL)
   }
+  if (workflow_item_has_replay_metadata(item)) {
+    return(NULL)
+  }
 
   data <- item$data
-  if (!is.matrix(data) && !is.data.frame(data)) {
+  if (!workflow_data_snapshot_supported(item)) {
+    return(NULL)
+  }
+
+  serialized <- serialize(data, NULL, version = 3)
+  if (length(serialized) > workflow_snapshot_max_bytes()) {
     return(NULL)
   }
 
@@ -54,7 +95,8 @@ workflow_item_data_snapshot <- function(item) {
     format = "rds-base64",
     type = item$type,
     class = class(data),
-    value = jsonlite::base64_enc(serialize(data, NULL, version = 3))
+    bytes = length(serialized),
+    value = jsonlite::base64_enc(serialized)
   )
 }
 

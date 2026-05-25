@@ -155,3 +155,86 @@ test_that("workflow manifest restores snapshotted inputs for graph-builder repla
   expect_true(isTRUE(replay_results[[1]]$ok), info = replay_results[[1]]$trace %||% replay_results[[1]]$message)
   expect_equal(shiny::isolate(registry_count(empty_registry)), 2L)
 })
+
+test_that("workflow manifest snapshots unreplayable graph and plot objects", {
+  registry <- registry_new()
+  graph <- igraph::make_ring(4)
+  graph_item <- registry_add(
+    registry,
+    name = "imported_graph",
+    type = "graph",
+    data = graph,
+    source = "manual_import",
+    params = list()
+  )
+  plot <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
+    ggplot2::geom_point()
+  plot_item <- registry_add(
+    registry,
+    name = "manual_plot",
+    type = "plot",
+    data = plot,
+    source = graph_item$id,
+    params = list(layout = "manual")
+  )
+
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(registry, path)
+  manifest <- read_workflow_manifest(path)
+
+  snapshots <- lapply(manifest$items, `[[`, "data_snapshot")
+  expect_true(!is.null(snapshots[[1]]))
+  expect_true(!is.null(snapshots[[2]]))
+
+  empty_registry <- registry_new()
+  restored <- workflow_restore_manifest_inputs(empty_registry, manifest)
+
+  expect_true(isTRUE(restored$ok), info = restored$message)
+  expect_equal(restored$value$restored, 2L)
+  restored_graph <- shiny::isolate(registry_get(empty_registry, graph_item$id))
+  restored_plot <- shiny::isolate(registry_get(empty_registry, plot_item$id))
+  expect_s3_class(restored_graph$data, "igraph")
+  expect_s3_class(restored_plot$data, "ggplot")
+})
+
+test_that("workflow manifest does not snapshot replayable graph and recipe plot outputs", {
+  registry <- registry_new()
+  mat <- utils::read.csv(
+    testthat::test_path("../../inst/extdata/phase2_example_matrix.csv"),
+    row.names = 1,
+    check.names = FALSE
+  )
+  source_item <- registry_add(registry, name = "matrix_a", type = "matrix", data = mat)
+  graph <- safe_graph_builder(
+    mode = "matrix",
+    inputs = list(matrix = mat),
+    params = list(method = "cor", cor.method = "pearson", r.threshold = 0.2, p.threshold = 1)
+  )$value
+  registry_add(
+    registry,
+    name = "matrix_graph",
+    type = "graph",
+    data = graph,
+    source = source_item$id,
+    params = list(builder = "matrix", source_ids = source_item$id)
+  )
+  plot <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
+    ggplot2::geom_point()
+  registry_add(
+    registry,
+    name = "gallery_plot",
+    type = "plot",
+    data = plot,
+    source = source_item$id,
+    params = list(recipe = "network_plot_circle")
+  )
+
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(registry, path)
+  manifest <- read_workflow_manifest(path)
+  snapshots <- lapply(manifest$items, `[[`, "data_snapshot")
+
+  expect_true(!is.null(snapshots[[1]]))
+  expect_null(snapshots[[2]])
+  expect_null(snapshots[[3]])
+})

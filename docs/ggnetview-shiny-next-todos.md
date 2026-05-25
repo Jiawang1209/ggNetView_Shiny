@@ -63,7 +63,8 @@ Date: 2026-05-26
    - Workflow JSON manifests now export registered objects with source IDs, graph-builder params, warnings, summaries, recipe metadata, and restorable data snapshots for table-like inputs/results.
    - Exported manifests can be re-imported as a replay plan preview, with supported gallery recipes and graph-builder outputs identified for guarded reruns.
    - Graph-builder replay now restores snapshotted non-gallery source inputs into empty sessions before rerunning supported graph-builder steps; missing-source failures remain explicit for unsupported or unsnapshotted objects.
-   - Still needed: fuller project/session restore for plot/graph objects that cannot be reconstructed from snapshotted inputs, recipes, or graph-builder metadata.
+   - Workflow restore now snapshots and restores otherwise unreplayable graph/plot objects while preserving replay-first behavior for graph-builder and gallery-recipe outputs.
+   - Still needed: fuller project/session restore UX for conflict handling, selective replay, and richer restored-object summaries.
 
 7. Add regression tests for issues found during manual use.
    - Local source dependencies for `build_graph_from_mat()`.
