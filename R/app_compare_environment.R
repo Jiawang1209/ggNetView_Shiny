@@ -11,6 +11,11 @@ safe_multi_network_compare <- function(graphs, params = list()) {
     return(app_failure("Cannot find ggNetView function: ggNetView_multi_link"))
   }
 
+  include_topology_summary <- isTRUE(params$include_topology_summary)
+  topology_params <- params$topology_params
+  params$include_topology_summary <- NULL
+  params$topology_params <- NULL
+
   defaults <- list(
     graph_obj_list = graphs,
     layout = "fr",
@@ -32,13 +37,121 @@ safe_multi_network_compare <- function(graphs, params = list()) {
   plot <- if (is.list(value) && !is.null(value$p)) value$p else value
   info <- if (is.list(value)) value$info else NULL
   link_info <- if (is.list(value)) value$link_info else NULL
+  link_table <- normalize_multi_network_link_table(link_info)
+  topology_table <- if (include_topology_summary) {
+    summarize_multi_network_topology(graphs, params = topology_params %||% list(bootstrap = 0L))
+  } else {
+    data.frame()
+  }
 
   app_success(list(
     plot = plot,
     info = info,
     link_info = link_info,
+    link_table = link_table,
+    topology_table = topology_table,
     raw = value
   ))
+}
+
+indexed_name <- function(x, i, default) {
+  names_x <- names(x)
+  if (is.null(names_x) || length(names_x) < i || !nzchar(names_x[[i]])) {
+    return(default)
+  }
+  names_x[[i]]
+}
+
+normalize_multi_network_link_table <- function(link_info) {
+  if (is.null(link_info)) {
+    return(data.frame())
+  }
+  if (is.data.frame(link_info)) {
+    return(as.data.frame(link_info, check.names = FALSE))
+  }
+  if (is.list(link_info)) {
+    flattened <- tryCatch(
+      do.call(rbind, lapply(seq_along(link_info), function(i) {
+        item <- link_info[[i]]
+        part_name <- indexed_name(link_info, i, as.character(i))
+        if (is.data.frame(item)) {
+          item$comparison_part <- part_name
+          return(item)
+        }
+        data.frame(
+          comparison_part = part_name,
+          value = paste(utils::capture.output(utils::str(item)), collapse = "\n"),
+          stringsAsFactors = FALSE
+        )
+      })),
+      error = function(e) NULL
+    )
+    if (is.data.frame(flattened)) {
+      return(flattened)
+    }
+  }
+  data.frame(value = utils::capture.output(utils::str(link_info)), stringsAsFactors = FALSE)
+}
+
+summarize_multi_network_topology <- function(graphs, params = list()) {
+  if (!length(graphs)) {
+    return(data.frame())
+  }
+
+  rows <- lapply(seq_along(graphs), function(i) {
+    graph_name <- indexed_name(graphs, i, paste0("Graph_", i))
+
+    result <- safe_topology(graphs[[i]], params = params)
+    if (!isTRUE(result$ok)) {
+      return(data.frame(
+        graph = graph_name,
+        Topology = "error",
+        Value = NA_real_,
+        Detail = result$message,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    topology <- result$value$topology
+    if (is.null(topology) || !is.data.frame(topology) || !nrow(topology)) {
+      return(data.frame(
+        graph = graph_name,
+        Topology = "empty",
+        Value = NA_real_,
+        Detail = "No topology rows returned.",
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    topology <- as.data.frame(topology, check.names = FALSE)
+    if (!"Topology" %in% names(topology)) {
+      topology$Topology <- rownames(topology) %||% seq_len(nrow(topology))
+    }
+    value_col <- intersect(c("Value", "value", "Real", "real", "Network", "network"), names(topology))
+    if (!length(value_col)) {
+      numeric_cols <- names(topology)[vapply(topology, is.numeric, logical(1))]
+      value_col <- if (length(numeric_cols)) numeric_cols[[1]] else NA_character_
+    }
+    value <- if (!is.na(value_col)) topology[[value_col]] else NA_real_
+    detail_cols <- setdiff(names(topology), c("Topology", value_col))
+    detail <- if (length(detail_cols)) {
+      apply(topology[, detail_cols, drop = FALSE], 1, function(x) {
+        paste(names(x), x, sep = "=", collapse = "; ")
+      })
+    } else {
+      rep("", nrow(topology))
+    }
+
+    data.frame(
+      graph = graph_name,
+      Topology = as.character(topology$Topology),
+      Value = suppressWarnings(as.numeric(value)),
+      Detail = detail,
+      stringsAsFactors = FALSE
+    )
+  })
+
+  do.call(rbind, rows)
 }
 
 default_group_info_for_matrix <- function(mat, split = c("halves", "alternating")) {

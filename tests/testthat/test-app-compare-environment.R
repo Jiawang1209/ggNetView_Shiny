@@ -50,6 +50,20 @@ test_that("multi-network comparison returns a plot payload", {
   expect_true(is.null(result$value$link_info) || is.data.frame(result$value$link_info) || is.list(result$value$link_info))
 })
 
+test_that("multi-network comparison exposes link and topology tables", {
+  result <- safe_multi_network_compare(
+    phase2_graph_pair(),
+    params = list(include_topology_summary = TRUE)
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_true(is.data.frame(result$value$link_table))
+  expect_true(is.data.frame(result$value$topology_table))
+  expect_true(all(c("graph", "Topology", "Value") %in% names(result$value$topology_table)))
+  expect_true(all(c("A", "B") %in% unique(result$value$topology_table$graph)))
+  expect_true(nrow(result$value$topology_table) > 0)
+})
+
 test_that("grouped matrix workflow returns a multi-network plot", {
   mat <- read_phase2_fixture("phase2_example_matrix.csv")
   group_info <- default_group_info_for_matrix(mat)

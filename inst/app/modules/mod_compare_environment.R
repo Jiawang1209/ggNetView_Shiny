@@ -43,7 +43,11 @@ mod_compare_environment_ui <- function(id) {
       bslib::card_header("Statistics"),
       DT::DTOutput(ns("stats"))
     ),
-    col_widths = c(4, 4, 8, 12)
+    bslib::card(
+      bslib::card_header("Topology Comparison"),
+      DT::DTOutput(ns("compare_topology"))
+    ),
+    col_widths = c(4, 4, 8, 6, 6)
   )
 }
 
@@ -51,6 +55,7 @@ mod_compare_environment_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     plot_obj <- shiny::reactiveVal(NULL)
     stats_table <- shiny::reactiveVal(data.frame())
+    compare_topology_table <- shiny::reactiveVal(data.frame())
     status <- shiny::reactiveVal("No comparison or environment result yet.")
 
     unique_output_name <- function(base) {
@@ -145,7 +150,8 @@ mod_compare_environment_server <- function(id, registry) {
       params <- list(
         group_layout = input$compare_layout,
         link_level = input$link_level,
-        scale_groups = input$scale_groups
+        scale_groups = input$scale_groups,
+        include_topology_summary = TRUE
       )
 
       status(task_feedback_message("network comparison", "running"))
@@ -163,28 +169,32 @@ mod_compare_environment_server <- function(id, registry) {
       }
 
       plot_obj(result$value$plot)
-      stats <- result$value$link_info
-      if (is.null(stats)) {
-        stats <- data.frame()
-      }
-      if (is.list(stats) && !is.data.frame(stats)) {
-        stats <- data.frame(value = utils::capture.output(utils::str(stats)), stringsAsFactors = FALSE)
-      }
+      stats <- result$value$link_table
       stats_table(stats)
+      compare_topology_table(result$value$topology_table)
 
       source_ids <- paste(input$compare_graph_ids, collapse = ",")
+      plot_params <- params[names(params) != "include_topology_summary"]
       plot_item <- register_plot_result(
         unique_output_name("multi_network_compare_plot"),
         result$value$plot,
         source_ids,
-        params
+        plot_params
       )
       register_stats_result(
         unique_output_name("multi_network_compare_links"),
         stats,
         source_ids,
-        params
+        plot_params
       )
+      if (nrow(result$value$topology_table)) {
+        register_stats_result(
+          unique_output_name("multi_network_compare_topology"),
+          result$value$topology_table,
+          source_ids,
+          list(kind = "comparison_topology")
+        )
+      }
       status(paste("Registered comparison plot:", plot_item$name))
       shiny::showNotification(paste("Registered comparison plot:", plot_item$name), type = "message")
     })
@@ -234,6 +244,7 @@ mod_compare_environment_server <- function(id, registry) {
 
       plot_obj(result$value$plot)
       stats_table(result$value$group_info)
+      compare_topology_table(data.frame())
       plot_item <- register_plot_result(
         unique_output_name("multi_group_network_plot"),
         result$value$plot,
@@ -283,6 +294,7 @@ mod_compare_environment_server <- function(id, registry) {
 
       plot_obj(result$value$plot)
       stats_table(result$value$stats)
+      compare_topology_table(data.frame())
       source_ids <- paste(input$spec_id, input$env_id, sep = ",")
       plot_item <- register_plot_result(
         unique_output_name("environment_link_plot"),
@@ -336,6 +348,7 @@ mod_compare_environment_server <- function(id, registry) {
       plot_obj(result$value$plot)
       stats <- normalize_stats(result$value$stats)
       stats_table(stats)
+      compare_topology_table(data.frame())
       source_ids <- paste(input$spec_id, input$env_id, sep = ",")
       plot_item <- register_plot_result(
         unique_output_name("manual_environment_heatmap_plot"),
@@ -396,6 +409,7 @@ mod_compare_environment_server <- function(id, registry) {
         stringsAsFactors = FALSE
       )
       stats_table(stats)
+      compare_topology_table(data.frame())
       source_ids <- paste(input$spec_id, input$env_id, input$triple_graph_id, sep = ",")
       plot_item <- register_plot_result(
         unique_output_name("triple_environment_heatmap_plot"),
@@ -441,6 +455,7 @@ mod_compare_environment_server <- function(id, registry) {
       }
 
       stats_table(result$value)
+      compare_topology_table(data.frame())
       item <- register_stats_result(
         unique_output_name("mantel_pairwise_stats"),
         result$value,
@@ -457,6 +472,7 @@ mod_compare_environment_server <- function(id, registry) {
     })
 
     output$stats <- DT::renderDT(stats_table(), rownames = FALSE)
+    output$compare_topology <- DT::renderDT(compare_topology_table(), rownames = FALSE)
     output$status <- shiny::renderText(status())
   })
 }
