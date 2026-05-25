@@ -51,11 +51,6 @@ make shiny-run
 
 The Makefile defaults to `/usr/local/bin/R` and `/usr/local/bin/Rscript`.
 
-The real workflow smoke test requires the scientific imports listed in
-`DESCRIPTION`. On this machine, the current blockers are: `FNN`, `future`,
-`future.apply`, `ggraph`, `Hmisc`, `huge`, `progressr`, `psych`, `qgraph`,
-`tidygraph`, `VGAM`, and `WGCNA`.
-
 ## Example1
 
 ### Step1: load ggNetView

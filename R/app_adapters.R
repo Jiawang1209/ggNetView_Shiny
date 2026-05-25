@@ -6,10 +6,6 @@ safe_call <- function(expr, user_message) {
 }
 
 resolve_ggnetview_function <- function(name) {
-  if (exists(name, mode = "function", inherits = TRUE)) {
-    return(get(name, mode = "function", inherits = TRUE))
-  }
-
   source_roots <- unique(normalizePath(c(
     getwd(),
     file.path(getwd(), "..", ".."),
@@ -26,6 +22,10 @@ resolve_ggnetview_function <- function(name) {
         return(get(name, envir = env, mode = "function", inherits = FALSE))
       }
     }
+  }
+
+  if (exists(name, mode = "function", inherits = TRUE)) {
+    return(get(name, mode = "function", inherits = TRUE))
   }
 
   ns <- tryCatch(asNamespace("ggNetView"), error = function(e) NULL)

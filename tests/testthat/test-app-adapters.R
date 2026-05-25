@@ -96,6 +96,28 @@ test_that("safe_build_graph resolves source fallback from Shiny app cwd", {
   expect_equal(result$value$data, mat)
 })
 
+test_that("source fallback wins over visible session functions", {
+  tmp <- tempfile("ggnetview-visible-conflict-")
+  dir.create(file.path(tmp, "R"), recursive = TRUE)
+  writeLines(
+    "temporary_adapter_fn <- function() 'source'",
+    file.path(tmp, "R", "temporary_adapter_fn.R")
+  )
+  temporary_adapter_fn <- function() "visible"
+
+  if (requireNamespace("withr", quietly = TRUE)) {
+    withr::local_dir(tmp)
+  } else {
+    old <- setwd(tmp)
+    on.exit(setwd(old), add = TRUE)
+  }
+
+  fn <- resolve_ggnetview_function("temporary_adapter_fn")
+
+  expect_true(is.function(fn))
+  expect_equal(fn(), "source")
+})
+
 test_that("safe_plot_ggnetview rejects non-graph input", {
   result <- safe_plot_ggnetview(graph = data.frame(x = 1), params = list())
 

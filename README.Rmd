@@ -34,6 +34,34 @@ You can install the development version of ggNetView from [GitHub](https://githu
 devtools::install_github("Jiawang1209/ggNetView")
 ```
 
+## Run the Shiny app
+
+This repository now contains the ggNetView Shiny application directly. During development or deployment, run:
+
+```{r, eval=FALSE}
+shiny::runApp("inst/app")
+```
+
+After installing/loading the package-style project, run:
+
+```{r, eval=FALSE}
+ggNetView::launch_ggNetView()
+```
+
+### Local Shiny Development
+
+This project should be verified with the system R runtime that has the ggNetView dependency stack installed:
+
+```bash
+make shiny-startup
+make shiny-test-helpers
+make shiny-smoke
+make shiny-build
+make shiny-run
+```
+
+The Makefile defaults to `/usr/local/bin/R` and `/usr/local/bin/Rscript`.
+
 ## Example1
 
 ### Step1: load ggNetView
