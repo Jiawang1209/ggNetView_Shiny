@@ -6,6 +6,26 @@ test_that("write_registry_table writes CSV", {
   expect_equal(nrow(utils::read.csv(path)), 1L)
 })
 
+test_that("write_registry_table preserves matrix row names in id column", {
+  path <- tempfile(fileext = ".csv")
+  mat <- matrix(c(1, 2, 3, 4), nrow = 2, dimnames = list(c("sample_a", "sample_b"), c("x", "y")))
+  write_registry_table(mat, path)
+
+  exported <- utils::read.csv(path, check.names = FALSE)
+  expect_equal(names(exported)[1], "id")
+  expect_equal(exported$id, c("sample_a", "sample_b"))
+  expect_equal(exported$x, c(1, 2))
+})
+
+test_that("write_registry_object writes RDS round trip", {
+  path <- tempfile(fileext = ".rds")
+  obj <- list(alpha = 0.05, values = c("a", "b"))
+  write_registry_object(obj, path)
+
+  expect_true(file.exists(path))
+  expect_equal(readRDS(path), obj)
+})
+
 test_that("write_registry_params writes JSON", {
   path <- tempfile(fileext = ".json")
   write_registry_params(list(alpha = 0.05, method = "spearman"), path)
@@ -13,6 +33,36 @@ test_that("write_registry_params writes JSON", {
   expect_true(file.exists(path))
   txt <- readLines(path, warn = FALSE)
   expect_true(any(grepl("alpha", txt)))
+})
+
+test_that("write_registry_params preserves nested and NULL values", {
+  path <- tempfile(fileext = ".json")
+  params <- list(alpha = 0.05, nested = list(method = "spearman", missing = NULL))
+  write_registry_params(params, path)
+
+  parsed <- jsonlite::read_json(path, simplifyVector = TRUE)
+  expect_equal(parsed$nested$method, "spearman")
+  expect_null(parsed$nested$missing)
+})
+
+test_that("write_plot_png writes extensionless download path", {
+  path <- tempfile()
+  plot <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
+    ggplot2::geom_point()
+  write_plot_png(plot, path, width = 2, height = 2, dpi = 72)
+
+  expect_true(file.exists(path))
+  expect_gt(file.info(path)$size, 0)
+})
+
+test_that("write_plot_pdf writes extensionless download path", {
+  path <- tempfile()
+  plot <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
+    ggplot2::geom_point()
+  write_plot_pdf(plot, path, width = 2, height = 2)
+
+  expect_true(file.exists(path))
+  expect_gt(file.info(path)$size, 0)
 })
 
 test_that("global helper bridge includes export helpers", {
