@@ -26,6 +26,7 @@ Date: 2026-05-26
 - `tests/run_shiny_visual_layouts_smoke.R` now draws every Visual Lab layout preset in a real browser, including general, geometric, circular-module, multipartite, WGCNA, dendrogram, and multirings layouts.
 - `tests/run_shiny_environment_geometry_smoke.R` now runs Gallery-backed environment geometry recipes in a real browser and checks Export plot controls for default heatmap, multi-omics blocks, collapsed-core, and rotated-arc collapsed-core outputs.
 - `tests/run_shiny_task_feedback_smoke.R` now deliberately slows a real Shiny action and asserts the shared busy-state button class/disabled state appears and clears in the browser.
+- `docs/ggnetview-shiny-release-evidence.md` can now be regenerated from the manual smoke coverage JSON, current git history, and the final validation command list. It summarizes manual-area coverage, release validation commands, recent commits, remaining limits, and next release steps.
 
 ## Remaining Gaps
 
@@ -35,6 +36,7 @@ Date: 2026-05-26
    - Current browser smoke also covers sample subgraph registration, centrality/IVI buttons, a circular-module Visual Lab preset, Mantel button, and plot PNG/PDF downloads.
    - Current browser smoke also covers mobile-width navigation, page-level overflow checks, and every individual Visual Lab layout preset.
    - Manual backend smoke now writes a coverage log that audits all ten manual areas.
+   - Release evidence now has a generated Markdown summary that links the coverage log to the final validation checklist.
 
 2. Long-running operation feedback.
    - Graph build, RMT scan, plot draw, topology, centrality, IVI, Zi-Pi, comparison, grouped multi-network, environment heatmaps, Mantel, and Gallery recipe paths now use shared progress feedback and temporary button busy states.
