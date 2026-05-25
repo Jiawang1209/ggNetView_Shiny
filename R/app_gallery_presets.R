@@ -6,6 +6,7 @@ gallery_example_paths <- function(root = getOption("ggnetview.app_root", getwd()
     rmt_matrix = file.path(extdata, "phase2_example_rmt_matrix.csv"),
     edges = file.path(extdata, "phase2_example_edges.csv"),
     modules = file.path(extdata, "phase2_example_modules.csv"),
+    sample_metadata = file.path(extdata, "phase2_example_sample_metadata.csv"),
     adjacency = file.path(extdata, "phase2_example_adjacency.csv"),
     tom = file.path(extdata, "phase2_example_tom.csv")
   )
@@ -19,6 +20,7 @@ load_gallery_example_tables <- function(root = getOption("ggnetview.app_root", g
     rmt_matrix = utils::read.csv(paths$rmt_matrix, row.names = 1, check.names = FALSE),
     edges = utils::read.csv(paths$edges, check.names = FALSE),
     modules = utils::read.csv(paths$modules, check.names = FALSE),
+    sample_metadata = utils::read.csv(paths$sample_metadata, check.names = FALSE),
     adjacency = utils::read.csv(paths$adjacency, row.names = 1, check.names = FALSE),
     tom = utils::read.csv(paths$tom, row.names = 1, check.names = FALSE)
   )
@@ -30,6 +32,7 @@ gallery_workflow_manifest <- function() {
       "matrix_graph",
       "edge_module_graph",
       "adjacency_graph",
+      "grouped_matrix_graph",
       "double_matrix_graph",
       "multi_matrix_graph",
       "wgcna_tom_graph",
@@ -39,6 +42,7 @@ gallery_workflow_manifest <- function() {
       "Build graph from matrix",
       "Build graph from data frame with module",
       "Build graph from adjacency matrix",
+      "Build grouped networks from matrix and sample metadata",
       "Build graph from double matrix",
       "Build graph from multi matrix",
       "Build graph from WGCNA/TOM",
@@ -61,6 +65,7 @@ register_gallery_examples <- function(registry, root = getOption("ggnetview.app_
   add_item("gallery_matrix_b", "matrix", data$matrix_b, "phase2_example_matrix_b.csv")
   add_item("gallery_edges", "edge_table", data$edges, "phase2_example_edges.csv")
   add_item("gallery_modules", "module_table", data$modules, "phase2_example_modules.csv")
+  add_item("gallery_sample_metadata", "sample_metadata", data$sample_metadata, "phase2_example_sample_metadata.csv")
   add_item("gallery_adjacency", "adjacency", data$adjacency, "phase2_example_adjacency.csv")
   add_item("gallery_tom", "wgcna_tom", data$tom, "phase2_example_tom.csv")
   add_item("gallery_workflows", "result", gallery_workflow_manifest(), "manual-gallery-presets")

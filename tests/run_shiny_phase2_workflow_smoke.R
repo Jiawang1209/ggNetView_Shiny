@@ -87,13 +87,15 @@ assert_download_nonempty <- function(output_id) {
 }
 
 click("#data_hub-load_gallery")
+wait_for_text("gallery_sample_metadata")
 wait_for_text("gallery_matrix_graph")
 wait_for_text("gallery_edge_module_graph")
 
 click_tab("Compare & Environment")
-set_input("compare_environment-compare_graph_ids", c("obj_0008", "obj_0009"))
+set_input("compare_environment-compare_graph_ids", c("obj_0009", "obj_0010"))
 click("#compare_environment-run_compare")
 wait_for_text("Registered comparison plot:", timeout = 120000)
+set_input("compare_environment-multi_group_id", "obj_0005")
 click("#compare_environment-run_multi_group")
 wait_for_text("Registered grouped network plot:", timeout = 120000)
 click("#compare_environment-run_environment")
@@ -125,7 +127,7 @@ click("#topology_results-calculate_zipi")
 wait_for_text("Registered zipi")
 
 click_tab("Export")
-set_input("export_center-object_id", "obj_0008")
+set_input("export_center-object_id", "obj_0009")
 wait_for_element("export_center-download_nodes_csv")
 wait_for_text("Download Nodes CSV")
 app$wait_for_idle(timeout = 30000)

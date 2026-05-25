@@ -73,20 +73,21 @@ build_graph <- function(name, source, builder, source_b = NULL, multi = NULL, co
 }
 
 click("#data_hub-load_gallery")
-wait_for_text("gallery_rmt_matrix")
+wait_for_text("gallery_sample_metadata")
+wait_for_text("gallery_matrix_graph")
 click("a[data-value='Graph Builder']")
 
-set_input("graph_builder-source_id", "obj_0010")
+set_input("graph_builder-source_id", "obj_0011")
 Sys.sleep(0.5)
 click("#graph_builder-run_rmt")
 wait_for_text("Registered RMT result:")
 
 build_graph("browser_matrix", "obj_0001", "matrix")
 build_graph("browser_edge_module", "obj_0003", "edge_table", module = "obj_0004")
-build_graph("browser_adjacency_module", "obj_0005", "adjacency", module = "obj_0004")
+build_graph("browser_adjacency_module", "obj_0006", "adjacency", module = "obj_0004")
 build_graph("browser_double", "obj_0001", "double_matrix", source_b = "obj_0002", module = "")
 build_graph("browser_multi", "obj_0001", "multi_matrix", multi = "obj_0002", module = "")
-build_graph("browser_wgcna", "obj_0006", "wgcna_tom", module = "obj_0004")
-build_graph("browser_consensus", "obj_0005", "consensus", consensus = "obj_0008", module = "")
+build_graph("browser_wgcna", "obj_0007", "wgcna_tom", module = "obj_0004")
+build_graph("browser_consensus", "obj_0006", "consensus", consensus = "obj_0009", module = "")
 
 cat("graph builder modes browser smoke passed\n")

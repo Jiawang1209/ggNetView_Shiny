@@ -14,6 +14,7 @@ mod_compare_environment_ui <- function(id) {
       shiny::actionButton(ns("run_compare"), "Compare networks"),
       shiny::hr(),
       shiny::selectInput(ns("multi_matrix_id"), "Matrix for groups", choices = character()),
+      shiny::selectInput(ns("multi_group_id"), "Sample metadata", choices = c("Generated groups" = "")),
       shiny::selectInput(ns("multi_split"), "Group split", choices = c("halves", "alternating")),
       shiny::actionButton(ns("run_multi_group"), "Build group multi-plot")
     ),
@@ -69,6 +70,7 @@ mod_compare_environment_server <- function(id, registry) {
 
     shiny::observe({
       matrix_choices <- registry_choices_by_type(registry, c("matrix"))
+      sample_choices <- registry_choices_by_type(registry, c("sample_metadata"))
       env_choices <- registry_choices_by_type(registry, c("env_matrix", "matrix"))
       selected_spec <- input$spec_id
       if (is.null(selected_spec) || !selected_spec %in% matrix_choices) {
@@ -82,9 +84,15 @@ mod_compare_environment_server <- function(id, registry) {
       if (is.null(selected_multi) || !selected_multi %in% matrix_choices) {
         selected_multi <- if (length(matrix_choices)) matrix_choices[[1]] else character()
       }
+      group_choices <- c("Generated groups" = "", sample_choices)
+      selected_group <- input$multi_group_id
+      if (is.null(selected_group) || !selected_group %in% group_choices) {
+        selected_group <- ""
+      }
       shiny::updateSelectInput(session, "spec_id", choices = matrix_choices, selected = selected_spec)
       shiny::updateSelectInput(session, "env_id", choices = env_choices, selected = selected_env)
       shiny::updateSelectInput(session, "multi_matrix_id", choices = matrix_choices, selected = selected_multi)
+      shiny::updateSelectInput(session, "multi_group_id", choices = group_choices, selected = selected_group)
     })
 
     register_plot_result <- function(name, plot, source, params) {
@@ -180,10 +188,18 @@ mod_compare_environment_server <- function(id, registry) {
       matrix_item <- registry_get(registry, input$multi_matrix_id)
       shiny::req(matrix_item)
 
-      group_info <- tryCatch(
-        default_group_info_for_matrix(matrix_item$data, split = input$multi_split),
-        error = function(e) e
-      )
+      group_id <- input$multi_group_id
+      if (is.null(group_id)) {
+        group_id <- ""
+      }
+      group_item <- if (nzchar(group_id)) registry_get(registry, group_id) else NULL
+      group_info <- tryCatch({
+        if (is.null(group_item)) {
+          default_group_info_for_matrix(matrix_item$data, split = input$multi_split)
+        } else {
+          align_group_info_for_matrix(matrix_item$data, group_item$data)
+        }
+      }, error = function(e) e)
       if (inherits(group_info, "error")) {
         status(conditionMessage(group_info))
         shiny::showNotification(conditionMessage(group_info), type = "error")
@@ -209,14 +225,14 @@ mod_compare_environment_server <- function(id, registry) {
       plot_item <- register_plot_result(
         unique_output_name("multi_group_network_plot"),
         result$value$plot,
-        input$multi_matrix_id,
-        c(params, list(split = input$multi_split))
+        paste(c(input$multi_matrix_id, group_id), collapse = ","),
+        c(params, list(split = input$multi_split, group_metadata = group_id))
       )
       register_stats_result(
         unique_output_name("multi_group_network_groups"),
         result$value$group_info,
-        input$multi_matrix_id,
-        list(split = input$multi_split)
+        paste(c(input$multi_matrix_id, group_id), collapse = ","),
+        list(split = input$multi_split, group_metadata = group_id)
       )
       status(paste("Registered grouped network plot:", plot_item$name))
       shiny::showNotification(paste("Registered grouped network plot:", plot_item$name), type = "message")

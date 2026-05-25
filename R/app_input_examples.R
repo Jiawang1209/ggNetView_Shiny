@@ -32,6 +32,13 @@ phase2_example_data <- function() {
     check.names = FALSE
   )
 
+  sample_metadata <- data.frame(
+    Sample = paste0("S", 1:5),
+    Group = c("Early", "Early", "Late", "Late", "Late"),
+    Batch = c("B1", "B1", "B2", "B2", "B2"),
+    check.names = FALSE
+  )
+
   adjacency <- matrix(0, nrow = 6, ncol = 6, dimnames = list(paste0("OTU", 1:6), paste0("OTU", 1:6)))
   adjacency[cbind(c(1, 1, 2, 3, 4, 5), c(2, 5, 6, 4, 6, 6))] <- c(0.82, 0.58, -0.41, 0.77, 0.49, 0.66)
   adjacency <- adjacency + t(adjacency)
@@ -55,6 +62,7 @@ phase2_example_data <- function() {
     rmt_matrix = as.data.frame(rmt_matrix, check.names = FALSE),
     edges = edges,
     modules = modules,
+    sample_metadata = sample_metadata,
     adjacency = as.data.frame(adjacency, check.names = FALSE),
     tom = as.data.frame(tom, check.names = FALSE)
   )
@@ -68,6 +76,7 @@ write_phase2_example_data <- function(dir = file.path("inst", "extdata")) {
   utils::write.csv(data$rmt_matrix, file.path(dir, "phase2_example_rmt_matrix.csv"), quote = FALSE)
   utils::write.csv(data$edges, file.path(dir, "phase2_example_edges.csv"), row.names = FALSE, quote = FALSE)
   utils::write.csv(data$modules, file.path(dir, "phase2_example_modules.csv"), row.names = FALSE, quote = FALSE)
+  utils::write.csv(data$sample_metadata, file.path(dir, "phase2_example_sample_metadata.csv"), row.names = FALSE, quote = FALSE)
   utils::write.csv(data$adjacency, file.path(dir, "phase2_example_adjacency.csv"), quote = FALSE)
   utils::write.csv(data$tom, file.path(dir, "phase2_example_tom.csv"), quote = FALSE)
   invisible(normalizePath(dir, mustWork = FALSE))

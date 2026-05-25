@@ -142,13 +142,14 @@ registry <- registry_new()
 register_gallery_examples(registry, root = repo_root)
 listed <- shiny::isolate(registry_list(registry))
 
-required_types <- c("matrix", "edge_table", "module_table", "adjacency", "wgcna_tom", "result", "graph")
+required_types <- c("matrix", "edge_table", "module_table", "sample_metadata", "adjacency", "wgcna_tom", "result", "graph")
 missing_types <- setdiff(required_types, unique(listed$type))
 if (length(missing_types)) {
   stop("Gallery did not register required object types: ", paste(missing_types, collapse = ", "), call. = FALSE)
 }
 
 matrix_item <- first_registry_item(registry, type = "matrix", name = "gallery_matrix")
+sample_metadata_item <- first_registry_item(registry, type = "sample_metadata", name = "gallery_sample_metadata")
 graph_item <- first_registry_item(registry, type = "graph", name = "gallery_matrix_graph")
 graph <- graph_item$data
 
@@ -208,6 +209,13 @@ graph_b <- assert_app_ok(graph_b_result, "second matrix graph")
 
 multi <- safe_multi_network_compare(list(A = graph, B = graph_b))
 assert_app_ok(multi, "multi-network comparison")
+
+multi_group <- safe_multi_group_network(
+  matrix_item$data,
+  group_info = sample_metadata_item$data,
+  params = list(r.threshold = 0.2, p.threshold = 1)
+)
+assert_app_ok(multi_group, "custom metadata grouped network")
 
 env_spec <- phase2_env_spec()
 environment <- safe_environment_link(

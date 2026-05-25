@@ -84,7 +84,8 @@ assert_download_nonempty <- function(output_id) {
 }
 
 click("#data_hub-load_gallery")
-wait_for_text("gallery_rmt_matrix")
+wait_for_text("gallery_sample_metadata")
+wait_for_text("gallery_matrix_graph")
 
 click_tab("Graph Explorer")
 set_input("graph_explorer-sample_ids", "S1")
@@ -106,7 +107,7 @@ click("#visual_lab-draw")
 wait_for_text("Registered plot:")
 
 click_tab("Export")
-set_input("export_center-object_id", "obj_0015")
+set_input("export_center-object_id", "obj_0016")
 wait_for_element("export_center-download_png")
 wait_for_element("export_center-download_pdf")
 assert_download_nonempty("export_center-download_png")

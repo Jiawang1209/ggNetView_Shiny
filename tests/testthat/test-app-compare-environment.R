@@ -61,6 +61,20 @@ test_that("grouped matrix workflow returns a multi-network plot", {
   expect_equal(nrow(result$value$group_info), ncol(mat))
 })
 
+test_that("grouped matrix workflow aligns custom sample metadata", {
+  mat <- read_phase2_fixture("phase2_example_matrix.csv")
+  group_info <- data.frame(
+    Sample = c("S4", "S2", "S5", "S1", "S3", "S_unused"),
+    Group = c("Late", "Early", "Late", "Early", "Late", "Ignore"),
+    stringsAsFactors = FALSE
+  )
+  result <- safe_multi_group_network(mat, group_info = group_info)
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_equal(result$value$group_info$Sample, colnames(mat))
+  expect_equal(result$value$group_info$Group, c("Early", "Early", "Late", "Late", "Late"))
+})
+
 test_that("environment link returns plot and statistics", {
   data <- phase2_env_spec()
   result <- safe_environment_link(

@@ -59,6 +59,38 @@ default_group_info_for_matrix <- function(mat, split = c("halves", "alternating"
   data.frame(Sample = samples, Group = groups, stringsAsFactors = FALSE)
 }
 
+align_group_info_for_matrix <- function(mat, group_info) {
+  mat <- as.data.frame(mat, check.names = FALSE)
+  samples <- colnames(mat)
+  if (is.null(samples) || length(samples) < 2L) {
+    stop("Grouped network workflow requires a matrix with at least two sample columns.", call. = FALSE)
+  }
+
+  group_info <- as.data.frame(group_info, check.names = FALSE)
+  if (!all(c("Sample", "Group") %in% names(group_info))) {
+    stop("Group metadata must contain Sample and Group columns.", call. = FALSE)
+  }
+  group_info$Sample <- as.character(group_info$Sample)
+  group_info$Group <- as.character(group_info$Group)
+
+  matching <- group_info[group_info$Sample %in% samples, , drop = FALSE]
+  if (anyDuplicated(matching$Sample)) {
+    stop("Group metadata contains duplicate Sample values for selected matrix columns.", call. = FALSE)
+  }
+
+  missing_samples <- setdiff(samples, matching$Sample)
+  if (length(missing_samples)) {
+    stop(
+      "Group metadata is missing samples: ",
+      paste(missing_samples, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  aligned <- matching[match(samples, matching$Sample), , drop = FALSE]
+  aligned[, c("Sample", "Group"), drop = FALSE]
+}
+
 safe_multi_group_network <- function(mat, group_info = NULL, params = list()) {
   fn <- resolve_ggnetview_function("ggNetView_multi")
   if (is.null(fn)) {
@@ -69,10 +101,10 @@ safe_multi_group_network <- function(mat, group_info = NULL, params = list()) {
   if (is.null(group_info)) {
     group_info <- default_group_info_for_matrix(mat)
   } else {
-    group_info <- as.data.frame(group_info, check.names = FALSE)
-  }
-  if (!all(c("Sample", "Group") %in% names(group_info))) {
-    return(app_failure("Group metadata must contain Sample and Group columns."))
+    group_info <- tryCatch(align_group_info_for_matrix(mat, group_info), error = function(e) e)
+    if (inherits(group_info, "error")) {
+      return(app_failure(conditionMessage(group_info)))
+    }
   }
 
   defaults <- list(
