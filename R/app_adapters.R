@@ -58,29 +58,63 @@ resolve_ggnetview_function <- function(name) {
 }
 
 safe_build_graph <- function(data, builder, params = list()) {
-  builder_map <- list(
-    matrix = "build_graph_from_mat",
-    adjacency = "build_graph_from_adj_mat",
-    edge_table = "build_graph_from_df"
-  )
-
   if (!is.character(builder) || length(builder) != 1L || is.na(builder) || !nzchar(builder)) {
     return(app_failure("Unsupported graph builder: <invalid>"))
   }
 
-  fn_name <- builder_map[[builder]]
-  if (is.null(fn_name)) {
+  mode <- switch(builder,
+    matrix = "matrix",
+    adjacency = "adjacency",
+    edge_table = "edge_table",
+    NULL
+  )
+  if (is.null(mode)) {
     return(app_failure(paste("Unsupported graph builder:", builder)))
   }
 
-  fn <- resolve_ggnetview_function(fn_name)
-  if (is.null(fn)) {
-    return(app_failure(paste("Cannot find ggNetView function:", fn_name)))
+  input_name <- switch(mode,
+    matrix = "matrix",
+    adjacency = "adjacency",
+    edge_table = "edge_table"
+  )
+
+  if (!exists("safe_graph_builder", mode = "function", inherits = TRUE)) {
+    source_roots <- unique(normalizePath(c(
+      getwd(),
+      file.path(getwd(), "..", ".."),
+      getOption("ggnetview.app_root", NA_character_)
+    ), mustWork = FALSE))
+    source_roots <- source_roots[!is.na(source_roots)]
+
+    for (root in source_roots) {
+      graph_builder_path <- file.path(root, "R", "app_graph_builders.R")
+      if (file.exists(graph_builder_path)) {
+        sys.source(graph_builder_path, envir = .GlobalEnv)
+        break
+      }
+    }
   }
 
-  safe_call(
-    do.call(fn, c(list(data), params)),
-    paste("Failed to build graph with", fn_name)
+  if (!exists("safe_graph_builder", mode = "function", inherits = TRUE)) {
+    fn_name <- switch(mode,
+      matrix = "build_graph_from_mat",
+      adjacency = "build_graph_from_adj_mat",
+      edge_table = "build_graph_from_df"
+    )
+    fn <- resolve_ggnetview_function(fn_name)
+    if (is.null(fn)) {
+      return(app_failure(paste("Cannot find ggNetView function:", fn_name)))
+    }
+    return(safe_call(
+      do.call(fn, c(list(data), params)),
+      paste("Failed to build graph with", fn_name)
+    ))
+  }
+
+  safe_graph_builder(
+    mode = mode,
+    inputs = stats::setNames(list(data), input_name),
+    params = params
   )
 }
 
