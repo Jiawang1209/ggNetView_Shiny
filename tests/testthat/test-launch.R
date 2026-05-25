@@ -1,3 +1,7 @@
+if (!exists("launch_ggNetView", mode = "function")) {
+  source(test_path("../../R/launch_ggNetView.R"))
+}
+
 test_that("launch_ggNetView exists and points at bundled app", {
   expect_true(exists("launch_ggNetView", mode = "function"))
   app_dir <- system.file("app", package = "ggNetView")

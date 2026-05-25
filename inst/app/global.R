@@ -46,10 +46,17 @@ invisible(lapply(c(
   "write_plot_png", "write_plot_pdf"
 ), load_app_helper))
 
-module_dir <- "modules"
-if (!dir.exists(module_dir) && dir.exists(file.path("inst", "app", "modules"))) {
-  module_dir <- file.path("inst", "app", "modules")
+module_base <- "modules"
+if (!dir.exists(module_base) && dir.exists(file.path("inst", "app", "modules"))) {
+  module_base <- file.path("inst", "app", "modules")
 }
 
-module_files <- list.files(module_dir, pattern = "\\.R$", full.names = TRUE)
+module_files <- file.path(module_base, c(
+  "mod_data_hub.R",
+  "mod_graph_builder.R",
+  "mod_graph_explorer.R",
+  "mod_visual_lab.R",
+  "mod_topology_results.R",
+  "mod_export_center.R"
+))
 invisible(lapply(module_files, source, local = FALSE))
