@@ -168,10 +168,16 @@ gglink_heatmap_triple <- function(
     ggplot2::scale_shape_manual(values = c(21,21:25),
                        guide = ggplot2::guide_legend(title.position = "top",
                                             nrow = 2)) +
-    ggraph::geom_node_text(data = layout_manual %>% tidygraph::slice(-c(1:31)),
-                   aes(label = node)) +
+    # `n_points` is the number of non-hub nodes (placed on the outer circle);
+    # `create_layout2()` attaches it as an attribute so we don't hard-code the split.
     ggraph::geom_node_text(
-      data = layout_manual %>% tidygraph::slice(1:31),
+      data = layout_manual %>%
+        tidygraph::slice(-seq_len(.n_points_attr(layout_manual))),
+      aes(label = node)
+    ) +
+    ggraph::geom_node_text(
+      data = layout_manual %>%
+        tidygraph::slice(seq_len(.n_points_attr(layout_manual))),
       aes(x =  x + 0.25,
           y =  y,
           label = node,

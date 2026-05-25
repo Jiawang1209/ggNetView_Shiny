@@ -46,7 +46,7 @@ create_layout_petal2 <- function(graph_obj,
   ly <- data.frame(x = 0, y = 0)
 
 
-  for (index in 2:nrow(layout_df_info)) {
+  for (index in seq_len(nrow(layout_df_info))[-1L]) {
     m <- layout_df_info$number[index]
     R_base <- (index - 1) * r
     theta  <- 2 * pi * (0:(m - 1)) / m

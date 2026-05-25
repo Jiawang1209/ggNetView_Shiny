@@ -33,6 +33,10 @@ build_graph_from_double_mat_with_module <- function(mat1,
                                                     top_modules = 15,
                                                     seed = 1115){
 
+  # honour the documented `seed` argument so downstream stochastic operations
+  # (e.g. community detection on tied modularity scores) are reproducible.
+  set.seed(seed)
+
   df1 = mat1 %>% t() %>% as.data.frame()
   df2 = mat2 %>% t() %>% as.data.frame()
 
@@ -48,10 +52,10 @@ build_graph_from_double_mat_with_module <- function(mat1,
     tibble::rownames_to_column(var = "from") %>%
     tidyr::pivot_longer(cols = -from, names_to = "to", values_to = "Pvalue") %>%
     dplyr::mutate(signif = dplyr::case_when(
-      Pvalue > 0.05 ~ "",
-      Pvalue > 0.01 & Pvalue < 0.05 ~ "*",
-      Pvalue < 0.01 & Pvalue > 0.001 ~ "**",
-      Pvalue < 0.001 ~ "***"
+      Pvalue > 0.05                    ~ "",
+      Pvalue > 0.01  & Pvalue <= 0.05  ~ "*",
+      Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
+      Pvalue < 0.001                   ~ "***"
     ))
 
   cor_out <- cor_out_odata_r %>%
@@ -62,10 +66,10 @@ build_graph_from_double_mat_with_module <- function(mat1,
       Correlation < 0 ~ "Negative"
     )) %>%
     dplyr::mutate(Signif2 = dplyr::case_when(
-      Pvalue > 0.05 ~ "P > 0.05",
-      Pvalue > 0.01 & Pvalue < 0.05 ~ "0.01 < P < 0.05",
-      Pvalue < 0.01 & Pvalue > 0.001 ~ "0.001 < P < 0.01",
-      Pvalue < 0.001 ~ "P < 0.001"
+      Pvalue > 0.05                    ~ "P > 0.05",
+      Pvalue > 0.01  & Pvalue <= 0.05  ~ "0.01 < P <= 0.05",
+      Pvalue <= 0.01 & Pvalue >= 0.001 ~ "0.001 <= P <= 0.01",
+      Pvalue < 0.001                   ~ "P < 0.001"
     ))
 
   df <- cor_out %>%
@@ -76,13 +80,6 @@ build_graph_from_double_mat_with_module <- function(mat1,
     d = df,
     vertices = node_annotation,
     directed = directed
-  )
-
-
-  g <- igraph::graph_from_data_frame(
-    d = df,
-    vertices = node_annotation,
-    directed = F
   )
 
 
@@ -110,15 +107,19 @@ build_graph_from_double_mat_with_module <- function(mat1,
   if (max_model < top_modules) {
 
     message(paste("The max module in network is", max_model, "we use the", max_model, " modules for next analysis"))
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[1:max_model] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(max_model)] %>% names()
 
   }else if (max_model >= top_modules) {
 
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[1:top_modules] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(top_modules)] %>% names()
   }
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
 
+  # `factor_levels` was built before the "Others" replacement above, so it does not
+  # contain "Others". Without appending it here, every node assigned to "Others"
+  # would become NA after the factor() calls below.
+  factor_levels <- c(setdiff(factor_levels, "Others"), "Others")
 
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
     tidygraph::mutate(Modularity = factor(Modularity, levels = factor_levels, ordered = T),

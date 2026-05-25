@@ -30,14 +30,13 @@ create_layout_tripartite_equal_gephi_layout <- function(
   module_list <- node_df %>% dplyr::group_split(Modularity, .keep = TRUE)
   n_vec <- purrr::map_int(module_list, nrow)
 
-  if (length(n_vec) < 3) {
-    stop("Tripartite layout requires at least 3 modules (from column `Modularity`).")
-  }
-  if (length(n_vec) > 3) {
-    message("More than 3 modules detected; only the top 3 modules are used for the tripartite layout.")
-    module_list <- module_list[1:3]
-    n_vec <- n_vec[1:3]
-    mod_levels <- mod_levels[1:3]
+  if (length(n_vec) != 3) {
+    stop(
+      "Tripartite layout requires exactly 3 modules in `Modularity`; got ",
+      length(n_vec), ".\n",
+      "  Filter `graph_obj` to 3 modules first, or use a quadripartite / pentapartite layout for more.",
+      call. = FALSE
+    )
   }
 
 

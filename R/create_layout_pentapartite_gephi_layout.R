@@ -45,14 +45,13 @@ create_layout_pentapartite_gephi_layout <- function(
 
   n_vec <- purrr::map_int(module_list, nrow)
 
-  if (length(n_vec) < 5) {
-    stop("Pentapartite layout requires at least 5 modules (from column `Modularity`).")
-  }
-  if (length(n_vec) > 5) {
-    message("More than 5 modules detected; only the top 5 modules are used for the pentapartite layout.")
-    module_list <- module_list[1:5]
-    n_vec       <- n_vec[1:5]
-    mod_levels  <- mod_levels[1:5]
+  if (length(n_vec) != 5) {
+    stop(
+      "Pentapartite layout requires exactly 5 modules in `Modularity`; got ",
+      length(n_vec), ".\n",
+      "  Filter `graph_obj` to 5 modules first, or use a tripartite / quadripartite layout instead.",
+      call. = FALSE
+    )
   }
 
 

@@ -37,8 +37,48 @@ build_graph_from_df <- function(df,
 
   module.method <- match.arg(module.method)
 
+  # `cluster_fast_greedy()` and `cluster_spinglass()` only support undirected
+  # graphs in igraph. Fail fast with a clear message instead of letting igraph
+  # surface a cryptic error deep inside the switch() below.
+  if (isTRUE(directed) && module.method %in% c("Fast_greedy", "Spinglass")) {
+    stop(sprintf(
+      "module.method = '%s' only supports undirected graphs; set `directed = FALSE` or pick another method (e.g. 'Walktrap', 'Edge_betweenness').",
+      module.method
+    ))
+  }
+
   set.seed(seed)
 
+  # ---- Normalize edge data frame column names ------------------------------
+  # igraph::graph_from_data_frame() takes the 1st/2nd columns as from/to by
+  # position (column names don't matter), but turns column 3+ into edge
+  # attributes using their literal names. Downstream code in this function
+  # (igraph::E(g)$weight, centrality_degree(weights = weight), ...) looks up
+  # the attribute named exactly "weight", and igraph attribute names are
+  # case-sensitive. So we tolerate any casing the user supplies.
+  df <- as.data.frame(df)
+
+  if (ncol(df) < 2) {
+    stop("`df` must have at least 2 columns (from, to).")
+  }
+
+  w_idx <- which(tolower(names(df)) == "weight")
+  if (length(w_idx) >= 1) {
+    if (length(w_idx) > 1) {
+      warning(sprintf(
+        "Multiple weight-like columns found (%s); using the first one and renaming it to 'weight'.",
+        paste(names(df)[w_idx], collapse = ", ")
+      ))
+    }
+    names(df)[w_idx[1]] <- "weight"
+  } else if (ncol(df) >= 3) {
+    message(sprintf(
+      "No column named 'weight' (any case) found; treating the 3rd column ('%s') as weight.",
+      names(df)[3]
+    ))
+    names(df)[3] <- "weight"
+  }
+  # --------------------------------------------------------------------------
 
   g <- igraph::graph_from_data_frame(
     d = df,
@@ -53,8 +93,18 @@ build_graph_from_df <- function(df,
   g <- igraph::delete_vertices(g, which(igraph::degree(g)==0))
 
 
-  igraph::E(g)$correlation <- igraph::E(g)$weight
-  igraph::E(g)$weight <- abs(igraph::E(g)$weight)
+  # ---- Handle weighted vs. unweighted graphs ------------------------------
+  # When `df` carries no weight column, igraph::E(g)$weight is NULL and the
+  # subsequent abs()/centrality_degree(weights = weight) calls would fail.
+  # Fall back to an unweighted graph (every edge weight = 1) in that case.
+  if (is.null(igraph::E(g)$weight)) {
+    igraph::E(g)$correlation <- 1
+    igraph::E(g)$weight      <- 1
+  } else {
+    igraph::E(g)$correlation <- igraph::E(g)$weight
+    igraph::E(g)$weight      <- abs(igraph::E(g)$weight)
+  }
+  # --------------------------------------------------------------------------
 
 
   membership_vec <- switch(
@@ -76,11 +126,11 @@ build_graph_from_df <- function(df,
   if (max_model < top_modules) {
 
     message(paste("The max module in network is", max_model, "we use the", max_model, " modules for next analysis"))
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[1:max_model] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(max_model)] %>% names()
 
   }else if (max_model >= top_modules) {
 
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[1:top_modules] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(top_modules)] %>% names()
   }
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")

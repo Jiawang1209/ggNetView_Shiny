@@ -32,11 +32,15 @@ create_layout_tripartite_layout <- function(
 
   n_vec <- purrr::map_int(module_list, nrow)
 
-  if (length(n_vec) < 3) {
-    stop("Tripartite layout requires at least 2 modules in `Modularity`")
-  }
-  if (length(n_vec) > 3) {
-    message("`tripartite layout more than 2 modules detected.")
+  if (length(n_vec) != 3) {
+    stop(
+      "Tripartite layout requires exactly 3 modules in `Modularity`; got ",
+      length(n_vec), ".\n",
+      "  Filter `graph_obj` to 3 modules first, or use ",
+      "`create_layout_quadripartite_layout()` / `create_layout_pentapartite_layout()` ",
+      "for more.",
+      call. = FALSE
+    )
   }
 
 

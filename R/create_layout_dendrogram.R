@@ -25,7 +25,9 @@ create_layout_dendrogram <- function(
     tidygraph::activate(edges) %>%
     tidygraph::as_tibble()
 
-  #
+  # NOTE: despite the function name, the underlying ggraph layout is "nicely"
+  # rather than a true dendrogram. Kept for backward compatibility; switch to
+  # `layout = "dendrogram"` only when the input graph is guaranteed acyclic.
   ly <- ggraph::create_layout(graph_obj, layout = "nicely")
   ly <- as.data.frame(ly) %>% dplyr::select(1,2)
 

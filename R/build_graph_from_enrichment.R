@@ -36,7 +36,7 @@ build_graph_from_enrichGO <- function(df){
 
   node_file3 <- GO_result_edge %>%
     dplyr::group_by(ID2) %>%
-    dplyr::summarise(ID2_sum = Count) %>%
+    dplyr::summarise(ID2_sum = sum(Count)) %>%
     purrr::set_names(c("node", "node_size")) %>%
     dplyr::mutate(node_level = "ID") %>%
     dplyr::mutate(type = str_remove(string = node, pattern = "_.*")) %>%
@@ -45,18 +45,15 @@ build_graph_from_enrichGO <- function(df){
   node_file <- dplyr::bind_rows(node_file1, node_file2, node_file3)
 
   # edge file
+  # distinct() is what the previous summarise(count = n()) + select(1,2) was
+  # actually trying to express; using it directly avoids the silently-dropped
+  # `count` column and the unnecessary dplyr grouping.
   edge_file1 <- GO_result_edge %>%
-    dplyr::group_by(Type, ONTOLOGY) %>%
-    dplyr::summarise(count = n()) %>%
-    dplyr::ungroup() %>%
-    dplyr::select(1,2) %>%
+    dplyr::distinct(Type, ONTOLOGY) %>%
     purrr::set_names(c("from", "to"))
 
   edge_file2 <- GO_result_edge %>%
-    dplyr::group_by(ONTOLOGY, ID) %>%
-    dplyr::summarise(count = n()) %>%
-    dplyr::ungroup() %>%
-    dplyr::select(1,2) %>%
+    dplyr::distinct(ONTOLOGY, ID) %>%
     purrr::set_names(c("from", "to"))
 
   edge_file <- dplyr::bind_rows(edge_file1, edge_file2)

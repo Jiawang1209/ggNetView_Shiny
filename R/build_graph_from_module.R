@@ -68,15 +68,19 @@ build_graph_from_module <- function(df,
   if (max_model < top_modules) {
 
     message(paste("The max module in network is", max_model, "we use the", max_model, " modules for next analysis"))
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[1:max_model] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(max_model)] %>% names()
 
   }else if (max_model >= top_modules) {
 
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[1:top_modules] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(top_modules)] %>% names()
   }
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
 
+  # `factor_levels` was built before the "Others" replacement above, so it does not
+  # contain "Others". Without appending it here, every node assigned to "Others"
+  # would become NA after the factor() calls below.
+  factor_levels <- c(setdiff(factor_levels, "Others"), "Others")
 
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
     tidygraph::mutate(Modularity = factor(Modularity, levels = factor_levels, ordered = T),

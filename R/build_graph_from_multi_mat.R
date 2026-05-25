@@ -81,10 +81,10 @@ build_graph_from_multi_mat <- function(mat1,
     tibble::rownames_to_column(var = "from") %>%
     tidyr::pivot_longer(cols = -from, names_to = "to", values_to = "Pvalue") %>%
     dplyr::mutate(signif = dplyr::case_when(
-      Pvalue > 0.05 ~ "",
-      Pvalue > 0.01 & Pvalue < 0.05 ~ "*",
-      Pvalue < 0.01 & Pvalue > 0.001 ~ "**",
-      Pvalue < 0.001 ~ "***"
+      Pvalue > 0.05                    ~ "",
+      Pvalue > 0.01  & Pvalue <= 0.05  ~ "*",
+      Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
+      Pvalue < 0.001                   ~ "***"
     ))
 
   mat_names <- names(mats)
@@ -108,10 +108,10 @@ build_graph_from_multi_mat <- function(mat1,
       Correlation < 0 ~ "Negative"
     )) %>%
     dplyr::mutate(Signif2 = dplyr::case_when(
-      Pvalue > 0.05 ~ "P > 0.05",
-      Pvalue > 0.01 & Pvalue < 0.05 ~ "0.01 < P < 0.05",
-      Pvalue < 0.01 & Pvalue > 0.001 ~ "0.001 < P < 0.01",
-      Pvalue < 0.001 ~ "P < 0.001"
+      Pvalue > 0.05                    ~ "P > 0.05",
+      Pvalue > 0.01  & Pvalue <= 0.05  ~ "0.01 < P <= 0.05",
+      Pvalue <= 0.01 & Pvalue >= 0.001 ~ "0.001 <= P <= 0.01",
+      Pvalue < 0.001                   ~ "P < 0.001"
     ))
 
   df <- cor_out %>%
@@ -155,9 +155,9 @@ build_graph_from_multi_mat <- function(mat1,
 
   if (max_model < top_modules) {
     message(paste("The max module in network is", max_model, "we use the", max_model, " modules for next analysis"))
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[1:max_model] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[seq_len(max_model)] %>% names()
   } else if (max_model >= top_modules) {
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[1:top_modules] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[seq_len(top_modules)] %>% names()
   }
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")

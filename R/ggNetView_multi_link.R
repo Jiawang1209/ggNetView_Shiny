@@ -124,11 +124,15 @@
 #' and \code{"none"} (disable). Logical \code{TRUE}/\code{FALSE} are
 #' accepted and mapped to \code{"circle"}/\code{"none"}.
 #' @param q_outer Numeric (default = 0.88).
-#' Quantile of radial distance used to construct the smooth outer boundary
-#' when \code{add_outer = "manual"}.
+#' HDR coverage of the outer boundary when \code{add_outer = "manual"}: the
+#' contour is drawn at the density level whose iso-density region contains a
+#' fraction \code{q_outer} of the module's empirical probability mass.
 #' @param expand_outer Numeric (default = 1.02).
-#' Global scaling factor applied to the smooth outer boundary when
-#' \code{add_outer = "manual"}.
+#' Multiplicative scaling applied to each polygon from its own centroid
+#' when \code{add_outer = "manual"}.
+#' @param bandwidth_scale Numeric (default = 1.0).
+#' Multiplier on the robust normal-reference 2D KDE bandwidth used to build
+#' the outer boundary when \code{add_outer = "manual"}.
 #' @param outerwidth Numeric (default = 1.25).
 #' Line width for module outer boundaries.
 #' @param outerlinetype Integer or character (default = 2).
@@ -326,6 +330,7 @@ ggNetView_multi_link <- function(mat = NULL,
                                  add_outer = "circle",
                                  q_outer = 0.88,
                                  expand_outer = 1.02,
+                                 bandwidth_scale = 1.0,
                                  outerwidth = 1.25,
                                  outerlinetype = 2,
                                  outeralpha = 0.5,
@@ -1853,7 +1858,8 @@ ggNetView_multi_link <- function(mat = NULL,
         dims = outer_node_df %>% dplyr::select(x, y),
         clusters = outer_node_df %>% dplyr::pull(Modularity),
         q = q_outer,
-        expand = expand_outer
+        expand = expand_outer,
+        bandwidth_scale = bandwidth_scale
       ) %>%
         dplyr::mutate(cluster = as.character(cluster))
       p <- p +
@@ -1862,7 +1868,9 @@ ggNetView_multi_link <- function(mat = NULL,
           if (isTRUE(color_is_fixed)) {
             ggplot2::geom_polygon(
               data = maskTable,
-              mapping = ggplot2::aes(x = x, y = y, group = cluster, fill = cluster),
+              mapping = ggplot2::aes(x = x, y = y,
+                                     group = interaction(cluster, polygon_id),
+                                     fill = cluster),
               color = color,
               linewidth = outerwidth,
               linetype = outerlinetype,
@@ -1872,7 +1880,9 @@ ggNetView_multi_link <- function(mat = NULL,
           } else {
             ggplot2::geom_polygon(
               data = maskTable,
-              mapping = ggplot2::aes(x = x, y = y, group = cluster, fill = cluster, color = cluster),
+              mapping = ggplot2::aes(x = x, y = y,
+                                     group = interaction(cluster, polygon_id),
+                                     fill = cluster, color = cluster),
               linewidth = outerwidth,
               linetype = outerlinetype,
               alpha = outeralpha,

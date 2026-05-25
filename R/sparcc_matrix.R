@@ -70,7 +70,11 @@ exclude_pairs <- function(Cor, M, th = 0.1, excluded = NULL) {
   if (!is.null(excluded)) {
     C_temp[excluded] <- 0
   }
-  exclude <- which(abs(C_temp - max(C_temp)) < .Machine$double.eps * 100)[seq_len(2)]
+  # When fewer than 2 ties exist at the maximum, `[seq_len(2)]` previously padded
+  # the second slot with NA (silently handled by na.exclude below). Take only as
+  # many as actually exist to express the intent more clearly.
+  exclude_all <- which(abs(C_temp - max(C_temp)) < .Machine$double.eps * 100)
+  exclude <- exclude_all[seq_len(min(2L, length(exclude_all)))]
   if (max(C_temp) > th) {
     i <- na.exclude(arrayInd(exclude, c(nrow(M), ncol(M)))[, 1])
     M[i, i] <- M[i, i] - 1

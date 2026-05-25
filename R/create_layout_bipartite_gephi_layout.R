@@ -4,7 +4,7 @@ create_layout_bipartite_gephi_layout <- function(
     r = 1,
     anchor_dist = 10,
     node_add = 7,
-    scale = scale,
+    scale = TRUE,
     orientation = c("up","down","left","right"),
     angle = 0
 ){
