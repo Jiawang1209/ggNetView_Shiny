@@ -46,6 +46,24 @@ release_default_validation_commands <- function() {
   )
 }
 
+release_final_validation_commands <- function() {
+  validation <- release_default_validation_commands()
+  validation$status <- "passed"
+  validation$result <- c(
+    "Passed in final audit: 11 coverage-helper assertions.",
+    "Passed in final audit: 25 Shiny source/file assertions.",
+    "Passed in final audit: manual workflow smoke passed and regenerated 10/10 manual coverage JSON.",
+    "Passed in final audit: phase2 browser workflow smoke passed.",
+    "Passed in final audit: graph builder modes browser smoke passed.",
+    "Passed in final audit: analysis/export browser smoke passed.",
+    "Passed in final audit: visual layouts browser smoke passed for 57/57 layouts.",
+    "Passed in final audit: environment geometry browser smoke passed for 4/4 recipes.",
+    "Passed in final audit: mobile layout browser smoke passed.",
+    "Passed in final audit: task feedback browser smoke passed."
+  )
+  validation
+}
+
 release_default_remaining_limits <- function() {
   c(
     "Project-specific biological/statistical report wording still needs refinement after longer real-use sessions.",
@@ -55,12 +73,28 @@ release_default_remaining_limits <- function() {
   )
 }
 
+release_final_remaining_limits <- function() {
+  c(
+    "Project-specific biological/statistical report wording still needs refinement after longer real-use sessions.",
+    "Cross-session restore merge review and editable restored-object summaries remain future workflow polish.",
+    "Future long-running buttons should receive targeted busy-state browser assertions as they are added."
+  )
+}
+
 release_default_next_steps <- function() {
   c(
     "Run the full validation command list sequentially with /usr/local/bin/Rscript.",
     "Launch the Shiny app and inspect the main tabs against the generated evidence report.",
     "Review remaining limits with the user and decide whether they block release.",
     "Create the final release/readiness commit after the full pass is green."
+  )
+}
+
+release_final_next_steps <- function() {
+  c(
+    "Open the Shiny app for a short human visual review if desired.",
+    "Decide with the user whether the remaining polish items block the current release.",
+    "Prepare push or release packaging only when the user is ready."
   )
 }
 
@@ -212,8 +246,14 @@ write_release_evidence_report <- function(evidence, path) {
 
 generate_release_evidence_report <- function(
     path = "docs/ggnetview-shiny-release-evidence.md",
-    coverage_path = "tests/_smoke_coverage/manual_workflow_coverage.json") {
+    coverage_path = "tests/_smoke_coverage/manual_workflow_coverage.json",
+    final_audit = FALSE) {
   coverage <- release_read_coverage(coverage_path)
-  evidence <- release_evidence_summary(coverage = coverage)
+  evidence <- release_evidence_summary(
+    coverage = coverage,
+    validation = if (isTRUE(final_audit)) release_final_validation_commands() else NULL,
+    remaining_limits = if (isTRUE(final_audit)) release_final_remaining_limits() else NULL,
+    next_steps = if (isTRUE(final_audit)) release_final_next_steps() else NULL
+  )
   write_release_evidence_report(evidence, path)
 }

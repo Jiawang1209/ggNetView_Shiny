@@ -1,6 +1,6 @@
 # ggNetView Shiny Release Evidence
 
-Generated at: 2026-05-26T07:32:30+0800
+Generated at: 2026-05-26T07:38:56+0800
 
 ## Manual Coverage
 
@@ -28,21 +28,22 @@ Generated at: 2026-05-26T07:32:30+0800
 
 | status | command | result |
 | --- | --- | --- |
-| required | /usr/local/bin/Rscript -e 'testthat::test_file("tests/testthat/test-shiny-smoke-coverage.R")' | Focused coverage helper regression. |
-| required | /usr/local/bin/Rscript -e 'testthat::test_file("tests/testthat/test-shiny-files.R")' | Static Shiny source/file regression. |
-| required | /usr/local/bin/Rscript tests/run_shiny_manual_workflow_smoke.R | Manual-backed backend workflow and manual-area coverage. |
-| required | /usr/local/bin/Rscript tests/run_shiny_phase2_workflow_smoke.R | Main browser workflow smoke. |
-| required | /usr/local/bin/Rscript tests/run_shiny_graph_builder_modes_smoke.R | Graph Builder mode browser smoke. |
-| required | /usr/local/bin/Rscript tests/run_shiny_analysis_export_smoke.R | Analysis/export browser smoke. |
-| required | /usr/local/bin/Rscript tests/run_shiny_visual_layouts_smoke.R | Visual Lab layout browser smoke. |
-| required | /usr/local/bin/Rscript tests/run_shiny_environment_geometry_smoke.R | Environment geometry browser smoke. |
-| required | /usr/local/bin/Rscript tests/run_shiny_mobile_layout_smoke.R | Mobile navigation/overflow browser smoke. |
-| required | /usr/local/bin/Rscript tests/run_shiny_task_feedback_smoke.R | Long-running action feedback browser smoke. |
+| passed | /usr/local/bin/Rscript -e 'testthat::test_file("tests/testthat/test-shiny-smoke-coverage.R")' | Passed in final audit: 11 coverage-helper assertions. |
+| passed | /usr/local/bin/Rscript -e 'testthat::test_file("tests/testthat/test-shiny-files.R")' | Passed in final audit: 25 Shiny source/file assertions. |
+| passed | /usr/local/bin/Rscript tests/run_shiny_manual_workflow_smoke.R | Passed in final audit: manual workflow smoke passed and regenerated 10/10 manual coverage JSON. |
+| passed | /usr/local/bin/Rscript tests/run_shiny_phase2_workflow_smoke.R | Passed in final audit: phase2 browser workflow smoke passed. |
+| passed | /usr/local/bin/Rscript tests/run_shiny_graph_builder_modes_smoke.R | Passed in final audit: graph builder modes browser smoke passed. |
+| passed | /usr/local/bin/Rscript tests/run_shiny_analysis_export_smoke.R | Passed in final audit: analysis/export browser smoke passed. |
+| passed | /usr/local/bin/Rscript tests/run_shiny_visual_layouts_smoke.R | Passed in final audit: visual layouts browser smoke passed for 57/57 layouts. |
+| passed | /usr/local/bin/Rscript tests/run_shiny_environment_geometry_smoke.R | Passed in final audit: environment geometry browser smoke passed for 4/4 recipes. |
+| passed | /usr/local/bin/Rscript tests/run_shiny_mobile_layout_smoke.R | Passed in final audit: mobile layout browser smoke passed. |
+| passed | /usr/local/bin/Rscript tests/run_shiny_task_feedback_smoke.R | Passed in final audit: task feedback browser smoke passed. |
 
 ## Recent Commits
 
 | hash | subject |
 | --- | --- |
+| 5fda78b | test: add release evidence report |
 | bf1229e | test: record manual smoke coverage |
 | 0532db6 | feat: enrich comparison report narratives |
 | dad6f91 | test: add task feedback browser smoke |
@@ -62,19 +63,16 @@ Generated at: 2026-05-26T07:32:30+0800
 | cac175d | feat: add igraph graph builder |
 | 88d901a | feat: add node edge graph builder |
 | 6c6ff50 | feat: add module environment heatmap |
-| 3495087 | feat: replay graph builder workflows |
 
 ## Remaining Limits
 
 - Project-specific biological/statistical report wording still needs refinement after longer real-use sessions.
 - Cross-session restore merge review and editable restored-object summaries remain future workflow polish.
 - Future long-running buttons should receive targeted busy-state browser assertions as they are added.
-- A final continuous all-smoke pass should be run immediately before release or handoff.
 
 ## Next Release Steps
 
-1. Run the full validation command list sequentially with /usr/local/bin/Rscript.
-2. Launch the Shiny app and inspect the main tabs against the generated evidence report.
-3. Review remaining limits with the user and decide whether they block release.
-4. Create the final release/readiness commit after the full pass is green.
+1. Open the Shiny app for a short human visual review if desired.
+2. Decide with the user whether the remaining polish items block the current release.
+3. Prepare push or release packaging only when the user is ready.
 

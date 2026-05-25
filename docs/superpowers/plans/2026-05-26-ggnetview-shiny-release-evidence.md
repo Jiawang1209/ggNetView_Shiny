@@ -15,4 +15,4 @@ Create a durable release-readiness evidence report that summarizes manual covera
 ## Verification
 
 - `/usr/local/bin/Rscript -e 'testthat::test_file("tests/testthat/test-release-evidence.R")'`
-- `/usr/local/bin/Rscript -e 'source("R/app_smoke_coverage.R"); source("R/app_release_evidence.R"); generate_release_evidence_report("docs/ggnetview-shiny-release-evidence.md")'`
+- `/usr/local/bin/Rscript -e 'source("R/app_smoke_coverage.R"); source("R/app_release_evidence.R"); generate_release_evidence_report("docs/ggnetview-shiny-release-evidence.md", final_audit = TRUE)'`
