@@ -21,6 +21,26 @@ You can install the development version of ggNetView from
     # install.packages("devtools")
     devtools::install_github("Jiawang1209/ggNetView")
 
+## Run the Shiny app
+
+This repository now contains the ggNetView Shiny application directly.
+During development or deployment, run:
+
+``` r
+shiny::runApp("inst/app")
+```
+
+After installing/loading the package-style project, run:
+
+``` r
+ggNetView::launch_ggNetView()
+```
+
+The real workflow smoke test requires the scientific imports listed in
+`DESCRIPTION`. On this machine, the current blockers are: `FNN`, `future`,
+`future.apply`, `ggraph`, `Hmisc`, `huge`, `progressr`, `psych`, `qgraph`,
+`tidygraph`, `VGAM`, and `WGCNA`.
+
 ## Example1
 
 ### Step1: load ggNetView
