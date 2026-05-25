@@ -375,7 +375,69 @@ environment_block_selectors <- function(env, spec, env_blocks = NULL, spec_block
   )
 }
 
-safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, params = list()) {
+parse_environment_block_pairs <- function(text, env_names, spec_names) {
+  if (is.null(text) || length(text) == 0L || !nzchar(trimws(text[[1]]))) {
+    return(list(pairs = NULL, warnings = character()))
+  }
+
+  env_names <- as.character(env_names)
+  spec_names <- as.character(spec_names)
+  lines <- unlist(strsplit(as.character(text[[1]]), "[\n;]+"))
+  lines <- trimws(lines)
+  lines <- lines[nzchar(lines)]
+
+  pairs <- list()
+  warnings <- character()
+  seen <- character()
+  for (line in lines) {
+    parts <- trimws(unlist(strsplit(line, "\\s*(,|->|\\|)\\s*")))
+    parts <- parts[nzchar(parts)]
+    if (length(parts) != 2L) {
+      warnings <- c(warnings, paste0("Skipping malformed environment block pair: ", line))
+      next
+    }
+    if (!parts[[1]] %in% env_names) {
+      warnings <- c(warnings, paste0("Skipping environment block pair ", paste(parts, collapse = ","), ": env block not available."))
+      next
+    }
+    if (!parts[[2]] %in% spec_names) {
+      warnings <- c(warnings, paste0("Skipping environment block pair ", paste(parts, collapse = ","), ": spec block not available."))
+      next
+    }
+    key <- paste(parts, collapse = "\r")
+    if (key %in% seen) {
+      warnings <- c(warnings, paste0("Skipping duplicate environment block pair: ", paste(parts, collapse = ",")))
+      next
+    }
+    seen <- c(seen, key)
+    pairs[[length(pairs) + 1L]] <- parts
+  }
+
+  list(pairs = if (length(pairs)) pairs else NULL, warnings = warnings)
+}
+
+apply_environment_pair_params <- function(params, env_select, spec_select) {
+  env_spec_pairs <- params$env_spec_pairs
+  params$env_spec_pairs <- NULL
+  parsed_pairs <- parse_environment_block_pairs(
+    env_spec_pairs,
+    env_names = names(env_select),
+    spec_names = names(spec_select)
+  )
+  if (!is.null(parsed_pairs$pairs)) {
+    params$comparisons <- TRUE
+    params$comparisons_groups <- parsed_pairs$pairs
+  }
+  if (!is.null(env_spec_pairs) && nzchar(trimws(as.character(env_spec_pairs[[1]]))) && is.null(parsed_pairs$pairs)) {
+    return(list(
+      ok = FALSE,
+      message = paste(c("No valid environment block pairs were provided.", parsed_pairs$warnings), collapse = "\n")
+    ))
+  }
+  list(ok = TRUE, params = params, pairs = parsed_pairs$pairs, warnings = parsed_pairs$warnings)
+}
+
+safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, env_spec_pairs = NULL, params = list()) {
   fn <- resolve_ggnetview_function("gglink_heatmaps_2")
   if (is.null(fn)) {
     return(app_failure("Cannot find ggNetView function: gglink_heatmaps_2"))
@@ -393,6 +455,8 @@ safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NU
   )
   params$env_blocks <- NULL
   params$spec_blocks <- NULL
+  env_spec_pairs <- env_spec_pairs %||% params$env_spec_pairs
+  params$env_spec_pairs <- env_spec_pairs
   if (is.null(env_select)) {
     env_select <- block_selectors$env_select
   }
@@ -405,6 +469,11 @@ safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NU
       collapse = "\n"
     )))
   }
+  pair_params <- apply_environment_pair_params(params, env_select, spec_select)
+  if (!isTRUE(pair_params$ok)) {
+    return(app_failure(pair_params$message))
+  }
+  params <- pair_params$params
 
   defaults <- list(
     env = env,
@@ -433,12 +502,14 @@ safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NU
     stats = value[[3]],
     env_select = env_select,
     spec_select = spec_select,
-    block_warnings = block_selectors$warnings,
+    comparison_pairs = pair_params$pairs,
+    comparison_warnings = pair_params$warnings,
+    block_warnings = c(block_selectors$warnings, pair_params$warnings),
     raw = value
   ))
 }
 
-safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, params = list()) {
+safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, env_spec_pairs = NULL, params = list()) {
   fn <- resolve_ggnetview_function("gglink_heatmaps")
   if (is.null(fn)) {
     return(app_failure("Cannot find ggNetView function: gglink_heatmaps"))
@@ -456,6 +527,8 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
   )
   params$env_blocks <- NULL
   params$spec_blocks <- NULL
+  env_spec_pairs <- env_spec_pairs %||% params$env_spec_pairs
+  params$env_spec_pairs <- env_spec_pairs
   if (is.null(env_select)) {
     env_select <- block_selectors$env_select
   }
@@ -468,6 +541,11 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
       collapse = "\n"
     )))
   }
+  pair_params <- apply_environment_pair_params(params, env_select, spec_select)
+  if (!isTRUE(pair_params$ok)) {
+    return(app_failure(pair_params$message))
+  }
+  params <- pair_params$params
 
   defaults <- list(
     env = env,
@@ -506,7 +584,9 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
     stats = stats,
     env_select = env_select,
     spec_select = spec_select,
-    block_warnings = block_selectors$warnings,
+    comparison_pairs = pair_params$pairs,
+    comparison_warnings = pair_params$warnings,
+    block_warnings = c(block_selectors$warnings, pair_params$warnings),
     raw = value
   ))
 }

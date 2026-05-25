@@ -146,6 +146,33 @@ test_that("environment block selectors parse and pass through to environment lin
   expect_equal(names(result$value$spec_select), c("Early", "Late"))
 })
 
+test_that("environment block pairs restrict computed environment links", {
+  data <- phase2_env_spec()
+  env_blocks <- "Climate: temperature,pH\nWater: moisture"
+  spec_blocks <- "Early: OTU1,OTU2,OTU3\nLate: OTU4,OTU5,OTU6"
+
+  parsed <- parse_environment_block_pairs(
+    "Climate,Early\nWater,Late",
+    env_names = c("Climate", "Water"),
+    spec_names = c("Early", "Late")
+  )
+  expect_equal(parsed$pairs, list(c("Climate", "Early"), c("Water", "Late")))
+  expect_length(parsed$warnings, 0L)
+
+  result <- safe_environment_link(
+    env = data$env,
+    spec = data$spec,
+    env_blocks = env_blocks,
+    spec_blocks = spec_blocks,
+    env_spec_pairs = "Climate,Early\nWater,Late"
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  actual_pairs <- unique(paste(result$value$stats$env_block, result$value$stats$spec_block, sep = ","))
+  expect_setequal(actual_pairs, c("Climate,Early", "Water,Late"))
+  expect_equal(result$value$comparison_pairs, list(c("Climate", "Early"), c("Water", "Late")))
+})
+
 test_that("manual environment heatmap returns plot and statistics", {
   data <- phase2_env_spec()
   result <- safe_environment_heatmap(

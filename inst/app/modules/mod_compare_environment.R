@@ -48,6 +48,13 @@ mod_compare_environment_ui <- function(id) {
         placeholder = "Optional: Early: OTU1,OTU2,OTU3\nLate: OTU4,OTU5,OTU6",
         rows = 3
       ),
+      shiny::textAreaInput(
+        ns("env_spec_pairs"),
+        "Environment/spec pairs",
+        value = "",
+        placeholder = "Optional: Climate,Early\nWater,Late",
+        rows = 3
+      ),
       shiny::selectInput(ns("triple_graph_id"), "Triple heatmap graph", choices = character()),
       shiny::numericInput(ns("triple_feature_count"), "Triple feature count", value = 3, min = 1, step = 1),
       shiny::actionButton(ns("run_environment"), "Run environment link"),
@@ -170,11 +177,21 @@ mod_compare_environment_server <- function(id, registry) {
       } else {
         ""
       }
+      pairs <- result$value$comparison_pairs %||% list()
+      pair_message <- if (length(pairs)) {
+        paste0(
+          " Pair restrictions: ",
+          paste(vapply(pairs, paste, character(1), collapse = " vs "), collapse = "; "),
+          "."
+        )
+      } else {
+        ""
+      }
       warnings <- result$value$block_warnings %||% character()
       if (length(warnings)) {
-        paste0(applied, "\n", paste(warnings, collapse = "\n"))
+        paste0(applied, pair_message, "\n", paste(warnings, collapse = "\n"))
       } else {
-        applied
+        paste0(applied, pair_message)
       }
     }
 
@@ -332,7 +349,8 @@ mod_compare_environment_server <- function(id, registry) {
         cor.method = input$cor_method,
         drop_nonsig = input$drop_nonsig,
         env_blocks = input$env_blocks,
-        spec_blocks = input$spec_blocks
+        spec_blocks = input$spec_blocks,
+        env_spec_pairs = input$env_spec_pairs
       )
       status(task_feedback_message("environment link", "running"))
       result <- with_task_feedback(
@@ -387,7 +405,8 @@ mod_compare_environment_server <- function(id, registry) {
         spec_collapse = input$spec_collapse,
         drop_nonsig = input$drop_nonsig,
         env_blocks = input$env_blocks,
-        spec_blocks = input$spec_blocks
+        spec_blocks = input$spec_blocks,
+        env_spec_pairs = input$env_spec_pairs
       )
       status(task_feedback_message("manual environment heatmap", "running"))
       result <- with_task_feedback(
