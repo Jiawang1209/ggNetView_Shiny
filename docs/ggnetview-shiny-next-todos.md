@@ -9,7 +9,7 @@ Date: 2026-05-26
 - Local source loading now keeps same-package helper dependencies and common ggNetView plotting/data-manipulation helper functions available.
 - Export is object-aware: graph objects expose node, edge, and adjacency CSV exports; plot PNG/PDF buttons remain plot-only.
 - Data Hub can load manual workflow examples for matrix, edge-table-with-module, adjacency, TOM-like, and starter graph workflows.
-- Data Hub can run one-click gallery recipes that register final plot/result objects from those starters, including network layout, grouped comparison, graph info/topology, environment heatmap, and Mantel pairwise workflows.
+- Data Hub can run one-click gallery recipes that register final plot/result objects from those starters, including network layout, grouped comparison, graph info/topology, multi-network comparison, environment heatmaps, and Mantel pairwise workflows.
 - Data Hub can load sample metadata and Compare & Environment can use it for grouped matrix network plots.
 - Graph Builder has real API-backed entry points for matrix, RMT-assisted matrix, edge table, adjacency, double matrix, multi-matrix, WGCNA/TOM, and consensus graph construction.
 - Graph Explorer can register graph info, module subgraphs, and sample subgraphs.
@@ -35,7 +35,7 @@ Date: 2026-05-26
    - Keep the last successful result visible but clearly mark failed attempts.
 
 3. Environment and multi-omics depth.
-   - The environment workflow now uses `gglink_heatmaps_2()`, original `gglink_heatmaps()`, `gglink_heatmap_triple()`, block-vs-column Mantel controls, and Mantel pairwise helpers.
+   - The environment workflow now uses `gglink_heatmaps_2()`, original `gglink_heatmaps()`, `gglink_heatmap_triple()`, block-vs-column Mantel controls, and Mantel pairwise helpers. Gallery recipes can reproduce the heatmap, triple-heatmap, and Mantel starter paths.
    - Still needed: multi-core options, clearer multi-omics presets, and finer manual control over environment/spec block selections.
 
 4. Multi-network comparison depth.
@@ -48,7 +48,7 @@ Date: 2026-05-26
    - Consider grouping controls into object-specific sections.
 
 6. Gallery completion.
-   - Manual workflow examples are now loadable as starter objects, and one-click recipes can register final plot/result outputs for layout, comparison, graph-info/topology, environment, and Mantel manual areas.
+   - Manual workflow examples are now loadable as starter objects, and one-click recipes can register final plot/result outputs for layout, grouped comparison, multi-network comparison, graph-info/topology, environment, triple heatmap, and Mantel manual areas.
    - Still needed: more one-click reproducible recipes for multi-omics-specific chapters and richer exported workflow manifests.
 
 7. Add regression tests for issues found during manual use.

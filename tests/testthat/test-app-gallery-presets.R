@@ -34,7 +34,9 @@ test_that("gallery recipe manifest exposes one-click workflows", {
     "grouped_network_plot",
     "graph_info_topology",
     "environment_heatmap",
-    "mantel_pairwise"
+    "mantel_pairwise",
+    "multi_network_compare",
+    "triple_environment_heatmap"
   ) %in% recipes$recipe))
 })
 
@@ -58,6 +60,12 @@ test_that("gallery recipes register reproducible outputs", {
   mantel <- run_gallery_recipe(registry, "mantel_pairwise")
   expect_true(isTRUE(mantel$ok), info = mantel$trace %||% mantel$message)
 
+  compare <- run_gallery_recipe(registry, "multi_network_compare")
+  expect_true(isTRUE(compare$ok), info = compare$trace %||% compare$message)
+
+  triple <- run_gallery_recipe(registry, "triple_environment_heatmap")
+  expect_true(isTRUE(triple$ok), info = triple$trace %||% triple$message)
+
   listed <- shiny::isolate(registry_list(registry))
   expect_true(any(listed$name == "gallery_recipe_circle_plot"))
   expect_true(any(listed$name == "gallery_recipe_grouped_network_plot"))
@@ -67,4 +75,8 @@ test_that("gallery recipes register reproducible outputs", {
   expect_true(any(listed$name == "gallery_recipe_environment_heatmap"))
   expect_true(any(listed$name == "gallery_recipe_environment_stats"))
   expect_true(any(listed$name == "gallery_recipe_mantel_pairwise"))
+  expect_true(any(listed$name == "gallery_recipe_multi_network_compare"))
+  expect_true(any(listed$name == "gallery_recipe_multi_network_links"))
+  expect_true(any(listed$name == "gallery_recipe_triple_environment_heatmap"))
+  expect_true(any(listed$name == "gallery_recipe_triple_environment_nodes"))
 })

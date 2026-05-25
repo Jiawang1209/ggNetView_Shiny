@@ -59,17 +59,23 @@ gallery_recipe_manifest <- function() {
       "grouped_network_plot",
       "graph_info_topology",
       "environment_heatmap",
-      "mantel_pairwise"
+      "mantel_pairwise",
+      "multi_network_compare",
+      "triple_environment_heatmap"
     ),
     label = c(
       "Circle network plot",
       "Grouped matrix network plot",
       "Graph info and topology",
       "Environment heatmap",
-      "Mantel pairwise table"
+      "Mantel pairwise table",
+      "Multi-network comparison",
+      "Triple environment heatmap"
     ),
     output_type = c(
       "plot",
+      "plot,result",
+      "result",
       "plot,result",
       "result",
       "plot,result",
@@ -80,7 +86,9 @@ gallery_recipe_manifest <- function() {
       "Network comparison from sample metadata",
       "Get network information and topology",
       "Network-environment heatmap",
-      "Environment Mantel helper"
+      "Environment Mantel helper",
+      "Multi-network comparison",
+      "Network-environment triple heatmap"
     ),
     stringsAsFactors = FALSE
   )
@@ -299,6 +307,66 @@ run_gallery_recipe <- function(registry, recipe) {
       list(permutations = 9L)
     )
     return(app_success(list(items = list(item))))
+  }
+
+  if (identical(recipe, "multi_network_compare")) {
+    graph_item <- gallery_registry_item_by_name(registry, "gallery_matrix_graph")
+    edge_graph_item <- gallery_registry_item_by_name(registry, "gallery_edge_module_graph")
+    if (is.null(graph_item) || is.null(edge_graph_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    result <- safe_multi_network_compare(list(Matrix = graph_item$data, EdgeModule = edge_graph_item$data))
+    if (!result$ok) {
+      return(result)
+    }
+    plot_item <- add_recipe_item(
+      "gallery_recipe_multi_network_compare",
+      "plot",
+      result$value$plot,
+      paste(graph_item$id, edge_graph_item$id, sep = ","),
+      list(layout = "fr", layout.module = "adjacent")
+    )
+    link_item <- add_recipe_item(
+      "gallery_recipe_multi_network_links",
+      "result",
+      result$value$link_info %||% data.frame(),
+      paste(graph_item$id, edge_graph_item$id, sep = ","),
+      list(kind = "multi_network_link_info")
+    )
+    return(app_success(list(items = list(plot_item, link_item))))
+  }
+
+  if (identical(recipe, "triple_environment_heatmap")) {
+    matrix_item <- gallery_registry_item_by_name(registry, "gallery_matrix")
+    graph_item <- gallery_registry_item_by_name(registry, "gallery_matrix_graph")
+    if (is.null(matrix_item) || is.null(graph_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    fixture <- gallery_environment_fixture(matrix_item$data)
+    result <- safe_environment_triple_heatmap(
+      env = fixture$env,
+      experiment = fixture$spec,
+      graph = graph_item$data,
+      params = list(feature_count = 3L, r = 6)
+    )
+    if (!result$ok) {
+      return(result)
+    }
+    plot_item <- add_recipe_item(
+      "gallery_recipe_triple_environment_heatmap",
+      "plot",
+      result$value$plot,
+      paste(matrix_item$id, graph_item$id, sep = ","),
+      list(feature_count = 3L)
+    )
+    nodes_item <- add_recipe_item(
+      "gallery_recipe_triple_environment_nodes",
+      "result",
+      result$value$nodes,
+      graph_item$id,
+      list(kind = "triple_heatmap_nodes")
+    )
+    return(app_success(list(items = list(plot_item, nodes_item))))
   }
 
   app_failure(sprintf("Gallery recipe is not implemented: %s", recipe))
