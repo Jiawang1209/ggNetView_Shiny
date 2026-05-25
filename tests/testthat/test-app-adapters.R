@@ -71,6 +71,31 @@ test_that("safe_build_graph uses source fallback for valid builder", {
   expect_equal(result$value$data, mat)
 })
 
+test_that("safe_build_graph resolves source fallback from Shiny app cwd", {
+  tmp <- tempfile("ggnetview-shiny-root-")
+  dir.create(file.path(tmp, "R"), recursive = TRUE)
+  dir.create(file.path(tmp, "inst", "app"), recursive = TRUE)
+  writeLines(
+    "build_graph_from_mat <- function(data, marker = NULL) list(data = data, marker = marker)",
+    file.path(tmp, "R", "build_graph_from_mat.R")
+  )
+
+  app_dir <- file.path(tmp, "inst", "app")
+  if (requireNamespace("withr", quietly = TRUE)) {
+    withr::local_dir(app_dir)
+  } else {
+    old <- setwd(app_dir)
+    on.exit(setwd(old), add = TRUE)
+  }
+
+  mat <- matrix(1:4, nrow = 2, dimnames = list(c("A", "B"), c("S1", "S2")))
+  result <- safe_build_graph(mat, "matrix", params = list(marker = "ok"))
+
+  expect_true(result$ok)
+  expect_equal(result$value$marker, "ok")
+  expect_equal(result$value$data, mat)
+})
+
 test_that("safe_plot_ggnetview rejects non-graph input", {
   result <- safe_plot_ggnetview(graph = data.frame(x = 1), params = list())
 

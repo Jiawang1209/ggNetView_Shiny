@@ -15,12 +15,21 @@ resolve_ggnetview_function <- function(name) {
     return(get(name, envir = ns, mode = "function", inherits = FALSE))
   }
 
-  source_path <- file.path(getwd(), "R", paste0(name, ".R"))
-  if (file.exists(source_path)) {
-    env <- new.env(parent = parent.frame())
-    sys.source(source_path, envir = env)
-    if (exists(name, envir = env, mode = "function", inherits = FALSE)) {
-      return(get(name, envir = env, mode = "function", inherits = FALSE))
+  source_roots <- unique(normalizePath(c(
+    getwd(),
+    file.path(getwd(), "..", ".."),
+    getOption("ggnetview.app_root", NA_character_)
+  ), mustWork = FALSE))
+  source_roots <- source_roots[!is.na(source_roots)]
+
+  for (root in source_roots) {
+    source_path <- file.path(root, "R", paste0(name, ".R"))
+    if (file.exists(source_path)) {
+      env <- new.env(parent = parent.frame())
+      sys.source(source_path, envir = env)
+      if (exists(name, envir = env, mode = "function", inherits = FALSE)) {
+        return(get(name, envir = env, mode = "function", inherits = FALSE))
+      }
     }
   }
 
