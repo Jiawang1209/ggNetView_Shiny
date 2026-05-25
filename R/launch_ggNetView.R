@@ -11,7 +11,28 @@ launch_ggNetView <- function(launch.browser = TRUE, ...) {
   app_dir <- system.file("app", package = "ggNetView")
 
   if (!nzchar(app_dir)) {
-    app_dir <- file.path(getwd(), "inst", "app")
+    candidates <- c(
+      file.path(getwd(), "inst", "app"),
+      file.path(dirname(getwd()), "inst", "app")
+    )
+
+    if (
+      requireNamespace("rstudioapi", quietly = TRUE) &&
+        rstudioapi::hasFun("getActiveProject")
+    ) {
+      active_project <- tryCatch(
+        rstudioapi::getActiveProject(),
+        error = function(e) NULL
+      )
+      if (!is.null(active_project) && nzchar(active_project)) {
+        candidates <- c(candidates, file.path(active_project, "inst", "app"))
+      }
+    }
+
+    existing <- candidates[dir.exists(candidates)]
+    if (length(existing) > 0) {
+      app_dir <- existing[[1]]
+    }
   }
 
   if (!dir.exists(app_dir)) {
