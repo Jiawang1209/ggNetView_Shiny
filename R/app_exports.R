@@ -282,6 +282,86 @@ workflow_replay_plan <- function(manifest) {
   do.call(rbind, records)
 }
 
+workflow_restore_plan <- function(registry, manifest) {
+  items <- manifest$items %||% list()
+  if (!length(items)) {
+    return(data.frame(
+      step = integer(),
+      id = character(),
+      name = character(),
+      type = character(),
+      restore_status = character(),
+      conflict = logical(),
+      snapshot_bytes = numeric(),
+      restore_reason = character(),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  records <- lapply(seq_along(items), function(i) {
+    item <- items[[i]]
+    snapshot <- item$data_snapshot
+    has_snapshot <- !is.null(snapshot) && !is.null(snapshot$value)
+    existing <- !is.null(workflow_replay_registry_get(registry, item$id %||% ""))
+    snapshot_type <- if (!is.null(snapshot)) snapshot$type %||% "" else ""
+    supported <- has_snapshot && item$type %in% workflow_snapshot_types() && identical(snapshot_type, item$type %||% "")
+    status <- if (!has_snapshot) {
+      "no-snapshot"
+    } else if (!supported) {
+      "unsupported-snapshot"
+    } else if (existing) {
+      "snapshot-conflict"
+    } else {
+      "snapshot-restorable"
+    }
+    reason <- switch(status,
+      `no-snapshot` = "No embedded data snapshot; replay or current registry sources are required.",
+      `unsupported-snapshot` = "Snapshot format or object type is not supported for restore.",
+      `snapshot-conflict` = "A registry object with this manifest ID already exists.",
+      `snapshot-restorable` = "Embedded data snapshot can be restored.",
+      ""
+    )
+    data.frame(
+      step = i,
+      id = item$id %||% "",
+      name = item$name %||% "",
+      type = item$type %||% "",
+      restore_status = status,
+      conflict = existing && supported,
+      snapshot_bytes = as.numeric(snapshot$bytes %||% NA_real_),
+      restore_reason = reason,
+      stringsAsFactors = FALSE
+    )
+  })
+
+  do.call(rbind, records)
+}
+
+workflow_filter_replay_plan <- function(plan, selected_steps = NULL) {
+  if (is.null(plan) || !nrow(plan)) {
+    return(plan)
+  }
+  if (is.null(selected_steps) || !length(selected_steps)) {
+    return(plan[0, , drop = FALSE])
+  }
+  selected_steps <- suppressWarnings(as.integer(selected_steps))
+  selected_steps <- selected_steps[!is.na(selected_steps)]
+  plan[plan$step %in% selected_steps, , drop = FALSE]
+}
+
+workflow_filter_manifest_items <- function(manifest, selected_plan) {
+  items <- manifest$items %||% list()
+  if (is.null(selected_plan) || !nrow(selected_plan) || !length(items)) {
+    filtered <- manifest
+    filtered$items <- list()
+    return(filtered)
+  }
+  selected_ids <- as.character(selected_plan$id)
+  filtered <- manifest
+  filtered$items <- Filter(function(item) (item$id %||% "") %in% selected_ids, items)
+  filtered
+}
+
 workflow_replay_builder_items <- function(manifest) {
   items <- manifest$items %||% manifest
   if (!length(items)) {
@@ -290,20 +370,44 @@ workflow_replay_builder_items <- function(manifest) {
   Filter(is_workflow_replay_builder_item, items)
 }
 
-workflow_restore_manifest_inputs <- function(registry, manifest) {
+workflow_restore_manifest_inputs <- function(registry, manifest, conflict = c("rename", "skip", "replace")) {
+  conflict <- match.arg(conflict)
   items <- manifest$items %||% list()
   if (!length(items)) {
-    return(app_success(list(restored = 0L, skipped = 0L), message = "No workflow items to restore."))
+    return(app_success(
+      list(restored = 0L, skipped = 0L, conflicts = 0L, restored_ids = character(), skipped_ids = character()),
+      message = "No workflow items to restore."
+    ))
   }
 
   restored <- 0L
   skipped <- 0L
+  conflicts <- 0L
   restored_ids <- character()
+  skipped_ids <- character()
   for (item in items) {
     snapshot <- item$data_snapshot
     if (is.null(snapshot) || !item$type %in% workflow_snapshot_types()) {
       skipped <- skipped + 1L
+      skipped_ids <- c(skipped_ids, item$id %||% "")
       next
+    }
+
+    existing <- workflow_replay_registry_get(registry, item$id %||% "")
+    restore_id <- item$id %||% ""
+    if (!is.null(existing)) {
+      conflicts <- conflicts + 1L
+      if (identical(conflict, "skip")) {
+        skipped <- skipped + 1L
+        skipped_ids <- c(skipped_ids, restore_id)
+        next
+      }
+      if (identical(conflict, "replace")) {
+        registry_delete(registry, restore_id)
+      }
+      if (identical(conflict, "rename")) {
+        restore_id <- ""
+      }
     }
 
     data <- tryCatch(
@@ -325,7 +429,7 @@ workflow_restore_manifest_inputs <- function(registry, manifest) {
     )
     restored_item <- registry_add_with_id(
       registry,
-      id = item$id %||% "",
+      id = restore_id,
       name = item$name %||% item$id %||% "restored_object",
       type = item$type,
       data = data,
@@ -338,8 +442,20 @@ workflow_restore_manifest_inputs <- function(registry, manifest) {
   }
 
   app_success(
-    list(restored = restored, skipped = skipped, restored_ids = restored_ids),
-    message = sprintf("Restored %s workflow input object(s).", restored)
+    list(
+      restored = restored,
+      skipped = skipped,
+      conflicts = conflicts,
+      restored_ids = restored_ids,
+      skipped_ids = skipped_ids,
+      conflict = conflict
+    ),
+    message = sprintf(
+      "Restored %s workflow object(s), skipped %s, conflicts %s.",
+      restored,
+      skipped,
+      conflicts
+    )
   )
 }
 

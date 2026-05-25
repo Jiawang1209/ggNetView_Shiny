@@ -9,8 +9,20 @@ mod_export_center_ui <- function(id) {
     workflow_download_controls(ns),
     bslib::card_header("Replay Plan"),
     shiny::fileInput(ns("workflow_manifest"), "Workflow JSON", accept = c(".json", "application/json")),
+    shiny::selectInput(
+      ns("restore_conflict"),
+      "Restore conflicts",
+      choices = c(
+        "Restore with new IDs" = "rename",
+        "Skip existing IDs" = "skip",
+        "Replace existing IDs" = "replace"
+      ),
+      selected = "rename"
+    ),
+    shiny::checkboxGroupInput(ns("replay_steps"), "Replay steps", choices = character()),
     shiny::actionButton(ns("run_replay_recipes"), "Run Replay Plan"),
     shiny::verbatimTextOutput(ns("replay_status")),
+    shiny::tableOutput(ns("restore_plan")),
     shiny::tableOutput(ns("replay_plan"))
   )
 }
@@ -221,8 +233,30 @@ mod_export_center_server <- function(id, registry) {
       workflow_replay_plan(replay_manifest())
     })
 
+    restore_plan <- shiny::reactive({
+      workflow_restore_plan(registry, replay_manifest())
+    })
+
+    shiny::observe({
+      plan <- replay_plan()
+      replayable <- plan[plan$status %in% c("recipe-output-needs-rerun", "builder-output-needs-rerun"), , drop = FALSE]
+      choices <- if (nrow(replayable)) {
+        stats::setNames(
+          as.character(replayable$step),
+          paste0(replayable$step, ". ", replayable$name, " [", replayable$status, "]")
+        )
+      } else {
+        stats::setNames(character(), character())
+      }
+      shiny::updateCheckboxGroupInput(session, "replay_steps", choices = choices, selected = unname(choices))
+    })
+
     output$replay_plan <- shiny::renderTable({
       replay_plan()
+    }, striped = TRUE, bordered = TRUE, spacing = "s", rownames = FALSE)
+
+    output$restore_plan <- shiny::renderTable({
+      restore_plan()
     }, striped = TRUE, bordered = TRUE, spacing = "s", rownames = FALSE)
 
     replay_status <- shiny::reactiveVal("Import a workflow JSON to preview replay steps.")
@@ -230,9 +264,15 @@ mod_export_center_server <- function(id, registry) {
     shiny::observeEvent(input$run_replay_recipes, {
       plan <- replay_plan()
       manifest <- replay_manifest()
-      recipes <- workflow_replay_recipes(plan, gallery_recipe_manifest()$recipe)
-      builder_items <- workflow_replay_builder_items(manifest)
-      restore_result <- workflow_restore_manifest_inputs(registry, manifest)
+      selected_steps <- input$replay_steps
+      if (is.null(selected_steps)) {
+        selected_steps <- plan$step[plan$status %in% c("recipe-output-needs-rerun", "builder-output-needs-rerun")]
+      }
+      selected_plan <- workflow_filter_replay_plan(plan, selected_steps)
+      selected_manifest <- workflow_filter_manifest_items(manifest, selected_plan)
+      recipes <- workflow_replay_recipes(selected_plan, gallery_recipe_manifest()$recipe)
+      builder_items <- workflow_replay_builder_items(selected_manifest)
+      restore_result <- workflow_restore_manifest_inputs(registry, manifest, conflict = input$restore_conflict %||% "rename")
       if (!isTRUE(restore_result$ok)) {
         replay_status(paste("Replay failed:", restore_result$message %||% restore_result$trace))
         return(invisible(list(restore_result)))
@@ -261,8 +301,10 @@ mod_export_center_server <- function(id, registry) {
       }
 
       replay_status(sprintf(
-        "Replayed workflow plan: %s restored input(s), %s gallery recipe(s), %s graph-builder step(s).",
+        "Replayed workflow plan: %s restored object(s), %s skipped, %s conflict(s), %s gallery recipe(s), %s graph-builder step(s).",
         restore_result$value$restored,
+        restore_result$value$skipped,
+        restore_result$value$conflicts,
         length(recipes),
         length(builder_items)
       ))

@@ -238,3 +238,103 @@ test_that("workflow manifest does not snapshot replayable graph and recipe plot 
   expect_null(snapshots[[2]])
   expect_null(snapshots[[3]])
 })
+
+test_that("workflow restore handles existing IDs with explicit conflict policies", {
+  source_registry <- registry_new()
+  mat <- utils::read.csv(
+    testthat::test_path("../../inst/extdata/phase2_example_matrix.csv"),
+    row.names = 1,
+    check.names = FALSE
+  )
+  original <- registry_add_with_id(
+    source_registry,
+    id = "obj_0042",
+    name = "matrix_a",
+    type = "matrix",
+    data = mat
+  )
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(source_registry, path)
+  manifest <- read_workflow_manifest(path)
+
+  target_registry <- registry_new()
+  existing <- registry_add_with_id(
+    target_registry,
+    id = original$id,
+    name = "existing_matrix",
+    type = "matrix",
+    data = mat * 0
+  )
+
+  skipped <- workflow_restore_manifest_inputs(target_registry, manifest, conflict = "skip")
+  expect_true(isTRUE(skipped$ok), info = skipped$message)
+  expect_equal(skipped$value$restored, 0L)
+  expect_equal(skipped$value$conflicts, 1L)
+  expect_equal(shiny::isolate(registry_get(target_registry, original$id))$name, existing$name)
+
+  renamed <- workflow_restore_manifest_inputs(target_registry, manifest, conflict = "rename")
+  expect_true(isTRUE(renamed$ok), info = renamed$message)
+  expect_equal(renamed$value$restored, 1L)
+  expect_equal(renamed$value$conflicts, 1L)
+  expect_false(original$id %in% renamed$value$restored_ids)
+
+  replaced <- workflow_restore_manifest_inputs(target_registry, manifest, conflict = "replace")
+  expect_true(isTRUE(replaced$ok), info = replaced$message)
+  expect_equal(replaced$value$restored, 1L)
+  expect_equal(replaced$value$conflicts, 1L)
+  expect_equal(shiny::isolate(registry_get(target_registry, original$id))$name, original$name)
+})
+
+test_that("workflow replay can be restricted to selected manifest steps", {
+  manifest <- list(
+    app = "ggNetView Shiny",
+    items = list(
+      list(id = "obj_0001", name = "matrix_a", type = "matrix", source = "", params = list()),
+      list(
+        id = "obj_0002",
+        name = "matrix_graph",
+        type = "graph",
+        source = "obj_0001",
+        params = list(builder = "matrix", source_ids = "obj_0001")
+      ),
+      list(
+        id = "obj_0003",
+        name = "gallery_plot",
+        type = "plot",
+        source = "obj_0002",
+        params = list(recipe = "network_plot_circle")
+      )
+    )
+  )
+  plan <- workflow_replay_plan(manifest)
+  selected_builder <- workflow_filter_replay_plan(plan, selected_steps = "2")
+  selected_recipe <- workflow_filter_replay_plan(plan, selected_steps = 3L)
+
+  expect_equal(selected_builder$id, "obj_0002")
+  expect_equal(workflow_replay_recipes(selected_builder, "network_plot_circle"), character())
+  expect_equal(workflow_replay_builder_items(workflow_filter_manifest_items(manifest, selected_builder))[[1]]$id, "obj_0002")
+  expect_equal(workflow_replay_recipes(selected_recipe, "network_plot_circle"), "network_plot_circle")
+})
+
+test_that("workflow restore plan summarizes snapshot and conflict state", {
+  registry <- registry_new()
+  mat <- utils::read.csv(
+    testthat::test_path("../../inst/extdata/phase2_example_matrix.csv"),
+    row.names = 1,
+    check.names = FALSE
+  )
+  item <- registry_add_with_id(registry, id = "obj_0042", name = "matrix_a", type = "matrix", data = mat)
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(registry, path)
+  manifest <- read_workflow_manifest(path)
+
+  plan_empty <- workflow_restore_plan(registry_new(), manifest)
+  plan_conflict <- workflow_restore_plan(registry, manifest)
+
+  expect_true(all(c("restore_status", "conflict", "snapshot_bytes") %in% names(plan_empty)))
+  expect_equal(plan_empty$restore_status[plan_empty$id == item$id], "snapshot-restorable")
+  expect_false(plan_empty$conflict[plan_empty$id == item$id])
+  expect_equal(plan_conflict$restore_status[plan_conflict$id == item$id], "snapshot-conflict")
+  expect_true(plan_conflict$conflict[plan_conflict$id == item$id])
+  expect_gt(plan_empty$snapshot_bytes[plan_empty$id == item$id], 0)
+})
