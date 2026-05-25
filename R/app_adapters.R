@@ -12,6 +12,10 @@ safe_build_graph <- function(data, builder, params = list()) {
     edge_table = "build_graph_from_df"
   )
 
+  if (!is.character(builder) || length(builder) != 1L || is.na(builder) || !nzchar(builder)) {
+    return(app_failure("Unsupported graph builder: <invalid>"))
+  }
+
   fn_name <- builder_map[[builder]]
   if (is.null(fn_name) || !exists(fn_name, mode = "function")) {
     return(app_failure(paste("Unsupported graph builder:", builder)))
