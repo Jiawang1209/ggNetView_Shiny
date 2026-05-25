@@ -1,246 +1,191 @@
-# ggNetView New Package and Shiny Rebuild Audit
+# ggNetView New Package and Shiny Coverage Audit
 
-Date: 2026-05-25
+Original audit: 2026-05-25
+Status refreshed: 2026-05-26
 
-This note records the first evidence-based pass over the newly added
-`package/ggNetView/` source package and `package/ggNetView-manual/` manual.
-It is intended to guide the Shiny rebuild and to prevent the old GUI from
-silently binding to obsolete assumptions.
+This note started as the first evidence-based pass over the newly added
+`package/ggNetView/` source package and `package/ggNetView-manual/` manual. It
+now records the current rebuilt Shiny coverage so the project does not regress
+to the early five-tab prototype assumptions.
 
 ## Scope
 
-- New source package: `package/ggNetView/`
-- New manual: `package/ggNetView-manual/`
-- Existing Shiny package/app: `ggNetView.shiny/`
-- Existing root package copy: current repository root (`R/`, `DESCRIPTION`,
-  `NAMESPACE`, `tests/`)
+- Source reference: `package/ggNetView/`
+- Manual reference: `package/ggNetView-manual/`
+- Current Shiny app: `inst/app/`
+- Root package/API copy: `R/`, `DESCRIPTION`, `NAMESPACE`, `tests/`
 
 ## High-Level Finding
 
-The newly added `package/ggNetView/` should be treated as the authoritative
-next version of the package, not as a small patch over the root-level copy.
-Compared with the root package, the new package changes 62 R source files,
-adds about 4,390 lines, removes about 720 lines, and introduces several new
-public workflows. The manual is also broader than the current Shiny app:
-it describes graph construction, RMT thresholding, graph information,
-module/sample subgraphs, layouts, topology, node influence, multi-network
-comparison, environment linkage, and reproducible galleries.
+The project is now a manual-driven ggNetView Shiny workbench rather than an
+independent Shiny wrapper package. The useful direction remains: copy and adapt
+the authoritative `package/ggNetView/` API into the root `R/` package, then
+organize Shiny around workflows instead of one tab per function.
 
-The current Shiny app covers only a narrow subset of this surface. Rebuilding
-the app should be manual-driven and module-based rather than incremental
-control additions to the current five-tab interface.
+The current app has moved well past the original prototype. It now has a shared
+object registry, typed graph builders, graph inspection and subgraph workflows,
+manual layout families, topology and keystone analysis, compare/environment
+workflows, export helpers, gallery recipes, workflow replay preview, and task
+feedback. Remaining work is depth, completeness, and polish across some
+advanced manual paths, not basic viability.
 
 ## New Public API Surface
 
-New exported functions in `package/ggNetView/NAMESPACE` that are absent from
-the root package export list:
+New exported functions in `package/ggNetView/NAMESPACE` that were absent from
+the old root package export list:
 
 | Function | Meaning for Shiny |
 | --- | --- |
-| `build_graph_from_consensus()` | Needs a consensus-network builder fed by multiple adjacency matrices or graphs. |
-| `build_graph_from_node_edge()` | Needs a node+edge upload path that preserves isolated nodes. |
-| `build_graph_from_stringdb()` | Needs a STRINGDB/PPI import workflow with score filtering. |
-| `get_node_centrality()` | Needs per-node metric computation and ranking UI. |
-| `get_node_ivi()` | Needs node influence analysis; depends on suggested package `influential`. |
-| `get_sample_subgraph()` | Needs sample-wise subgraph extraction UI. |
-| `mantel_block_vs_col()` | Internal/supporting environment-linkage helper, useful for advanced Mantel outputs. |
-| `deg()` | Small angle helper; probably not user-facing. |
+| `build_graph_from_consensus()` | Consensus builder fed by multiple adjacency matrices or graphs. |
+| `build_graph_from_node_edge()` | Node+edge upload path that preserves isolated nodes. |
+| `build_graph_from_stringdb()` | STRINGDB/PPI import workflow with score filtering. |
+| `get_node_centrality()` | Per-node metric computation and ranking UI. |
+| `get_node_ivi()` | Node influence analysis; depends on suggested package `influential`. |
+| `get_sample_subgraph()` | Sample-wise subgraph extraction UI. |
+| `mantel_block_vs_col()` | Supporting environment-linkage helper for advanced Mantel outputs. |
+| `deg()` | Small angle helper; not a first-screen user workflow. |
 
-New dependencies relative to the root package:
+New dependencies relative to the old root package:
 
 - `Imports`: `rlang`
 - `Suggests`: `dynamicTreeCut`, `influential`, `RobustRankAggreg`
 
 ## Same-Name Function Changes That Affect Shiny
 
-These exported functions keep their names but changed their argument surface.
-The current Shiny app can keep calling them, but it does not expose new
-capabilities and may miss important defaults or output variants.
-
-| Function | Notable new arguments / behavior |
-| --- | --- |
-| `ggNetView()` | Adds `label_layout`, `label_wrap_width`, `label_outer_pad`, and `bandwidth_scale`. Gallery examples use label layout and group outer controls heavily. |
-| `gglink_heatmaps()` | Adds `spec_dist_method`, `env_dist_method`, `mantel_kind`, `permutations`, `spec_collapse`, `SigLineMid`, `link_color_by`, `link_width_by`, `NonsigLineColor`, `NonsigLineType`, `sig_threshold`, `group_angle`, `group_arc_angle`. Current Shiny only exposes the older simple correlation/Mantel shell. |
-| `ggnetview_modularity_heatmaps()` | Adds Mantel distance/permutation controls, matching the expanded environment-linkage logic. Current Shiny does not expose this function. |
-| `ggNetView_multi()` | Adds `bandwidth_scale`. Current Shiny does not expose multi-network plots. |
-| `ggNetView_multi_link()` | Adds `bandwidth_scale`; manual chapter 07 relies on this workflow. Current Shiny does not expose it. |
+| Function | Notable new arguments / behavior | Current Shiny state |
+| --- | --- | --- |
+| `ggNetView()` | Adds `label_layout`, `label_wrap_width`, `label_outer_pad`, and `bandwidth_scale`. | Visual Lab exposes the main layout families and common visual controls; exhaustive per-argument coverage still needs broader visual regression. |
+| `gglink_heatmaps()` | Adds Mantel/correlation distance choices, collapse modes, significance mapping, group angle, and line styling. | Compare & Environment exposes the main heatmap and Mantel path; deeper block/multi-core controls remain. |
+| `ggnetview_modularity_heatmaps()` | Adds module-level Mantel heatmap behavior. | Not yet a direct first-class Shiny workflow. |
+| `ggNetView_multi()` | Adds `bandwidth_scale`. | Covered as grouped multi-network plot path with room for richer group controls. |
+| `ggNetView_multi_link()` | Adds `bandwidth_scale`; manual chapter 07 relies on it. | Covered as a multi-network comparison path with remaining display-depth work. |
 
 ## Manual-Driven Workflow Map
 
-The manual chapters imply these Shiny product modules:
-
 | Manual chapter | Core workflow | Current Shiny coverage |
 | --- | --- | --- |
-| `01-create_graph_object.Rmd` | Build graphs from matrix, edge list, module annotation, adjacency, double matrix, igraph, WGCNA, consensus | Partial: matrix, adjacency, edge-dataframe only |
-| `02-RMT.Rmd` | RMT threshold scan, then build graph with chosen threshold | Missing |
-| `03-graph_info.Rmd` | Node/edge info, module subgraph info, sample subgraph info | Missing except basic graph summary |
-| `04-subgraph.Rmd` | Extract module and sample subgraphs | Missing |
-| `05-layout.Rmd` | Full graph and subgraph visual layout gallery | Partial: only basic `ggNetView()` controls |
-| `06-network_topology.Rmd` | Network topology, sample topology, node IVI | Partial: topology and zi-pi only |
-| `07-network_compare.Rmd` | Multi-network comparison via `ggNetView_multi_link()` | Missing |
-| `08-network_environment.Rmd` | Advanced `gglink_heatmaps()` with correlation/Mantel, multi-core, collapse modes | Partial: older simplified heatmap-link UI |
-| `09-multi-omics_netwotk.Rmd` | Placeholder/empty content | Defer until manual is completed |
-| `10-Gallery_of_Reproducible_Examples.Rmd` | Publication recipes and reusable parameter presets | Missing |
+| `01-create_graph_object.Rmd` | Build graphs from matrix, edge list, module annotation, adjacency, double matrix, igraph, WGCNA, consensus | Covered for matrix, RMT-fed matrix, edge table, adjacency, double matrix, multi matrix, WGCNA/TOM, and consensus. Direct igraph, node+edge, and STRINGDB paths remain candidates for advanced import. |
+| `02-RMT.Rmd` | RMT threshold scan, then build graph with chosen threshold | Covered in Graph Builder and smoke-tested through the graph builder modes workflow. |
+| `03-graph_info.Rmd` | Node/edge info, module subgraph info, sample subgraph info | Covered in Graph Explorer with graph info plus module/sample subgraph registration. |
+| `04-subgraph.Rmd` | Extract module and sample subgraphs | Covered through module/sample subgraph workflows, registry handoff, plotting, topology, and export. |
+| `05-layout.Rmd` | Full graph and subgraph visual layout gallery | Covered for major layout families and representative browser smoke. Exhaustive visual regression for every preset remains. |
+| `06-network_topology.Rmd` | Network topology, sample topology, node centrality, IVI, Zi-Pi | Covered for global topology, robustness, centrality, IVI, and Zi-Pi. Direct parallel topology and dedicated sample-topology runners remain partial. |
+| `07-network_compare.Rmd` | Multi-network comparison via `ggNetView_multi_link()` | Covered with comparison plotting and task feedback. Richer topology comparison displays and link-info tables remain. |
+| `08-network_environment.Rmd` | Advanced `gglink_heatmaps()` with correlation/Mantel, multi-core, collapse modes | Covered for environment links, statistics, and Mantel helpers. Deeper multi-core/spec-block controls remain. |
+| `09-multi-omics_netwotk.Rmd` | Multi-omics graph and plot workflows | Starter coverage through multi-matrix graph building and gallery/plot presets. More multi-omics-specific recipes remain. |
+| `10-Gallery_of_Reproducible_Examples.Rmd` | Publication recipes and reusable parameter presets | Covered through gallery recipes, guarded reruns, manifest metadata, and workflow replay preview. Non-gallery imported object rerun support remains partial. |
 
 ## Function Coverage Matrix
 
 Status definitions:
 
-- `covered_current_shiny`: referenced by current Shiny app code.
-- `manual_not_shiny`: used in the manual but not exposed in current Shiny.
-- `api_not_manual_or_shiny`: exported or present in package API, but not currently
-  used by either the manual or Shiny app.
+- `covered_shiny`: directly available in the current Shiny workflow.
+- `covered_indirect`: used as a helper or reachable through another workflow.
+- `partial`: present but still missing depth, controls, or direct UI affordances.
+- `not_exposed`: useful API exists but is not a current first-class Shiny path.
 
-| Function | Status | Manual evidence |
+| Function | Status | Manual evidence / note |
 | --- | --- | --- |
-| `build_graph_from_adj_mat` | covered_current_shiny | `01-create_graph_object.Rmd` |
-| `build_graph_from_adj_mat_module` | manual_not_shiny | `01-create_graph_object.Rmd` |
-| `build_graph_from_consensus` | manual_not_shiny | `01-create_graph_object.Rmd` |
-| `build_graph_from_df` | covered_current_shiny | `01-create_graph_object.Rmd` |
-| `build_graph_from_double_mat` | manual_not_shiny | `01-create_graph_object.Rmd` |
-| `build_graph_from_igraph` | manual_not_shiny | `01-create_graph_object.Rmd` |
-| `build_graph_from_mat` | covered_current_shiny | Chapters 01, 02, 03, 04, 05, 06, 10 |
-| `build_graph_from_module` | manual_not_shiny | `01-create_graph_object.Rmd` |
-| `build_graph_from_wgcna` | manual_not_shiny | Chapters 01, 10 |
-| `get_graph_adjacency` | manual_not_shiny | `01-create_graph_object.Rmd` |
-| `get_info_from_graph` | manual_not_shiny | `03-graph_info.Rmd` |
-| `get_network_topology` | covered_current_shiny | `06-network_topology.Rmd` |
-| `get_network_topology_parallel` | manual_not_shiny | `06-network_topology.Rmd` |
-| `get_node_ivi` | manual_not_shiny | `06-network_topology.Rmd` |
-| `get_sample_subgraph` | manual_not_shiny | Chapters 03, 04 |
-| `get_sample_subgraph_topology` | manual_not_shiny | `06-network_topology.Rmd` |
-| `get_subgraph` | manual_not_shiny | Chapters 03, 04, 05 |
-| `gglink_heatmaps` | covered_current_shiny | `08-network_environment.Rmd` |
-| `ggNetView` | covered_current_shiny | Chapters 01, 05, 10 |
-| `ggNetView_multi_link` | manual_not_shiny | `07-network_compare.Rmd` |
-| `ggNetView_RMT` | manual_not_shiny | `02-RMT.Rmd` |
-| `trans_TOM_in_WGCNA` | manual_not_shiny | Chapters 01, 10 |
+| `build_graph_from_adj_mat` | covered_shiny | `01-create_graph_object.Rmd`; Graph Builder adjacency mode. |
+| `build_graph_from_adj_mat_module` | covered_shiny | `01-create_graph_object.Rmd`; module-preserving adjacency path. |
+| `build_graph_from_consensus` | covered_shiny | `01-create_graph_object.Rmd`; consensus builder mode. |
+| `build_graph_from_df` | covered_shiny | `01-create_graph_object.Rmd`; edge table mode. |
+| `build_graph_from_double_mat` | covered_shiny | `01-create_graph_object.Rmd`; double matrix mode. |
+| `build_graph_from_igraph` | not_exposed | Useful for advanced import, but not a primary manual-driven Shiny path yet. |
+| `build_graph_from_mat` | covered_shiny | Chapters 01, 02, 03, 04, 05, 06, 10; default matrix builder. |
+| `build_graph_from_module` | covered_shiny | `01-create_graph_object.Rmd`; module annotation builder. |
+| `build_graph_from_multi_mat` | covered_shiny | Multi-matrix graph builder and multi-omics starter path. |
+| `build_graph_from_node_edge` | not_exposed | Candidate advanced import for isolated-node preservation. |
+| `build_graph_from_stringdb` | not_exposed | Candidate advanced import; external data/runtime constraints need careful UX. |
+| `build_graph_from_wgcna` | covered_shiny | Chapters 01, 10; WGCNA/TOM builder path. |
+| `get_graph_adjacency` | covered_indirect | Used for object/export style workflows rather than as a standalone tab. |
+| `get_info_from_graph` | covered_shiny | `03-graph_info.Rmd`; Graph Explorer info panels. |
+| `get_network_topology` | covered_shiny | `06-network_topology.Rmd`; Topology module. |
+| `get_network_topology_parallel` | partial | Parallel/list depth remains a follow-up. |
+| `get_node_centrality` | covered_shiny | Node metric table and ranking workflow. |
+| `get_node_ivi` | covered_shiny | Keystone/IVI workflow with graceful dependency handling. |
+| `get_sample_subgraph` | covered_shiny | Chapters 03, 04; sample subgraph extraction and registry handoff. |
+| `get_sample_subgraph_topology` | partial | Sample subgraph topology is reachable through saved subgraphs; direct runner remains. |
+| `get_subgraph` | covered_shiny | Chapters 03, 04, 05; module subgraph extraction and visualization. |
+| `gglink_heatmaps` | covered_shiny | `08-network_environment.Rmd`; environment linkage workflow. |
+| `gglink_heatmaps_2` | covered_shiny | Advanced Compare & Environment path. |
+| `gglink_heatmap_triple` | covered_shiny | Advanced environment/statistics path. |
+| `ggNetView` | covered_shiny | Chapters 01, 05, 10; Visual Lab and Gallery. |
+| `ggNetView_multi` | covered_shiny | Multi-network grouped plot path. |
+| `ggNetView_multi_link` | covered_shiny | `07-network_compare.Rmd`; comparison path. |
+| `ggNetView_RMT` | covered_shiny | `02-RMT.Rmd`; RMT graph builder path. |
+| `ggnetview_modularity_heatmaps` | not_exposed | Useful advanced module-level environment workflow. |
+| `ggnetview_zipi` | covered_shiny | `06-network_topology.Rmd`; Zi-Pi workflow. |
+| `mantel_pairwise`, `mantel_between_blocks`, `mantel_block_vs_col` | partial | Mantel helpers are represented in environment workflows; finer block controls remain. |
+| `trans_TOM_in_WGCNA` | covered_shiny | Chapters 01, 10; WGCNA/TOM builder path. |
 
-Notable exported APIs not yet used by the manual or current Shiny:
+## Current Evidence
 
-- `build_graph_from_node_edge()`
-- `build_graph_from_stringdb()`
-- `get_node_centrality()`
-- `ggnetview_modularity_heatmaps()`
-- `ggNetView_multi()`
-- `build_graph_from_multi_mat()`
-- `build_graph_from_pie()`
-- `build_graph_from_enrichGO()`
-- `gglink_heatmap_triple()`
-- `gglink_heatmaps_2()`
-- `mantel_pairwise()`, `mantel_between_blocks()`, `mantel_block_vs_col()`
-- palette/theme/export helpers
+Recent focused checks and browser smokes cover the rebuilt workflow surface:
 
-These should not all become first-screen UI. They should be grouped into
-advanced builders, advanced analyses, or developer/helper panels.
+- `tests/testthat/test-shiny-files.R`
+- `tests/testthat/test-app-registry.R`
+- `tests/testthat/test-graph-builder.R`
+- `tests/testthat/test-graph-explorer.R`
+- `tests/testthat/test-visual-lab.R`
+- `tests/testthat/test-topology-results.R`
+- `tests/testthat/test-compare-environment.R`
+- `tests/testthat/test-export-center.R`
+- `tests/run_shiny_app_startup.R`
+- `tests/run_shiny_manual_workflow_smoke.R`
+- `tests/run_shiny_phase2_workflow_smoke.R`
+- `tests/run_shiny_graph_builder_modes_smoke.R`
+- `tests/run_shiny_analysis_export_smoke.R`
+- `tests/run_shiny_mobile_layout_smoke.R`
+- `tests/run_shiny_visual_layouts_smoke.R`
 
-## Current Shiny App Gap
+## Remaining Implementation Risks
 
-The current app calls only:
+1. Visual coverage is representative, not exhaustive. Add broader visual
+   regression for individual layout presets after the current workflow surface
+   stabilizes.
+2. Task feedback is broadly wired, but deliberately slow-action browser tests
+   would make busy-state behavior more defensible.
+3. Environment and multi-omics workflows still need deeper multi-core controls,
+   richer presets, and finer environment/species block selections.
+4. Multi-network comparison works, but richer comparison-group controls,
+   topology comparison displays, and link-info tables remain valuable.
+5. Export Center behavior is functional, but grouping and wording can be made
+   clearer for publication users.
+6. Gallery is usable for curated recipes and guarded reruns, but fuller replay
+   for non-gallery imported objects remains a follow-up.
+7. Direct advanced import paths for `build_graph_from_igraph()`,
+   `build_graph_from_node_edge()`, and `build_graph_from_stringdb()` are not
+   yet exposed.
 
-- `build_graph_from_mat()`
-- `build_graph_from_adj_mat()`
-- `build_graph_from_df()`
-- `get_graph_nodes()`
-- `ggNetView()`
-- `get_network_topology()`
-- `ggnetview_zipi()`
-- `gglink_heatmaps()`
+## Architecture Direction
 
-This means the current app is a useful prototype, but it is no longer aligned
-with the new package/manual. The next app should not be framed as a five-tab
-wrapper around old calls. It should be a guided workbench with persistent graph
-objects and analysis modules.
+Keep the current workflow-level information architecture:
 
-## Recommended Rebuild Architecture
+1. `Data Hub`: datasets, uploads, examples, and shared object registry.
+2. `Graph Builder`: typed API-backed graph construction modes.
+3. `Graph Explorer`: graph info, module subgraphs, sample subgraphs, and object handoff.
+4. `Visual Lab`: `ggNetView()` layouts and publication-oriented visual controls.
+5. `Topology and Keystone`: topology, robustness, centrality, IVI, and Zi-Pi.
+6. `Compare and Environment`: multi-network, environment linkage, statistics, and Mantel helpers.
+7. `Export Center`: object-aware downloads and workflow replay metadata.
+8. `Gallery`: manual-derived recipes and guarded rerun paths.
 
-1. `Data Hub`
-   - Built-in datasets, uploaded tables, RDS/RData graph objects.
-   - Object typing: matrix, adjacency, edge list, node table, graph, sample metadata, environment/species table.
-   - A shared object registry so later modules can reuse named objects.
-
-2. `Graph Builder`
-   - Matrix builder.
-   - Edge-list builder.
-   - Node+edge builder.
-   - Adjacency builder.
-   - Module-preserving builders.
-   - WGCNA import builder.
-   - Consensus builder.
-   - STRINGDB/PPI builder.
-
-3. `Threshold Lab`
-   - RMT scan via `ggNetView_RMT()`.
-   - Feed chosen threshold back into matrix builder.
-   - Show threshold table and diagnostic plot outputs when available.
-
-4. `Graph Explorer`
-   - `get_info_from_graph()`.
-   - `get_subgraph()` for module-level subgraphs.
-   - `get_sample_subgraph()` for sample-level subgraphs.
-   - Save selected subgraph into the object registry.
-
-5. `Visual Lab`
-   - Full `ggNetView()` parameter surface, but grouped into layout, node style,
-     edge style, labels, outer boundaries, orientation, and export panels.
-   - Include new label layout and `bandwidth_scale` controls.
-
-6. `Topology and Influence`
-   - `get_network_topology()` and parallel/list variants.
-   - `get_sample_subgraph_topology()`.
-   - `get_node_centrality()`.
-   - `get_node_ivi()`.
-   - `ggnetview_zipi()`.
-
-7. `Multi-Network Compare`
-   - `ggNetView_multi_link()` as the main workflow.
-   - Support group metadata and pre-built graph object lists.
-   - Expose link level, group layout, scaling, comparison pairs, and outer group controls.
-
-8. `Environment Linkage`
-   - Updated `gglink_heatmaps()` controls for correlation, Mantel, collapsed spec,
-     multi-core/spec blocks, significance filtering, line color/width mapping,
-     orientation, group angle, and layout.
-   - Add `ggnetview_modularity_heatmaps()` as an advanced module-level variant.
-
-9. `Gallery Recipes`
-   - Store manual-derived presets for common figures.
-   - Load example data, apply parameter bundles, and let users modify from there.
+Do not turn the remaining APIs into one tab per function. Add them as advanced
+builder modes, advanced analysis panels, or gallery recipes when they support a
+real user workflow.
 
 ## Repository Hygiene Findings
 
-The newly added `package/` tree is about 1.0 GB. `package/ggNetView-manual/`
-is about 814 MB and includes rendered docs, generated figure outputs, PDF,
-EPUB, `_book/`, and `.RData`. This is acceptable as a local drop-in reference
-but too heavy as a direct dependency for the Shiny package.
+The newly added `package/` tree is large because `package/ggNetView-manual/`
+contains rendered docs, generated figures, PDF, EPUB, `_book/`, and `.RData`.
+This is useful as a local reference but still too heavy to treat as a runtime
+dependency for the Shiny app.
 
-Before integrating or committing broadly, decide one of:
+Keep these rules:
 
-- keep `package/` as a local, untracked reference source;
-- promote only selected source files/manual chapters into this repository;
-- use git submodules or separate repos for `ggNetView` and `ggNetView-manual`;
-- vendor only the package source and keep rendered manual artifacts out.
-
-Also note local/build artifacts in the new package tree:
-
-- `.DS_Store`
-- `.Rhistory`
-- `.RData`
-- `README.html`
-- `src/*.o`
-- `src/*.so`
-- rendered manual docs/PDF/EPUB/_book outputs
-
-## Immediate Next Steps
-
-1. Decide how the authoritative new package will replace the root-level old
-   package copy.
-2. Build a Shiny object registry so modules can share matrices, graphs, and
-   subgraphs without fragile global variables.
-3. Add builder modules in this order: matrix, edge/adjacency, module-preserving,
-   WGCNA, consensus, STRINGDB/node-edge.
-4. Add RMT before advanced visualization because it feeds graph construction.
-5. Add graph explorer before topology and plotting, so subgraphs become first-class objects.
-6. Redesign environment linkage using the new `gglink_heatmaps()` surface rather
-   than the current reduced parameter set.
-
+- root `R/` remains the app-facing API copy;
+- generated manual outputs should not become app runtime dependencies;
+- commit source and app changes in small slices;
+- keep verification evidence near the docs and tests so the next `/goal`
+  session can resume without re-discovering the same state.

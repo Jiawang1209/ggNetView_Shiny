@@ -36,3 +36,17 @@ test_that("visual layout browser smoke exists and covers layout families", {
   expect_match(source_text, "bipartite_layout", fixed = TRUE)
   expect_match(source_text, "WGCNA", fixed = TRUE)
 })
+
+test_that("package/manual audit reflects the current Shiny coverage", {
+  path <- test_path("../../docs/ggnetview-new-package-shiny-audit.md")
+  expect_true(file.exists(path))
+
+  source_text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  expect_match(source_text, "Status refreshed: 2026-05-26", fixed = TRUE)
+  expect_match(source_text, "Current Evidence", fixed = TRUE)
+  expect_match(source_text, "tests/run_shiny_graph_builder_modes_smoke.R", fixed = TRUE)
+  expect_match(source_text, "tests/run_shiny_visual_layouts_smoke.R", fixed = TRUE)
+
+  expect_false(grepl("| `02-RMT.Rmd` | RMT threshold scan, then build graph with chosen threshold | Missing |", source_text, fixed = TRUE))
+  expect_false(grepl("| `10-Gallery_of_Reproducible_Examples.Rmd` | Publication recipes and reusable parameter presets | Missing |", source_text, fixed = TRUE))
+})
