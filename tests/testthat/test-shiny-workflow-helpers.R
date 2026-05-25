@@ -145,3 +145,16 @@ test_that("registry manifest captures export metadata", {
   expect_true(all(c("id", "name", "type", "source", "created_at") %in% names(manifest)))
   expect_equal(nrow(manifest), 2L)
 })
+
+test_that("registry manifest keeps empty schema", {
+  manifest <- registry_manifest(registry_new())
+
+  expect_equal(names(manifest), c("id", "name", "type", "source", "created_at"))
+  expect_equal(nrow(manifest), 0L)
+})
+
+test_that("plot downloads are limited to plot objects", {
+  expect_true(is_plot_item(list(type = "plot")))
+  expect_false(is_plot_item(list(type = "matrix")))
+  expect_false(is_plot_item(NULL))
+})

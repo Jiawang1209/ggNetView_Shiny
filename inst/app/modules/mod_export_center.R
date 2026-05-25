@@ -56,6 +56,10 @@ registry_manifest <- function(registry) {
   }))
 }
 
+is_plot_item <- function(item) {
+  !is.null(item) && identical(item$type, "plot")
+}
+
 mod_export_center_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     shiny::observe({
@@ -98,7 +102,7 @@ mod_export_center_server <- function(id, registry) {
     output$download_png <- shiny::downloadHandler(
       filename = function() paste0(safe_download_base(selected_item()), ".png"),
       content = function(file) {
-        shiny::validate(shiny::need(identical(selected_item()$type, "plot"), "PNG/PDF export requires a plot object."))
+        shiny::validate(shiny::need(is_plot_item(selected_item()), "PNG/PDF export requires a plot object."))
         write_plot_png(selected_item()$data, file)
       }
     )
@@ -106,7 +110,7 @@ mod_export_center_server <- function(id, registry) {
     output$download_pdf <- shiny::downloadHandler(
       filename = function() paste0(safe_download_base(selected_item()), ".pdf"),
       content = function(file) {
-        shiny::validate(shiny::need(identical(selected_item()$type, "plot"), "PNG/PDF export requires a plot object."))
+        shiny::validate(shiny::need(is_plot_item(selected_item()), "PNG/PDF export requires a plot object."))
         write_plot_pdf(selected_item()$data, file)
       }
     )
