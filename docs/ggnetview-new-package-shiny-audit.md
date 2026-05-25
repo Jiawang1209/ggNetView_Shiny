@@ -68,10 +68,10 @@ New dependencies relative to the old root package:
 | `02-RMT.Rmd` | RMT threshold scan, then build graph with chosen threshold | Covered in Graph Builder and smoke-tested through the graph builder modes workflow. |
 | `03-graph_info.Rmd` | Node/edge info, module subgraph info, sample subgraph info | Covered in Graph Explorer with graph info plus module/sample subgraph registration. |
 | `04-subgraph.Rmd` | Extract module and sample subgraphs | Covered through module/sample subgraph workflows, registry handoff, plotting, topology, and export. |
-| `05-layout.Rmd` | Full graph and subgraph visual layout gallery | Covered for major layout families and representative browser smoke. Exhaustive visual regression for every preset remains. |
+| `05-layout.Rmd` | Full graph and subgraph visual layout gallery | Covered for major layout families and every current Visual Lab layout preset in browser smoke. |
 | `06-network_topology.Rmd` | Network topology, sample topology, node centrality, IVI, Zi-Pi | Covered for global topology, robustness, centrality, IVI, and Zi-Pi. Direct parallel topology and dedicated sample-topology runners remain partial. |
 | `07-network_compare.Rmd` | Multi-network comparison via `ggNetView_multi_link()` | Covered with comparison plotting and task feedback. Richer topology comparison displays and link-info tables remain. |
-| `08-network_environment.Rmd` | Advanced `gglink_heatmaps()` with correlation/Mantel, multi-core, collapse modes | Covered for environment links, statistics, and Mantel helpers. Deeper multi-core/spec-block controls remain. |
+| `08-network_environment.Rmd` | Advanced `gglink_heatmaps()` with correlation/Mantel, multi-core, collapse modes | Covered for environment links, statistics, Mantel helpers, and Gallery-backed geometry presets. Direct non-gallery geometry controls remain a polish area. |
 | `09-multi-omics_netwotk.Rmd` | Multi-omics graph and plot workflows | Starter coverage through multi-matrix graph building and gallery/plot presets. More multi-omics-specific recipes remain. |
 | `10-Gallery_of_Reproducible_Examples.Rmd` | Publication recipes and reusable parameter presets | Covered through gallery recipes, guarded reruns, manifest metadata, and workflow replay preview. Non-gallery imported object rerun support remains partial. |
 
@@ -138,6 +138,7 @@ Recent focused checks and browser smokes cover the rebuilt workflow surface:
 - `tests/run_shiny_analysis_export_smoke.R`
 - `tests/run_shiny_mobile_layout_smoke.R`
 - `tests/run_shiny_visual_layouts_smoke.R`
+- `tests/run_shiny_environment_geometry_smoke.R`
 
 ## Remaining Implementation Risks
 

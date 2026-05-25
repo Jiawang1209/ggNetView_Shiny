@@ -23,6 +23,7 @@ Date: 2026-05-26
 - `tests/run_shiny_analysis_export_smoke.R` now covers sample subgraphs, sample topology, centrality, IVI, Mantel, Visual Lab plot registration, and plot PNG/PDF downloads in a real browser.
 - `tests/run_shiny_mobile_layout_smoke.R` now checks 390px-wide navigation across the main workflow tabs and guards against page-level horizontal overflow.
 - `tests/run_shiny_visual_layouts_smoke.R` now draws every Visual Lab layout preset in a real browser, including general, geometric, circular-module, multipartite, WGCNA, dendrogram, and multirings layouts.
+- `tests/run_shiny_environment_geometry_smoke.R` now runs Gallery-backed environment geometry recipes in a real browser and checks Export plot controls for default heatmap, multi-omics blocks, collapsed-core, and rotated-arc collapsed-core outputs.
 
 ## Remaining Gaps
 
@@ -40,7 +41,8 @@ Date: 2026-05-26
    - The environment workflow now uses `gglink_heatmaps_2()`, original `gglink_heatmaps()`, `gglink_heatmap_triple()`, block-vs-column Mantel controls, and Mantel pairwise helpers. Gallery recipes can reproduce the heatmap, triple-heatmap, and Mantel starter paths.
    - Gallery recipes now include multi-omics starter paths that build multi-matrix and double-matrix graphs, plus a block-restricted multi-omics environment heatmap from two omics-like matrices.
    - Environment/spec block selectors, block-pair restrictions, multi-core geometry controls, inward heatmap distance, arc/rotation controls, and collapsed-core Gallery recipes are now exposed for heatmap workflows.
-   - Still needed: broader visual-regression coverage for the full environment geometry matrix beyond the representative row and rotated-arc collapsed-core paths.
+   - Browser smoke now covers the representative geometry matrix for default heatmap, multi-omics block heatmap, collapsed-core heatmap, and rotated-arc/inward-distance collapsed-core heatmap.
+   - Still needed: richer direct UI controls for non-gallery environment geometry presets and module-level environment heatmaps.
 
 4. Multi-network comparison depth.
    - The comparison workflow now uses `ggNetView_multi_link()` with graph objects and `ggNetView_multi()` from a matrix plus generated or uploaded/custom group metadata.

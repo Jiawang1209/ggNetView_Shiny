@@ -41,6 +41,18 @@ test_that("visual layout browser smoke exists and covers layout families", {
   expect_true(all(choices %in% visual_layout_smoke_cases()$layout))
 })
 
+test_that("environment geometry browser smoke covers gallery geometry presets", {
+  path <- test_path("../../tests/run_shiny_environment_geometry_smoke.R")
+  expect_true(file.exists(path))
+
+  source_text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  expect_match(source_text, "environment_heatmap", fixed = TRUE)
+  expect_match(source_text, "multi_omics_environment_blocks", fixed = TRUE)
+  expect_match(source_text, "environment_collapsed_core", fixed = TRUE)
+  expect_match(source_text, "environment_arc_collapsed_core", fixed = TRUE)
+  expect_match(source_text, "assert_export_plot_available", fixed = TRUE)
+})
+
 test_that("package/manual audit reflects the current Shiny coverage", {
   path <- test_path("../../docs/ggnetview-new-package-shiny-audit.md")
   expect_true(file.exists(path))
