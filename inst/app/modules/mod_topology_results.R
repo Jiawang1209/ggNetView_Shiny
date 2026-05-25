@@ -18,7 +18,8 @@ mod_topology_results_ui <- function(id) {
 mod_topology_results_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     unique_output_name <- function(base) {
-      paste0(base, "_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+      suffix <- paste0(format(Sys.time(), "%Y%m%d_%H%M%S"), "_", sprintf("%04d", sample.int(9999, 1)))
+      paste0(base, "_", suffix)
     }
 
     topology_table <- shiny::reactiveVal(data.frame())
