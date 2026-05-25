@@ -7,7 +7,7 @@ Date: 2026-05-26
 - The Shiny app runs from the root project with `/usr/local/bin/Rscript`.
 - The example workflow can load the bundled matrix, build a graph, inspect objects, draw a plot, calculate topology, and reach export.
 - Local source loading now keeps same-package helper dependencies and common ggNetView plotting/data-manipulation helper functions available.
-- Export is object-aware: graph objects expose node, edge, and adjacency CSV exports; plot PNG/PDF buttons remain plot-only; workflow JSON manifests preserve registry provenance, params, warnings, and recipe metadata.
+- Export is object-aware: graph objects expose node, edge, and adjacency CSV exports; plot PNG/PDF buttons remain plot-only; workflow JSON manifests preserve registry provenance, params, warnings, and recipe metadata; the selected object summary shows type, source, supported formats, summary, and parameter keys.
 - Data Hub can load manual workflow examples for matrix, edge-table-with-module, adjacency, TOM-like, and starter graph workflows.
 - Data Hub can run one-click gallery recipes that register final plot/result objects from those starters, including network layout, grouped comparison, graph info/topology, multi-network comparison, environment heatmaps, and Mantel pairwise workflows.
 - Data Hub can load sample metadata and Compare & Environment can use it for grouped matrix network plots.
@@ -44,7 +44,7 @@ Date: 2026-05-26
 
 5. Polish layout and wording after real use.
    - Reduce ambiguity in Export Center buttons.
-   - Make selected object type visible near the export controls.
+   - Selected object type/source/format metadata is now visible near the export controls.
    - Consider grouping controls into object-specific sections.
 
 6. Gallery completion.

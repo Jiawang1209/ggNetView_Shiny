@@ -211,3 +211,24 @@ test_that("type download controls expose graph exports", {
   expect_match(text, "download_edges_csv")
   expect_match(text, "download_adjacency_csv")
 })
+
+test_that("export center summarizes the selected object and formats", {
+  item <- list(
+    id = "obj_0009",
+    name = "gallery_matrix_graph",
+    type = "graph",
+    source = "gallery_matrix",
+    summary = list(nodes = 6L, edges = 4L),
+    params = list(builder = "matrix", recipe = "network_plot_circle")
+  )
+
+  summary <- export_object_summary(item)
+  expect_true(all(c("field", "value") %in% names(summary)))
+  expect_true(any(summary$field == "Type" & summary$value == "graph"))
+  expect_true(any(summary$field == "Source" & summary$value == "gallery_matrix"))
+  expect_true(any(summary$field == "Formats" & grepl("Nodes CSV", summary$value, fixed = TRUE)))
+  expect_true(any(summary$field == "Parameters" & grepl("builder", summary$value, fixed = TRUE)))
+
+  empty_summary <- export_object_summary(NULL)
+  expect_equal(nrow(empty_summary), 0L)
+})

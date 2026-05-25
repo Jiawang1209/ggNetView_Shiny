@@ -3,6 +3,7 @@ mod_export_center_ui <- function(id) {
   bslib::card(
     bslib::card_header("Export Center"),
     shiny::selectInput(ns("object_id"), "Object", choices = character()),
+    DT::DTOutput(ns("object_summary")),
     shiny::downloadButton(ns("download_manifest"), "Download Manifest"),
     shiny::downloadButton(ns("download_workflow_manifest"), "Download Workflow JSON"),
     shiny::downloadButton(ns("download_rds"), "Download RDS"),
@@ -93,6 +94,54 @@ type_download_controls <- function(item, ns = identity) {
   do.call(shiny::tagList, controls)
 }
 
+export_format_labels <- function(type) {
+  labels <- c(
+    rds = "RDS",
+    csv = "CSV",
+    nodes_csv = "Nodes CSV",
+    edges_csv = "Edges CSV",
+    adjacency_csv = "Adjacency CSV",
+    params_json = "Parameters JSON",
+    png = "PNG",
+    pdf = "PDF"
+  )
+  formats <- export_formats_for_type(type)
+  unname(labels[formats] %||% formats)
+}
+
+export_object_summary <- function(item) {
+  if (is.null(item)) {
+    return(data.frame(field = character(), value = character(), stringsAsFactors = FALSE))
+  }
+
+  source <- item$source
+  if (is.null(source) || !nzchar(as.character(source))) {
+    source <- "manual/session"
+  }
+  params <- names(item$params %||% list())
+  params <- if (length(params)) paste(params, collapse = ", ") else "none"
+  summary <- item$summary %||% list()
+  summary_text <- if (length(summary)) {
+    paste(sprintf("%s=%s", names(summary), vapply(summary, function(x) paste(head(x, 3), collapse = "/"), character(1))), collapse = "; ")
+  } else {
+    "none"
+  }
+
+  data.frame(
+    field = c("ID", "Name", "Type", "Source", "Formats", "Summary", "Parameters"),
+    value = c(
+      item$id %||% "",
+      item$name %||% "",
+      item$type %||% "",
+      as.character(source),
+      paste(export_format_labels(item$type), collapse = ", "),
+      summary_text,
+      params
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
 mod_export_center_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     shiny::observe({
@@ -110,6 +159,10 @@ mod_export_center_server <- function(id, registry) {
       item <- selected_item()
       type_download_controls(item, session$ns)
     })
+
+    output$object_summary <- DT::renderDT({
+      export_object_summary(selected_item())
+    }, rownames = FALSE, options = list(dom = "t", paging = FALSE))
 
     output$download_manifest <- shiny::downloadHandler(
       filename = function() "ggnetview_manifest.csv",
