@@ -64,7 +64,8 @@ gallery_recipe_manifest <- function() {
       "triple_environment_heatmap",
       "multi_omics_network",
       "multi_omics_double_matrix",
-      "multi_omics_environment_blocks"
+      "multi_omics_environment_blocks",
+      "environment_collapsed_core"
     ),
     label = c(
       "Circle network plot",
@@ -76,7 +77,8 @@ gallery_recipe_manifest <- function() {
       "Triple environment heatmap",
       "Multi-omics network",
       "Multi-omics double-matrix network",
-      "Multi-omics environment blocks"
+      "Multi-omics environment blocks",
+      "Collapsed-core environment heatmap"
     ),
     output_type = c(
       "plot",
@@ -88,6 +90,7 @@ gallery_recipe_manifest <- function() {
       "result",
       "graph,plot",
       "graph,plot",
+      "plot,result",
       "plot,result"
     ),
     manual_area = c(
@@ -100,7 +103,8 @@ gallery_recipe_manifest <- function() {
       "Network-environment triple heatmap",
       "Multi-omics network analysis",
       "Multi-omics double matrix network analysis",
-      "Multi-omics network-environment analysis"
+      "Multi-omics network-environment analysis",
+      "Network-environment collapsed core"
     ),
     stringsAsFactors = FALSE
   )
@@ -512,6 +516,62 @@ run_gallery_recipe <- function(registry, recipe) {
         kind = "multi_omics_environment_stats",
         env_blocks = names(fixture$env_select),
         spec_blocks = names(fixture$spec_select)
+      )
+    )
+    return(app_success(list(items = list(plot_item, stats_item))))
+  }
+
+  if (identical(recipe, "environment_collapsed_core")) {
+    matrix_item <- gallery_registry_item_by_name(registry, "gallery_matrix")
+    if (is.null(matrix_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    fixture <- gallery_environment_fixture(matrix_item$data)
+    fixture$env$conductivity <- c(100, 105, 112, 119, 126)
+    result <- safe_environment_heatmap(
+      env = fixture$env,
+      spec = fixture$spec,
+      env_blocks = "Climate: temperature,pH\nWater: moisture,conductivity",
+      spec_blocks = "Early: OTU1,OTU2,OTU3\nLate: OTU4,OTU5,OTU6",
+      env_spec_pairs = "Climate,Early\nWater,Late",
+      params = list(
+        relation_method = "correlation",
+        cor.method = "pearson",
+        spec_collapse = TRUE,
+        orientation = c("top_right", "bottom_right"),
+        group_layout = "row",
+        anchor_dist = 4,
+        distance = 2,
+        r = 0.1,
+        CorePointSize = 10,
+        HeatmapPointSize = 4
+      )
+    )
+    if (!result$ok) {
+      return(result)
+    }
+    plot_item <- add_recipe_item(
+      "gallery_recipe_environment_collapsed_core_heatmap",
+      "plot",
+      result$value$plot,
+      matrix_item$id,
+      list(
+        kind = "environment_collapsed_core_heatmap",
+        relation_method = "correlation",
+        spec_collapse = TRUE,
+        env_blocks = c("Climate", "Water"),
+        spec_blocks = c("Early", "Late")
+      )
+    )
+    stats_item <- add_recipe_item(
+      "gallery_recipe_environment_collapsed_core_stats",
+      "result",
+      result$value$stats,
+      matrix_item$id,
+      list(
+        kind = "environment_collapsed_core_stats",
+        relation_method = "correlation",
+        spec_collapse = TRUE
       )
     )
     return(app_success(list(items = list(plot_item, stats_item))))
