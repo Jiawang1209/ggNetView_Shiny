@@ -70,6 +70,63 @@ write_workflow_manifest <- function(registry, path) {
   invisible(path)
 }
 
+read_workflow_manifest <- function(path) {
+  manifest <- jsonlite::read_json(path, simplifyVector = FALSE)
+  if (!is.list(manifest) || !identical(manifest$app, "ggNetView Shiny")) {
+    stop("Workflow manifest is not a ggNetView Shiny manifest.", call. = FALSE)
+  }
+  if (is.null(manifest$items) || !is.list(manifest$items)) {
+    stop("Workflow manifest is missing item records.", call. = FALSE)
+  }
+  manifest
+}
+
+manifest_param_value <- function(item, key, default = "") {
+  params <- item$params
+  if (is.null(params) || is.null(params[[key]])) {
+    return(default)
+  }
+  value <- params[[key]]
+  if (length(value) == 0) {
+    return(default)
+  }
+  paste(as.character(value), collapse = ",")
+}
+
+workflow_replay_plan <- function(manifest) {
+  items <- manifest$items %||% list()
+  if (!length(items)) {
+    return(data.frame(
+      step = integer(),
+      id = character(),
+      name = character(),
+      type = character(),
+      source = character(),
+      recipe = character(),
+      status = character(),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  records <- lapply(seq_along(items), function(i) {
+    item <- items[[i]]
+    recipe <- manifest_param_value(item, "recipe")
+    has_recipe <- nzchar(recipe) && !identical(recipe, "manual_starter")
+    data.frame(
+      step = i,
+      id = item$id %||% "",
+      name = item$name %||% "",
+      type = item$type %||% "",
+      source = item$source %||% "",
+      recipe = recipe,
+      status = if (has_recipe) "recipe-output-needs-rerun" else "input-or-existing-object",
+      stringsAsFactors = FALSE
+    )
+  })
+
+  do.call(rbind, records)
+}
+
 export_formats_for_type <- function(type) {
   switch(type,
     graph = c("rds", "nodes_csv", "edges_csv", "adjacency_csv", "params_json"),

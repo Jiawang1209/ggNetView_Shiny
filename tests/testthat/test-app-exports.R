@@ -82,6 +82,39 @@ test_that("write_workflow_manifest exports registry provenance as JSON", {
   expect_equal(manifest$items$warnings[[2]], "small example")
 })
 
+test_that("workflow manifest can be imported as a replay plan", {
+  registry <- registry_new()
+  registry_add(
+    registry,
+    name = "gallery_matrix",
+    type = "matrix",
+    data = matrix(1:4, nrow = 2),
+    source = "phase2_example_matrix.csv",
+    params = list(recipe = "manual_starter")
+  )
+  registry_add(
+    registry,
+    name = "gallery_recipe_circle_plot",
+    type = "plot",
+    data = list(class = "plot-placeholder"),
+    source = "obj_0001",
+    params = list(recipe = "network_plot_circle", layout = "circle")
+  )
+
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(registry, path)
+
+  manifest <- read_workflow_manifest(path)
+  plan <- workflow_replay_plan(manifest)
+
+  expect_equal(manifest$app, "ggNetView Shiny")
+  expect_true(all(c("step", "id", "name", "type", "source", "recipe", "status") %in% names(plan)))
+  expect_equal(nrow(plan), 2L)
+  expect_equal(plan$recipe[[2]], "network_plot_circle")
+  expect_equal(plan$status[[1]], "input-or-existing-object")
+  expect_equal(plan$status[[2]], "recipe-output-needs-rerun")
+})
+
 test_that("write_plot_png writes extensionless download path", {
   path <- tempfile()
   plot <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
@@ -109,6 +142,8 @@ test_that("global helper bridge includes export helpers", {
     "write_registry_object",
     "write_registry_params",
     "write_workflow_manifest",
+    "read_workflow_manifest",
+    "workflow_replay_plan",
     "write_plot_png",
     "write_plot_pdf"
   )

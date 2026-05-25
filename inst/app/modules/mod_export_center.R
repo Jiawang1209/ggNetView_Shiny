@@ -9,7 +9,10 @@ mod_export_center_ui <- function(id) {
     shiny::downloadButton(ns("download_rds"), "Download RDS"),
     shiny::downloadButton(ns("download_csv"), "Download CSV"),
     shiny::downloadButton(ns("download_params"), "Download Parameters"),
-    shiny::uiOutput(ns("type_downloads"))
+    shiny::uiOutput(ns("type_downloads")),
+    bslib::card_header("Replay Plan"),
+    shiny::fileInput(ns("workflow_manifest"), "Workflow JSON", accept = c(".json", "application/json")),
+    DT::DTOutput(ns("replay_plan"))
   )
 }
 
@@ -163,6 +166,17 @@ mod_export_center_server <- function(id, registry) {
     output$object_summary <- DT::renderDT({
       export_object_summary(selected_item())
     }, rownames = FALSE, options = list(dom = "t", paging = FALSE))
+
+    replay_plan <- shiny::reactive({
+      file <- input$workflow_manifest
+      shiny::req(file)
+      manifest <- read_workflow_manifest(file$datapath)
+      workflow_replay_plan(manifest)
+    })
+
+    output$replay_plan <- DT::renderDT({
+      replay_plan()
+    }, rownames = FALSE, options = list(pageLength = 8))
 
     output$download_manifest <- shiny::downloadHandler(
       filename = function() "ggnetview_manifest.csv",
