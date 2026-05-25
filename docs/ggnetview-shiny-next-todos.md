@@ -33,12 +33,12 @@ Date: 2026-05-26
    - Keep the last successful result visible but clearly mark failed attempts.
 
 3. Environment and multi-omics depth.
-   - The first environment workflow uses `gglink_heatmaps_2()` and Mantel pairwise helpers.
-   - Still needed: richer `gglink_heatmaps()` controls, `gglink_heatmap_triple()`, block-vs-column Mantel UI, multi-core options, and clearer multi-omics presets.
+   - The environment workflow now uses `gglink_heatmaps_2()`, original `gglink_heatmaps()`, block-vs-column Mantel controls, and Mantel pairwise helpers.
+   - Still needed: `gglink_heatmap_triple()`, multi-core options, clearer multi-omics presets, and finer manual control over environment/spec block selections.
 
 4. Multi-network comparison depth.
-   - The first comparison workflow uses `ggNetView_multi_link()` with graph objects.
-   - Still needed: `ggNetView_multi()` from matrix + group metadata, richer comparison-group controls, topology comparison display, and better link-info tables.
+   - The comparison workflow now uses `ggNetView_multi_link()` with graph objects and `ggNetView_multi()` from a matrix plus generated group metadata.
+   - Still needed: uploaded/custom group metadata, richer comparison-group controls, topology comparison display, and better link-info tables.
 
 5. Polish layout and wording after real use.
    - Reduce ambiguity in Export Center buttons.

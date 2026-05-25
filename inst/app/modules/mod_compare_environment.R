@@ -11,7 +11,11 @@ mod_compare_environment_ui <- function(id) {
       ),
       shiny::selectInput(ns("link_level"), "Link level", choices = c("Module", "Node")),
       shiny::checkboxInput(ns("scale_groups"), "Scale groups", value = TRUE),
-      shiny::actionButton(ns("run_compare"), "Compare networks")
+      shiny::actionButton(ns("run_compare"), "Compare networks"),
+      shiny::hr(),
+      shiny::selectInput(ns("multi_matrix_id"), "Matrix for groups", choices = character()),
+      shiny::selectInput(ns("multi_split"), "Group split", choices = c("halves", "alternating")),
+      shiny::actionButton(ns("run_multi_group"), "Build group multi-plot")
     ),
     bslib::card(
       bslib::card_header("Environment Links"),
@@ -19,8 +23,11 @@ mod_compare_environment_ui <- function(id) {
       shiny::selectInput(ns("env_id"), "Environment matrix", choices = character()),
       shiny::selectInput(ns("relation_method"), "Relation method", choices = c("correlation", "mantel")),
       shiny::selectInput(ns("cor_method"), "Correlation", choices = c("pearson", "spearman", "kendall")),
+      shiny::selectInput(ns("mantel_kind"), "Mantel kind", choices = c("block_vs_col", "col_vs_col")),
+      shiny::checkboxInput(ns("spec_collapse"), "Collapse species block", value = FALSE),
       shiny::checkboxInput(ns("drop_nonsig"), "Drop non-significant links", value = FALSE),
       shiny::actionButton(ns("run_environment"), "Run environment link"),
+      shiny::actionButton(ns("run_environment_manual"), "Run manual heatmap"),
       shiny::actionButton(ns("run_mantel"), "Run Mantel table")
     ),
     bslib::card(
@@ -55,8 +62,21 @@ mod_compare_environment_server <- function(id, registry) {
     shiny::observe({
       matrix_choices <- registry_choices_by_type(registry, c("matrix"))
       env_choices <- registry_choices_by_type(registry, c("env_matrix", "matrix"))
-      shiny::updateSelectInput(session, "spec_id", choices = matrix_choices)
-      shiny::updateSelectInput(session, "env_id", choices = env_choices)
+      selected_spec <- input$spec_id
+      if (is.null(selected_spec) || !selected_spec %in% matrix_choices) {
+        selected_spec <- if (length(matrix_choices)) matrix_choices[[1]] else character()
+      }
+      selected_env <- input$env_id
+      if (is.null(selected_env) || !selected_env %in% env_choices) {
+        selected_env <- if (length(env_choices)) env_choices[[1]] else character()
+      }
+      selected_multi <- input$multi_matrix_id
+      if (is.null(selected_multi) || !selected_multi %in% matrix_choices) {
+        selected_multi <- if (length(matrix_choices)) matrix_choices[[1]] else character()
+      }
+      shiny::updateSelectInput(session, "spec_id", choices = matrix_choices, selected = selected_spec)
+      shiny::updateSelectInput(session, "env_id", choices = env_choices, selected = selected_env)
+      shiny::updateSelectInput(session, "multi_matrix_id", choices = matrix_choices, selected = selected_multi)
     })
 
     register_plot_result <- function(name, plot, source, params) {
@@ -79,6 +99,19 @@ mod_compare_environment_server <- function(id, registry) {
         source = source,
         params = params
       )
+    }
+
+    normalize_stats <- function(stats) {
+      if (is.null(stats)) {
+        return(data.frame())
+      }
+      if (is.data.frame(stats)) {
+        return(stats)
+      }
+      if (is.atomic(stats)) {
+        return(data.frame(value = stats, stringsAsFactors = FALSE))
+      }
+      data.frame(value = utils::capture.output(utils::str(stats)), stringsAsFactors = FALSE)
     }
 
     shiny::observeEvent(input$run_compare, {
@@ -134,6 +167,53 @@ mod_compare_environment_server <- function(id, registry) {
       shiny::showNotification(paste("Registered comparison plot:", plot_item$name), type = "message")
     })
 
+    shiny::observeEvent(input$run_multi_group, {
+      shiny::req(input$multi_matrix_id)
+      matrix_item <- registry_get(registry, input$multi_matrix_id)
+      shiny::req(matrix_item)
+
+      group_info <- tryCatch(
+        default_group_info_for_matrix(matrix_item$data, split = input$multi_split),
+        error = function(e) e
+      )
+      if (inherits(group_info, "error")) {
+        status(conditionMessage(group_info))
+        shiny::showNotification(conditionMessage(group_info), type = "error")
+        return()
+      }
+
+      params <- list(
+        layout = "circle",
+        layout.module = "adjacent",
+        r.threshold = 0.2,
+        p.threshold = 1
+      )
+      result <- safe_multi_group_network(matrix_item$data, group_info = group_info, params = params)
+      if (!result$ok) {
+        detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
+        status(detail)
+        shiny::showNotification(result$message, type = "error")
+        return()
+      }
+
+      plot_obj(result$value$plot)
+      stats_table(result$value$group_info)
+      plot_item <- register_plot_result(
+        unique_output_name("multi_group_network_plot"),
+        result$value$plot,
+        input$multi_matrix_id,
+        c(params, list(split = input$multi_split))
+      )
+      register_stats_result(
+        unique_output_name("multi_group_network_groups"),
+        result$value$group_info,
+        input$multi_matrix_id,
+        list(split = input$multi_split)
+      )
+      status(paste("Registered grouped network plot:", plot_item$name))
+      shiny::showNotification(paste("Registered grouped network plot:", plot_item$name), type = "message")
+    })
+
     shiny::observeEvent(input$run_environment, {
       shiny::req(input$spec_id, input$env_id)
       spec_item <- registry_get(registry, input$spec_id)
@@ -176,6 +256,53 @@ mod_compare_environment_server <- function(id, registry) {
       )
       status(paste("Registered environment link plot:", plot_item$name))
       shiny::showNotification(paste("Registered environment link plot:", plot_item$name), type = "message")
+    })
+
+    shiny::observeEvent(input$run_environment_manual, {
+      shiny::req(input$spec_id, input$env_id)
+      spec_item <- registry_get(registry, input$spec_id)
+      env_item <- registry_get(registry, input$env_id)
+      shiny::req(spec_item, env_item)
+
+      spec <- as.data.frame(t(as.matrix(spec_item$data)), check.names = FALSE)
+      env <- as.data.frame(env_item$data, check.names = FALSE)
+      if (nrow(env) != nrow(spec)) {
+        env <- as.data.frame(t(as.matrix(env_item$data)), check.names = FALSE)
+      }
+
+      params <- list(
+        relation_method = input$relation_method,
+        cor.method = input$cor_method,
+        mantel_kind = input$mantel_kind,
+        spec_collapse = input$spec_collapse,
+        drop_nonsig = input$drop_nonsig
+      )
+      result <- safe_environment_heatmap(env = env, spec = spec, params = params)
+      if (!result$ok) {
+        detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
+        status(detail)
+        shiny::showNotification(result$message, type = "error")
+        return()
+      }
+
+      plot_obj(result$value$plot)
+      stats <- normalize_stats(result$value$stats)
+      stats_table(stats)
+      source_ids <- paste(input$spec_id, input$env_id, sep = ",")
+      plot_item <- register_plot_result(
+        unique_output_name("manual_environment_heatmap_plot"),
+        result$value$plot,
+        source_ids,
+        params
+      )
+      register_stats_result(
+        unique_output_name("manual_environment_heatmap_stats"),
+        stats,
+        source_ids,
+        params
+      )
+      status(paste("Registered manual environment heatmap:", plot_item$name))
+      shiny::showNotification(paste("Registered manual environment heatmap:", plot_item$name), type = "message")
     })
 
     shiny::observeEvent(input$run_mantel, {

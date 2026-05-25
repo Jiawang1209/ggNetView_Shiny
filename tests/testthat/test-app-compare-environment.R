@@ -50,6 +50,17 @@ test_that("multi-network comparison returns a plot payload", {
   expect_true(is.null(result$value$link_info) || is.data.frame(result$value$link_info) || is.list(result$value$link_info))
 })
 
+test_that("grouped matrix workflow returns a multi-network plot", {
+  mat <- read_phase2_fixture("phase2_example_matrix.csv")
+  group_info <- default_group_info_for_matrix(mat)
+  result <- safe_multi_group_network(mat, group_info = group_info)
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_true(inherits(result$value$plot, "ggplot") || inherits(result$value$plot, "patchwork"))
+  expect_true(all(c("Sample", "Group") %in% names(result$value$group_info)))
+  expect_equal(nrow(result$value$group_info), ncol(mat))
+})
+
 test_that("environment link returns plot and statistics", {
   data <- phase2_env_spec()
   result <- safe_environment_link(
@@ -63,6 +74,47 @@ test_that("environment link returns plot and statistics", {
   expect_s3_class(result$value$plot, "ggplot")
   expect_s3_class(result$value$curved_plot, "ggplot")
   expect_true(all(c("ID", "Type", "Correlation", "Pvalue") %in% names(result$value$stats)))
+})
+
+test_that("manual environment heatmap returns plot and statistics", {
+  data <- phase2_env_spec()
+  result <- safe_environment_heatmap(
+    env = data$env,
+    spec = data$spec,
+    env_select = list(Environment = seq_len(ncol(data$env))),
+    spec_select = list(Species = seq_len(ncol(data$spec)))
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_s3_class(result$value$plot, "ggplot")
+  expect_s3_class(result$value$curved_plot, "ggplot")
+  expect_true(is.data.frame(result$value$stats))
+  expect_true(all(c("ID", "Type", "Correlation", "Pvalue") %in% names(result$value$stats)))
+})
+
+test_that("manual environment heatmap supports block Mantel links or dependency error", {
+  data <- phase2_env_spec()
+  result <- safe_environment_heatmap(
+    env = data$env,
+    spec = data$spec[, 1:3],
+    env_select = list(Environment = seq_len(ncol(data$env))),
+    spec_select = list(Species = 1:3),
+    params = list(
+      relation_method = "mantel",
+      mantel_kind = "block_vs_col",
+      permutations = 9L,
+      spec_collapse = TRUE
+    )
+  )
+
+  if (requireNamespace("vegan", quietly = TRUE)) {
+    expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+    expect_s3_class(result$value$plot, "ggplot")
+    expect_true(is.data.frame(result$value$stats))
+  } else {
+    expect_false(result$ok)
+    expect_match(result$trace, "vegan")
+  }
 })
 
 test_that("Mantel pairwise returns a statistics table or dependency error", {
