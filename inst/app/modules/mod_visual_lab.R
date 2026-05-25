@@ -79,7 +79,24 @@ visual_lab_params <- function(
   point_size_max = 10,
   add_group_outer = FALSE,
   drop_others = FALSE,
-  seed = 1115
+  seed = 1115,
+  node_add = 7,
+  ring_n = NULL,
+  r = 1,
+  center = TRUE,
+  shrink = 1,
+  inner_shrink = 1,
+  k_nn = 8,
+  push_others_delta = 0,
+  jitter = FALSE,
+  jitter_sd = 0.1,
+  plot_line = TRUE,
+  curve = FALSE,
+  curvature = 0.25,
+  linealpha = 0.25,
+  linecolor = "grey70",
+  pointlabel = "",
+  pointlabelsize = 5
 ) {
   normalize_positive_number <- function(value, default, min = NULL, max = NULL) {
     value <- suppressWarnings(as.numeric(value))
@@ -94,10 +111,56 @@ visual_lab_params <- function(
     }
     value
   }
+  normalize_nonnegative_number <- function(value, default, max = NULL) {
+    value <- suppressWarnings(as.numeric(value))
+    if (length(value) != 1L || is.na(value) || !is.finite(value) || value < 0) {
+      value <- default
+    }
+    if (!is.null(max)) {
+      value <- min(value, max)
+    }
+    value
+  }
+  normalize_positive_integer <- function(value, default, min = 1L, max = NULL) {
+    as.integer(round(normalize_positive_number(value, default = default, min = min, max = max)))
+  }
+  normalize_optional_positive_integer <- function(value, default = NULL, min = 1L, max = NULL) {
+    if (is.null(value) || length(value) == 0L || identical(value, "")) {
+      return(default)
+    }
+    value <- suppressWarnings(as.numeric(value))
+    if (length(value) != 1L || is.na(value) || !is.finite(value) || value <= 0) {
+      return(default)
+    }
+    as.integer(round(normalize_positive_number(value, default = value, min = min, max = max)))
+  }
+  normalize_alpha <- function(value, default) {
+    normalize_positive_number(value, default = default, min = 0, max = 1)
+  }
+  normalize_color <- function(value, default) {
+    if (is.null(value) || length(value) != 1L || !nzchar(trimws(as.character(value)))) {
+      return(default)
+    }
+    as.character(value)
+  }
+  normalize_pointlabel <- function(value) {
+    if (is.null(value) || length(value) != 1L || !nzchar(trimws(as.character(value)))) {
+      return(NULL)
+    }
+    as.character(value)
+  }
 
   list(
     layout = if (is.null(layout) || !nzchar(layout)) "nicely" else layout,
     layout.module = if (is.null(layout_module) || !nzchar(layout_module)) "adjacent" else layout_module,
+    node_add = normalize_positive_integer(node_add, default = 7L, min = 1L, max = 100L),
+    ring_n = normalize_optional_positive_integer(ring_n, default = NULL, min = 1L, max = 100L),
+    r = normalize_positive_number(r, default = 1, min = 0.01, max = 50),
+    center = isTRUE(center),
+    shrink = normalize_positive_number(shrink, default = 1, min = 0.01, max = 10),
+    inner_shrink = normalize_positive_number(inner_shrink, default = 1, min = 0.01, max = 10),
+    k_nn = normalize_positive_integer(k_nn, default = 8L, min = 1L, max = 100L),
+    push_others_delta = normalize_nonnegative_number(push_others_delta, default = 0, max = 50),
     label = isTRUE(show_labels),
     label_layout = if (is.null(label_layout) || !nzchar(label_layout)) "two_column" else label_layout,
     label_wrap_width = normalize_positive_number(label_wrap_width, default = 18, min = 4, max = 80),
@@ -109,6 +172,15 @@ visual_lab_params <- function(
     ),
     add_group_outer = isTRUE(add_group_outer),
     dropOthers = isTRUE(drop_others),
+    jitter = isTRUE(jitter),
+    jitter_sd = normalize_positive_number(jitter_sd, default = 0.1, min = 0.001, max = 5),
+    plot_line = isTRUE(plot_line),
+    curve = isTRUE(curve),
+    curvature = normalize_positive_number(curvature, default = 0.25, min = 0, max = 1),
+    linealpha = normalize_alpha(linealpha, default = 0.25),
+    linecolor = normalize_color(linecolor, default = "grey70"),
+    pointlabel = normalize_pointlabel(pointlabel),
+    pointlabelsize = normalize_positive_number(pointlabelsize, default = 5, min = 0.1, max = 50),
     seed = as.integer(normalize_positive_number(seed, default = 1115, min = 1))
   )
 }
@@ -137,6 +209,29 @@ mod_visual_lab_ui <- function(id) {
       shiny::numericInput(ns("point_size_max"), "Point size max", value = 10, min = 0.1, max = 50, step = 0.5),
       shiny::checkboxInput(ns("add_group_outer"), "Add group outer", value = FALSE),
       shiny::checkboxInput(ns("drop_others"), "Drop Others", value = FALSE),
+      bslib::accordion(
+        open = FALSE,
+        bslib::accordion_panel(
+          "Advanced",
+          shiny::numericInput(ns("node_add"), "Node add", value = 7, min = 1, max = 100, step = 1),
+          shiny::numericInput(ns("ring_n"), "Ring count", value = NA, min = 1, max = 100, step = 1),
+          shiny::numericInput(ns("layout_r"), "Layout radius", value = 1, min = 0.01, max = 50, step = 0.1),
+          shiny::checkboxInput(ns("center"), "Center node", value = TRUE),
+          shiny::numericInput(ns("shrink"), "Shrink", value = 1, min = 0.01, max = 10, step = 0.05),
+          shiny::numericInput(ns("inner_shrink"), "Inner shrink", value = 1, min = 0.01, max = 10, step = 0.05),
+          shiny::numericInput(ns("k_nn"), "Nearest neighbors", value = 8, min = 1, max = 100, step = 1),
+          shiny::numericInput(ns("push_others_delta"), "Others offset", value = 0, min = 0, max = 50, step = 0.05),
+          shiny::checkboxInput(ns("jitter"), "Jitter points", value = FALSE),
+          shiny::numericInput(ns("jitter_sd"), "Jitter SD", value = 0.1, min = 0.001, max = 5, step = 0.01),
+          shiny::checkboxInput(ns("plot_line"), "Plot edges", value = TRUE),
+          shiny::checkboxInput(ns("curve"), "Curve edges", value = FALSE),
+          shiny::numericInput(ns("curvature"), "Edge curvature", value = 0.25, min = 0, max = 1, step = 0.05),
+          shiny::numericInput(ns("linealpha"), "Edge alpha", value = 0.25, min = 0, max = 1, step = 0.05),
+          shiny::textInput(ns("linecolor"), "Edge color", value = "grey70"),
+          shiny::textInput(ns("pointlabel"), "Point labels", value = ""),
+          shiny::numericInput(ns("pointlabelsize"), "Point label size", value = 5, min = 0.1, max = 50, step = 0.5)
+        )
+      ),
       shiny::numericInput(ns("seed"), "Seed", value = 1115, min = 1, step = 1),
       shiny::actionButton(ns("draw"), "Draw")
     ),
@@ -181,7 +276,24 @@ mod_visual_lab_server <- function(id, registry) {
         point_size_max = input$point_size_max,
         add_group_outer = input$add_group_outer,
         drop_others = input$drop_others,
-        seed = input$seed
+        seed = input$seed,
+        node_add = input$node_add,
+        ring_n = input$ring_n,
+        r = input$layout_r,
+        center = input$center,
+        shrink = input$shrink,
+        inner_shrink = input$inner_shrink,
+        k_nn = input$k_nn,
+        push_others_delta = input$push_others_delta,
+        jitter = input$jitter,
+        jitter_sd = input$jitter_sd,
+        plot_line = input$plot_line,
+        curve = input$curve,
+        curvature = input$curvature,
+        linealpha = input$linealpha,
+        linecolor = input$linecolor,
+        pointlabel = input$pointlabel,
+        pointlabelsize = input$pointlabelsize
       )
 
       status(task_feedback_message("plot draw", "running"))

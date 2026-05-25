@@ -144,6 +144,58 @@ test_that("visual lab params are stable and JSON-friendly", {
   expect_equal(params$seed, 1115L)
 })
 
+test_that("visual lab params expose manual layout and rendering controls", {
+  params <- visual_lab_params(
+    layout = "WGCNA",
+    layout_module = "order",
+    show_labels = FALSE,
+    label_layout = "label_circle",
+    label_wrap_width = 24,
+    label_outer_pad = 0.6,
+    bandwidth_scale = 1.2,
+    point_size_min = 2,
+    point_size_max = 12,
+    add_group_outer = TRUE,
+    drop_others = TRUE,
+    seed = 42,
+    node_add = 9,
+    ring_n = 5,
+    r = 1.5,
+    center = FALSE,
+    shrink = 0.8,
+    inner_shrink = 0.65,
+    k_nn = 6,
+    push_others_delta = 0.25,
+    jitter = TRUE,
+    jitter_sd = 0.03,
+    plot_line = FALSE,
+    curve = TRUE,
+    curvature = 0.35,
+    linealpha = 0.6,
+    linecolor = "#123456",
+    pointlabel = "top3",
+    pointlabelsize = 4
+  )
+
+  expect_equal(params$node_add, 9)
+  expect_equal(params$ring_n, 5)
+  expect_equal(params$r, 1.5)
+  expect_false(params$center)
+  expect_equal(params$shrink, 0.8)
+  expect_equal(params$inner_shrink, 0.65)
+  expect_equal(params$k_nn, 6)
+  expect_equal(params$push_others_delta, 0.25)
+  expect_true(params$jitter)
+  expect_equal(params$jitter_sd, 0.03)
+  expect_false(params$plot_line)
+  expect_true(params$curve)
+  expect_equal(params$curvature, 0.35)
+  expect_equal(params$linealpha, 0.6)
+  expect_equal(params$linecolor, "#123456")
+  expect_equal(params$pointlabel, "top3")
+  expect_equal(params$pointlabelsize, 4)
+})
+
 test_that("visual lab params normalize invalid numeric inputs", {
   params <- visual_lab_params(NULL, NULL, FALSE, NULL, NULL, NULL, "not-a-number", NULL, NULL, FALSE, FALSE, NULL)
 
@@ -160,6 +212,32 @@ test_that("visual lab params normalize invalid numeric inputs", {
   expect_equal(clamped$bandwidth_scale, 1)
   expect_equal(clamped$pointsize, c(1, 50))
   expect_equal(clamped$seed, 1115L)
+
+  advanced <- visual_lab_params(
+    "fr", "adjacent", FALSE, "two_column", 18, 0.4, 1, 1, 10, FALSE, FALSE, 1115,
+    node_add = -1,
+    ring_n = -1,
+    r = -1,
+    shrink = -1,
+    inner_shrink = -1,
+    k_nn = -1,
+    push_others_delta = NA,
+    jitter_sd = -1,
+    curvature = -1,
+    linealpha = 9,
+    pointlabelsize = -1
+  )
+  expect_equal(advanced$node_add, 7L)
+  expect_null(advanced$ring_n)
+  expect_equal(advanced$r, 1)
+  expect_equal(advanced$shrink, 1)
+  expect_equal(advanced$inner_shrink, 1)
+  expect_equal(advanced$k_nn, 8L)
+  expect_equal(advanced$push_others_delta, 0)
+  expect_equal(advanced$jitter_sd, 0.1)
+  expect_equal(advanced$curvature, 0.25)
+  expect_equal(advanced$linealpha, 1)
+  expect_equal(advanced$pointlabelsize, 5)
 })
 
 test_that("visual lab params JSON is stable before drawing", {
