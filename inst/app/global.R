@@ -45,6 +45,8 @@ invisible(lapply(c(
   "app_result", "app_success", "app_failure",
   "read_user_table", "detect_upload_type", "validate_matrix_like",
   "safe_call", "safe_build_graph", "safe_graph_builder", "safe_rmt_threshold", "safe_plot_ggnetview", "safe_topology",
+  "graph_builder_modes", "normalize_graph_builder_params", "required_builder_inputs",
+  "validate_graph_builder_inputs", "graph_builder_function_name", "graph_builder_call_args",
   "registry_new", "registry_next_id", "registry_summarize", "registry_add",
   "registry_get", "registry_delete", "registry_count", "registry_list",
   "registry_choices", "registry_choices_by_type", "registry_log_error",

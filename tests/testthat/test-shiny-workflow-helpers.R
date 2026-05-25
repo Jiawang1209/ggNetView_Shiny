@@ -34,6 +34,7 @@ test_that("validated upload values reject invalid matrix previews", {
   expect_false(prepared$validation$ok)
 })
 
+source(test_path("../../R/app_graph_builders.R"))
 source(test_path("../../inst/app/modules/mod_graph_builder.R"))
 
 test_that("graph builder params match ggNetView matrix workflow", {
@@ -47,6 +48,7 @@ test_that("graph builder params match ggNetView matrix workflow", {
     module_method = "Fast_greedy"
   )
 
+  expect_equal(params$transfrom.method, "none")
   expect_equal(params$method, "cor")
   expect_equal(params$cor.method, "pearson")
   expect_equal(params$proc, "none")
@@ -63,11 +65,16 @@ test_that("graph builder params are empty for edge table builder", {
 test_that("graph builder validates source type matches", {
   expect_equal(
     unname(builder_choices_for_type(NULL)),
-    c("matrix", "adjacency", "edge_table")
+    unname(graph_builder_modes())
   )
   expect_true(builder_matches_source_type("matrix", "matrix"))
+  expect_true(builder_matches_source_type("matrix_rmt", "matrix"))
+  expect_true(builder_matches_source_type("double_matrix", "matrix"))
+  expect_true(builder_matches_source_type("multi_matrix", "matrix"))
   expect_true(builder_matches_source_type("adjacency", "adjacency"))
   expect_true(builder_matches_source_type("edge_table", "edge_table"))
+  expect_true(builder_matches_source_type("wgcna_tom", "wgcna_tom"))
+  expect_true(builder_matches_source_type("consensus", "graph"))
   expect_false(builder_matches_source_type("matrix", "edge_table"))
   expect_false(builder_matches_source_type("edge_table", "matrix"))
   expect_false(builder_matches_source_type("Louvain", "matrix"))
