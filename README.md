@@ -51,6 +51,15 @@ make shiny-run
 
 The Makefile defaults to `/usr/local/bin/R` and `/usr/local/bin/Rscript`.
 
+### Current Shiny Workflow
+
+1. Load the bundled example matrix or upload a CSV/TSV/TXT table in Data Hub.
+2. Build a graph from a matrix, adjacency matrix, or edge table in Graph Builder.
+3. Inspect graph summary, nodes, and edges in Graph Explorer.
+4. Draw and register a ggNetView plot in Visual Lab.
+5. Calculate topology and robustness outputs in Topology Results.
+6. Export objects, parameters, tables, plots, and the object manifest in Export Center.
+
 ## Example1
 
 ### Step1: load ggNetView
