@@ -55,18 +55,49 @@ read_user_table <- function(path, filename = path) {
 }
 
 detect_upload_type <- function(data) {
-  if (is.data.frame(data) && all(c("from", "to") %in% names(data))) {
+  if (!is.matrix(data) && !is.data.frame(data)) {
+    return("unknown")
+  }
+
+  data_frame <- as.data.frame(data)
+  names_lower <- tolower(names(data_frame))
+  has_cols <- function(cols) all(cols %in% names_lower)
+
+  if (has_cols(c("source", "target")) || has_cols(c("from", "to"))) {
     return("edge_table")
   }
 
-  if (is.matrix(data) || is.data.frame(data)) {
-    numeric_cols <- vapply(data, function(x) all(!is.na(suppressWarnings(as.numeric(x)))), logical(1))
-    if (all(numeric_cols)) {
-      return("matrix")
-    }
+  if (has_cols(c("node", "module")) || has_cols(c("name", "module"))) {
+    return("module_table")
   }
 
-  "table"
+  if (has_cols(c("node", "label")) || has_cols(c("name", "class")) || has_cols(c("id", "group"))) {
+    return("annotation")
+  }
+
+  numeric_data <- suppressWarnings(data.matrix(data_frame))
+  if (anyNA(numeric_data)) {
+    return("unknown")
+  }
+
+  is_square <- nrow(numeric_data) == ncol(numeric_data)
+  has_matching_names <- !is.null(rownames(numeric_data)) &&
+    !is.null(colnames(numeric_data)) &&
+    identical(rownames(numeric_data), colnames(numeric_data))
+
+  if (is_square && has_matching_names) {
+    diagonal <- diag(numeric_data)
+    if (all(abs(diagonal - 1) < 1e-8)) {
+      return("wgcna_tom")
+    }
+    return("adjacency")
+  }
+
+  if (all(vapply(data_frame, is.numeric, logical(1)))) {
+    return("matrix")
+  }
+
+  "unknown"
 }
 
 validate_matrix_like <- function(data) {
