@@ -5,6 +5,7 @@ library(ggplot2)
 library(igraph)
 
 app_root <- normalizePath(file.path("..", ".."), mustWork = FALSE)
+options(ggnetview.app_root = app_root)
 
 app_helper_env <- new.env(parent = .GlobalEnv)
 app_helper_files <- file.path(app_root, "R", c("app_validation.R", "app_registry.R", "app_adapters.R", "app_exports.R"))
@@ -44,3 +45,11 @@ invisible(lapply(c(
   "write_registry_table", "write_registry_object", "write_registry_params",
   "write_plot_png", "write_plot_pdf"
 ), load_app_helper))
+
+module_dir <- "modules"
+if (!dir.exists(module_dir) && dir.exists(file.path("inst", "app", "modules"))) {
+  module_dir <- file.path("inst", "app", "modules")
+}
+
+module_files <- list.files(module_dir, pattern = "\\.R$", full.names = TRUE)
+invisible(lapply(module_files, source, local = FALSE))
