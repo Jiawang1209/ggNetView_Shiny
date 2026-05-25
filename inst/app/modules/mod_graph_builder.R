@@ -7,6 +7,13 @@ builder_choices_for_type <- function(type) {
   )
 }
 
+builder_matches_source_type <- function(builder, source_type) {
+  if (is.null(builder) || length(builder) != 1L || is.na(builder) || !nzchar(builder)) {
+    return(FALSE)
+  }
+  builder %in% unname(builder_choices_for_type(source_type))
+}
+
 graph_builder_params <- function(
   builder,
   method = "cor",
@@ -43,10 +50,14 @@ mod_graph_builder_ui <- function(id) {
       ),
       shiny::selectInput(ns("method"), "Association method", choices = c("cor")),
       shiny::selectInput(ns("cor_method"), "Correlation", choices = c("pearson", "spearman")),
-      shiny::selectInput(ns("proc"), "Preprocess", choices = c("none")),
+      shiny::selectInput(ns("proc"), "P-value adjustment", choices = c("none")),
       shiny::numericInput(ns("r_threshold"), "r threshold", value = 0.1, min = 0, max = 1, step = 0.01),
       shiny::numericInput(ns("p_threshold"), "p threshold", value = 1, min = 0, max = 1, step = 0.01),
-      shiny::selectInput(ns("module_method"), "Module method", choices = c("Fast_greedy", "Louvain", "Walktrap")),
+      shiny::selectInput(
+        ns("module_method"),
+        "Module method",
+        choices = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass")
+      ),
       shiny::textInput(ns("graph_name"), "Graph name", value = "network_graph"),
       shiny::actionButton(ns("build"), "Build graph")
     ),
@@ -80,6 +91,13 @@ mod_graph_builder_server <- function(id, registry) {
       shiny::req(input$source_id)
       source <- registry_get(registry, input$source_id)
       shiny::req(source)
+
+      if (!builder_matches_source_type(input$builder, source$type)) {
+        message <- sprintf("Builder '%s' is not valid for source type '%s'.", input$builder, source$type)
+        status(message)
+        shiny::showNotification(message, type = "error")
+        return()
+      }
 
       params <- graph_builder_params(
         builder = input$builder,
