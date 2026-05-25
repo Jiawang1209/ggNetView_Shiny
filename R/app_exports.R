@@ -1,3 +1,9 @@
+if (!exists("%||%", mode = "function")) {
+  `%||%` <- function(x, y) {
+    if (is.null(x)) y else x
+  }
+}
+
 write_registry_table <- function(data, path) {
   if (is.matrix(data)) {
     ids <- rownames(data)
@@ -17,6 +23,50 @@ write_registry_object <- function(data, path) {
 
 write_registry_params <- function(params, path) {
   jsonlite::write_json(params, path, pretty = TRUE, auto_unbox = TRUE, null = "null")
+  invisible(path)
+}
+
+workflow_manifest <- function(registry) {
+  items <- shiny::isolate(registry$items)
+  item_records <- if (length(items)) {
+    data.frame(
+      id = vapply(items, `[[`, character(1), "id"),
+      name = vapply(items, `[[`, character(1), "name"),
+      type = vapply(items, `[[`, character(1), "type"),
+      source = vapply(items, function(item) item$source %||% "", character(1)),
+      created_at = vapply(items, function(item) format(item$created_at, "%Y-%m-%dT%H:%M:%OS%z"), character(1)),
+      stringsAsFactors = FALSE
+    )
+  } else {
+    data.frame(
+      id = character(),
+      name = character(),
+      type = character(),
+      source = character(),
+      created_at = character(),
+      stringsAsFactors = FALSE
+    )
+  }
+  item_records$summary <- I(lapply(items, function(item) item$summary %||% list()))
+  item_records$params <- I(lapply(items, function(item) item$params %||% list()))
+  item_records$warnings <- I(lapply(items, function(item) item$warnings %||% character()))
+
+  list(
+    app = "ggNetView Shiny",
+    generated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OS%z"),
+    item_count = nrow(item_records),
+    items = item_records
+  )
+}
+
+write_workflow_manifest <- function(registry, path) {
+  jsonlite::write_json(
+    workflow_manifest(registry),
+    path,
+    pretty = TRUE,
+    auto_unbox = TRUE,
+    null = "null"
+  )
   invisible(path)
 }
 

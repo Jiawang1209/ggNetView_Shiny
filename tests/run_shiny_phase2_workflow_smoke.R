@@ -132,6 +132,8 @@ wait_for_element("export_center-download_nodes_csv")
 wait_for_text("Download Nodes CSV")
 app$wait_for_idle(timeout = 30000)
 assert_download_nonempty("export_center-download_nodes_csv")
+wait_for_element("export_center-download_workflow_manifest")
+assert_download_nonempty("export_center-download_workflow_manifest")
 
 click_tab("Data Hub")
 click("#data_hub-run_gallery_recipe")

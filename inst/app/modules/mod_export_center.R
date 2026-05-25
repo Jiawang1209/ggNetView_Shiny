@@ -4,6 +4,7 @@ mod_export_center_ui <- function(id) {
     bslib::card_header("Export Center"),
     shiny::selectInput(ns("object_id"), "Object", choices = character()),
     shiny::downloadButton(ns("download_manifest"), "Download Manifest"),
+    shiny::downloadButton(ns("download_workflow_manifest"), "Download Workflow JSON"),
     shiny::downloadButton(ns("download_rds"), "Download RDS"),
     shiny::downloadButton(ns("download_csv"), "Download CSV"),
     shiny::downloadButton(ns("download_params"), "Download Parameters"),
@@ -113,6 +114,11 @@ mod_export_center_server <- function(id, registry) {
     output$download_manifest <- shiny::downloadHandler(
       filename = function() "ggnetview_manifest.csv",
       content = function(file) write_registry_table(registry_manifest(registry), file)
+    )
+
+    output$download_workflow_manifest <- shiny::downloadHandler(
+      filename = function() "ggnetview_workflow_manifest.json",
+      content = function(file) write_workflow_manifest(registry, file)
     )
 
     output$download_rds <- shiny::downloadHandler(

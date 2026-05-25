@@ -1,3 +1,6 @@
+source(testthat::test_path("../../R/app_registry.R"))
+source(testthat::test_path("../../R/app_exports.R"))
+
 test_that("write_registry_table writes CSV", {
   path <- tempfile(fileext = ".csv")
   write_registry_table(data.frame(a = 1, b = 2), path)
@@ -45,6 +48,40 @@ test_that("write_registry_params preserves nested and NULL values", {
   expect_null(parsed$nested$missing)
 })
 
+test_that("write_workflow_manifest exports registry provenance as JSON", {
+  registry <- registry_new()
+  registry_add(
+    registry,
+    name = "gallery_matrix",
+    type = "matrix",
+    data = matrix(1:4, nrow = 2),
+    source = "phase2_example_matrix.csv",
+    params = list(recipe = "manual_starter")
+  )
+  registry_add(
+    registry,
+    name = "gallery_recipe_circle_plot",
+    type = "plot",
+    data = list(class = "plot-placeholder"),
+    source = "obj_0001",
+    params = list(recipe = "network_plot_circle", layout = "circle"),
+    warnings = "small example"
+  )
+
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(registry, path)
+
+  manifest <- jsonlite::read_json(path, simplifyVector = TRUE)
+  expect_equal(manifest$app, "ggNetView Shiny")
+  expect_true("generated_at" %in% names(manifest))
+  expect_equal(manifest$item_count, 2L)
+  expect_equal(nrow(manifest$items), 2L)
+  expect_true(all(c("id", "name", "type", "source", "summary", "params", "warnings") %in% names(manifest$items)))
+  expect_equal(manifest$items$params$recipe[[2]], "network_plot_circle")
+  expect_equal(manifest$items$params$layout[[2]], "circle")
+  expect_equal(manifest$items$warnings[[2]], "small example")
+})
+
 test_that("write_plot_png writes extensionless download path", {
   path <- tempfile()
   plot <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
@@ -71,6 +108,7 @@ test_that("global helper bridge includes export helpers", {
     "write_registry_table",
     "write_registry_object",
     "write_registry_params",
+    "write_workflow_manifest",
     "write_plot_png",
     "write_plot_pdf"
   )
