@@ -71,6 +71,38 @@ test_that("safe_build_graph uses source fallback for valid builder", {
   expect_equal(result$value$data, mat)
 })
 
+test_that("source fallback keeps same-root helper dependencies available", {
+  tmp <- tempfile("ggnetview-builder-deps-")
+  dir.create(file.path(tmp, "R"), recursive = TRUE)
+  writeLines(
+    "apply_transform_method <- function(data, method = 'none') data + 1",
+    file.path(tmp, "R", "apply_transform_method.R")
+  )
+  writeLines(
+    paste(
+      "build_graph_from_mat <- function(data, marker = NULL) {",
+      "  list(data = apply_transform_method(data), marker = marker)",
+      "}",
+      sep = "\n"
+    ),
+    file.path(tmp, "R", "build_graph_from_mat.R")
+  )
+
+  if (requireNamespace("withr", quietly = TRUE)) {
+    withr::local_dir(tmp)
+  } else {
+    old <- setwd(tmp)
+    on.exit(setwd(old), add = TRUE)
+  }
+
+  mat <- matrix(1:4, nrow = 2, dimnames = list(c("A", "B"), c("S1", "S2")))
+  result <- safe_build_graph(mat, "matrix", params = list(marker = "ok"))
+
+  expect_true(result$ok)
+  expect_equal(result$value$marker, "ok")
+  expect_equal(result$value$data, mat + 1)
+})
+
 test_that("safe_build_graph resolves source fallback from Shiny app cwd", {
   tmp <- tempfile("ggnetview-shiny-root-")
   dir.create(file.path(tmp, "R"), recursive = TRUE)

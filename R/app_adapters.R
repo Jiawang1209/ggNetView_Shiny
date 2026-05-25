@@ -5,6 +5,28 @@ safe_call <- function(expr, user_message) {
   )
 }
 
+.ggnetview_source_cache <- new.env(parent = emptyenv())
+
+local_source_env <- function(root) {
+  root <- normalizePath(root, mustWork = FALSE)
+  if (exists(root, envir = .ggnetview_source_cache, inherits = FALSE)) {
+    return(get(root, envir = .ggnetview_source_cache, inherits = FALSE))
+  }
+
+  r_dir <- file.path(root, "R")
+  if (!dir.exists(r_dir)) {
+    return(NULL)
+  }
+
+  env <- new.env(parent = .GlobalEnv)
+  files <- sort(list.files(r_dir, pattern = "[.]R$", full.names = TRUE))
+  for (file in files) {
+    sys.source(file, envir = env)
+  }
+  assign(root, env, envir = .ggnetview_source_cache)
+  env
+}
+
 resolve_ggnetview_function <- function(name) {
   source_roots <- unique(normalizePath(c(
     getwd(),
@@ -16,8 +38,7 @@ resolve_ggnetview_function <- function(name) {
   for (root in source_roots) {
     source_path <- file.path(root, "R", paste0(name, ".R"))
     if (file.exists(source_path)) {
-      env <- new.env(parent = parent.frame())
-      sys.source(source_path, envir = env)
+      env <- local_source_env(root)
       if (exists(name, envir = env, mode = "function", inherits = FALSE)) {
         return(get(name, envir = env, mode = "function", inherits = FALSE))
       }
