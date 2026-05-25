@@ -40,6 +40,19 @@ test_that("detect_upload_type recognizes phase2 table classes", {
   expect_equal(detect_upload_type(tom), "wgcna_tom")
 })
 
+test_that("detect_upload_type recognizes node tables for node+edge workflows", {
+  source(testthat::test_path("../../R/app_validation.R"))
+
+  nodes <- data.frame(
+    id = c("OTU1", "OTU2", "OTU3", "OTU7"),
+    label = c("One", "Two", "Three", "Isolated"),
+    type = c("A", "A", "B", "Z"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_equal(detect_upload_type(nodes), "node_table")
+})
+
 test_that("read_user_table preserves edge and module schema columns", {
   source(testthat::test_path("../../R/app_validation.R"))
 
@@ -70,5 +83,22 @@ test_that("validated_upload_value honors manual type override", {
 
   expect_equal(auto$type, "unknown")
   expect_equal(override$type, "module_table")
+  expect_true(override$validation$ok)
+})
+
+test_that("validated_upload_value honors node table override", {
+  source(testthat::test_path("../../R/app_validation.R"))
+  source(testthat::test_path("../../inst/app/modules/mod_data_hub.R"))
+
+  table <- data.frame(
+    name = c("OTU1", "OTU2", "OTU7"),
+    label = c("Node 1", "Node 2", "Isolated"),
+    type = c("core", "core", "extra"),
+    stringsAsFactors = FALSE
+  )
+
+  override <- validated_upload_value(table, requested_type = "node_table")
+
+  expect_equal(override$type, "node_table")
   expect_true(override$validation$ok)
 })

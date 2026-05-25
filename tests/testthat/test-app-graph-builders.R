@@ -17,6 +17,7 @@ test_that("builder modes are discoverable", {
     "matrix",
     "matrix_rmt",
     "edge_table",
+    "node_edge",
     "adjacency",
     "double_matrix",
     "multi_matrix",
@@ -60,6 +61,29 @@ test_that("edge table graph builder returns app_result", {
 
   expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
   expect_s3_class(result$value, "igraph")
+})
+
+test_that("node+edge graph builder preserves isolated nodes", {
+  edges <- read_phase2_fixture("phase2_example_edges.csv", row_names = FALSE)
+  nodes <- data.frame(
+    id = c(paste0("OTU", 1:6), "OTU7"),
+    label = c(paste("OTU", 1:6), "Isolated OTU"),
+    type = c(rep("observed", 6), "isolated"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  result <- safe_graph_builder(
+    mode = "node_edge",
+    inputs = list(edge_table = edges, node_table = nodes),
+    params = list(module.method = "Walktrap")
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_s3_class(result$value, "igraph")
+  expect_true("OTU7" %in% igraph::V(result$value)$name)
+  expect_equal(unname(igraph::degree(result$value)["OTU7"]), 0)
+  expect_equal(igraph::V(result$value)$type[igraph::V(result$value)$name == "OTU7"], "isolated")
 })
 
 test_that("adjacency graph builder returns app_result", {

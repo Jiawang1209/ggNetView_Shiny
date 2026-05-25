@@ -48,7 +48,7 @@ wait_for_text <- function(text, timeout = 120000) {
   app$wait_for_js(script, timeout = timeout)
 }
 
-build_graph <- function(name, source, builder, source_b = NULL, multi = NULL, consensus = NULL, module = NULL) {
+build_graph <- function(name, source, builder, source_b = NULL, multi = NULL, consensus = NULL, module = NULL, node = NULL) {
   message("Building graph via browser: ", name)
   set_input("graph_builder-source_id", source)
   Sys.sleep(0.5)
@@ -63,6 +63,9 @@ build_graph <- function(name, source, builder, source_b = NULL, multi = NULL, co
   }
   if (!is.null(module)) {
     set_input("graph_builder-module_id", module)
+  }
+  if (!is.null(node)) {
+    set_input("graph_builder-node_id", node)
   }
   Sys.sleep(0.5)
   set_input("graph_builder-builder", builder)
@@ -84,6 +87,7 @@ wait_for_text("Registered RMT result:")
 
 build_graph("browser_matrix", "obj_0001", "matrix")
 build_graph("browser_edge_module", "obj_0003", "edge_table", module = "obj_0004")
+build_graph("browser_node_edge", "obj_0003", "node_edge", module = "", node = "obj_0012")
 build_graph("browser_adjacency_module", "obj_0006", "adjacency", module = "obj_0004")
 build_graph("browser_double", "obj_0001", "double_matrix", source_b = "obj_0002", module = "")
 build_graph("browser_multi", "obj_0001", "multi_matrix", multi = "obj_0002", module = "")

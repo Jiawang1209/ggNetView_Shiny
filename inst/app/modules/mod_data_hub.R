@@ -59,6 +59,7 @@ upload_type_choices <- function() {
     "Matrix" = "matrix",
     "Adjacency matrix" = "adjacency",
     "Edge table" = "edge_table",
+    "Node table" = "node_table",
     "Module table" = "module_table",
     "Annotation" = "annotation",
     "WGCNA/TOM matrix" = "wgcna_tom",

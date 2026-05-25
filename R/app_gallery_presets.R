@@ -236,6 +236,18 @@ register_gallery_examples <- function(registry, root = getOption("ggnetview.app_
   }
 
   add_item("gallery_rmt_matrix", "matrix", data$rmt_matrix, "phase2_example_rmt_matrix.csv")
+  add_item(
+    "gallery_nodes",
+    "node_table",
+    data.frame(
+      id = c(as.character(data$modules$node), "OTU7"),
+      label = c(as.character(data$modules$node), "Isolated OTU"),
+      type = c(as.character(data$modules$module), "Isolated"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    "phase2-node-edge-starter"
+  )
   add_item("gallery_tripartite_graph", "graph", gallery_layout_graph(3), "manual-layout-starter")
   add_item("gallery_quadripartite_graph", "graph", gallery_layout_graph(4), "manual-layout-starter")
   add_item("gallery_pentapartite_graph", "graph", gallery_layout_graph(5), "manual-layout-starter")

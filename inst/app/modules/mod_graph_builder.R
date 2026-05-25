@@ -6,7 +6,7 @@ builder_choices_for_type <- function(type) {
   switch(type,
     matrix = c("Matrix" = "matrix", "Matrix + RMT" = "matrix_rmt", "Double matrix" = "double_matrix", "Multi matrix" = "multi_matrix"),
     adjacency = c("Adjacency matrix" = "adjacency", "Consensus" = "consensus"),
-    edge_table = c("Edge table" = "edge_table"),
+    edge_table = c("Edge table" = "edge_table", "Node + edge table" = "node_edge"),
     wgcna_tom = c("WGCNA/TOM" = "wgcna_tom"),
     graph = c("Consensus" = "consensus"),
     graph_builder_modes()
@@ -45,7 +45,7 @@ graph_builder_params <- function(
   )
 }
 
-graph_builder_registry_params <- function(builder, params = list(), source_ids = character(), module_id = "") {
+graph_builder_registry_params <- function(builder, params = list(), source_ids = character(), module_id = "", node_id = "") {
   replay_params <- c(
     list(
       builder = builder,
@@ -55,6 +55,9 @@ graph_builder_registry_params <- function(builder, params = list(), source_ids =
   )
   if (!is.null(module_id) && length(module_id) == 1L && nzchar(module_id)) {
     replay_params$module_id <- module_id
+  }
+  if (!is.null(node_id) && length(node_id) == 1L && nzchar(node_id)) {
+    replay_params$node_id <- node_id
   }
   replay_params
 }
@@ -68,6 +71,7 @@ mod_graph_builder_ui <- function(id) {
       shiny::selectInput(ns("source_id_b"), "Second matrix", choices = character()),
       shiny::selectizeInput(ns("multi_source_ids"), "Multiple matrices", choices = character(), multiple = TRUE),
       shiny::selectizeInput(ns("consensus_source_ids"), "Consensus inputs", choices = character(), multiple = TRUE),
+      shiny::selectInput(ns("node_id"), "Node table", choices = c("None" = "")),
       shiny::selectInput(ns("module_id"), "Module table", choices = c("None" = "")),
       shiny::selectInput(
         ns("builder"),
@@ -106,10 +110,12 @@ mod_graph_builder_server <- function(id, registry) {
     shiny::observe({
       matrix_choices <- registry_choices_by_type(registry, c("matrix"))
       consensus_choices <- registry_choices_by_type(registry, c("graph", "adjacency"))
+      node_choices <- c("None" = "", registry_choices(registry, type = "node_table"))
       module_choices <- c("None" = "", registry_choices(registry, type = "module_table"))
       shiny::updateSelectInput(session, "source_id_b", choices = matrix_choices)
       shiny::updateSelectizeInput(session, "multi_source_ids", choices = matrix_choices, server = TRUE)
       shiny::updateSelectizeInput(session, "consensus_source_ids", choices = consensus_choices, server = TRUE)
+      shiny::updateSelectInput(session, "node_id", choices = node_choices)
       shiny::updateSelectInput(session, "module_id", choices = module_choices)
     })
 
@@ -206,6 +212,14 @@ mod_graph_builder_server <- function(id, registry) {
         matrix = list(matrix = source$data),
         matrix_rmt = list(matrix = source$data),
         edge_table = list(edge_table = source$data),
+        node_edge = {
+          shiny::req(input$node_id)
+          node_item <- registry_get(registry, input$node_id)
+          shiny::req(node_item)
+          source_ids <- c(input$source_id, input$node_id)
+          params$module.method <- input$module_method
+          list(edge_table = source$data, node_table = node_item$data)
+        },
         adjacency = list(adjacency = source$data),
         double_matrix = {
           shiny::req(input$source_id_b)
@@ -240,7 +254,7 @@ mod_graph_builder_server <- function(id, registry) {
         list(matrix = source$data)
       )
 
-      if (!is.null(input$module_id) && nzchar(input$module_id)) {
+      if (!is.null(input$module_id) && nzchar(input$module_id) && !identical(input$builder, "node_edge")) {
         module_item <- registry_get(registry, input$module_id)
         if (!is.null(module_item)) {
           inputs$module_table <- module_item$data
@@ -274,7 +288,13 @@ mod_graph_builder_server <- function(id, registry) {
         type = "graph",
         data = result$value,
         source = paste(source_ids, collapse = ","),
-        params = graph_builder_registry_params(input$builder, params, source_ids, input$module_id)
+        params = graph_builder_registry_params(
+          input$builder,
+          params,
+          source_ids,
+          if (identical(input$builder, "node_edge")) "" else input$module_id,
+          if (identical(input$builder, "node_edge")) input$node_id else ""
+        )
       )
       status(paste("Built graph:", item$name))
       shiny::showNotification(paste("Built graph:", item$name), type = "message")

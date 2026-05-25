@@ -51,6 +51,10 @@ read_user_table <- function(path, filename = path) {
         has_cols(c("sample", "group")) ||
         has_cols(c("id", "module")) ||
         has_cols(c("node", "label")) ||
+        has_cols(c("id", "label")) ||
+        has_cols(c("id", "type")) ||
+        has_cols(c("name", "label")) ||
+        has_cols(c("name", "type")) ||
         has_cols(c("name", "class")) ||
         has_cols(c("id", "group"))
     ) {
@@ -91,6 +95,17 @@ detect_upload_type <- function(data) {
 
   if (has_cols(c("sample", "group"))) {
     return("sample_metadata")
+  }
+
+  if (
+    has_cols(c("node", "label")) ||
+      has_cols(c("node", "type")) ||
+      has_cols(c("id", "label")) ||
+      has_cols(c("id", "type")) ||
+      has_cols(c("name", "label")) ||
+      has_cols(c("name", "type"))
+  ) {
+    return("node_table")
   }
 
   if (has_cols(c("node", "label")) || has_cols(c("name", "class")) || has_cols(c("id", "group"))) {
