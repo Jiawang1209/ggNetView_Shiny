@@ -217,6 +217,10 @@ mod_compare_environment_server <- function(id, registry) {
       data.frame(value = utils::capture.output(utils::str(stats)), stringsAsFactors = FALSE)
     }
 
+    environment_interpretation <- function(stats) {
+      interpret_environment_links(normalize_stats(stats))
+    }
+
     environment_block_message <- function(result) {
       env_names <- names(result$value$env_select %||% list())
       spec_names <- names(result$value$spec_select %||% list())
@@ -459,8 +463,9 @@ mod_compare_environment_server <- function(id, registry) {
       }
 
       plot_obj(result$value$plot)
-      stats_table(result$value$stats)
-      compare_link_summary_table(data.frame())
+      interpreted <- environment_interpretation(result$value$stats)
+      stats_table(interpreted$details)
+      compare_link_summary_table(interpreted$summary)
       compare_topology_table(data.frame())
       source_ids <- paste(input$spec_id, input$env_id, sep = ",")
       plot_item <- register_plot_result(
@@ -471,10 +476,18 @@ mod_compare_environment_server <- function(id, registry) {
       )
       register_stats_result(
         unique_output_name("environment_link_stats"),
-        result$value$stats,
+        interpreted$details,
         source_ids,
         params
       )
+      if (nrow(interpreted$summary)) {
+        register_stats_result(
+          unique_output_name("environment_link_summary"),
+          interpreted$summary,
+          source_ids,
+          list(kind = "environment_link_summary")
+        )
+      }
       status(paste0("Registered environment link plot: ", plot_item$name, environment_block_message(result)))
       shiny::showNotification(paste("Registered environment link plot:", plot_item$name), type = "message")
     })
@@ -544,9 +557,10 @@ mod_compare_environment_server <- function(id, registry) {
       }
 
       plot_obj(result$value$plot)
-      stats <- normalize_stats(result$value$stats)
+      interpreted <- environment_interpretation(result$value$stats)
+      stats <- interpreted$details
       stats_table(stats)
-      compare_link_summary_table(data.frame())
+      compare_link_summary_table(interpreted$summary)
       compare_topology_table(data.frame())
       source_ids <- paste(input$spec_id, input$env_id, sep = ",")
       plot_item <- register_plot_result(
@@ -561,6 +575,14 @@ mod_compare_environment_server <- function(id, registry) {
         source_ids,
         params
       )
+      if (nrow(interpreted$summary)) {
+        register_stats_result(
+          unique_output_name("manual_environment_heatmap_summary"),
+          interpreted$summary,
+          source_ids,
+          list(kind = "manual_environment_heatmap_summary")
+        )
+      }
       status(paste0("Registered manual environment heatmap: ", plot_item$name, environment_block_message(result)))
       shiny::showNotification(paste("Registered manual environment heatmap:", plot_item$name), type = "message")
     })
@@ -645,9 +667,10 @@ mod_compare_environment_server <- function(id, registry) {
       }
 
       plot_obj(result$value$plot)
-      stats <- normalize_stats(result$value$stats)
+      interpreted <- environment_interpretation(result$value$stats)
+      stats <- interpreted$details
       stats_table(stats)
-      compare_link_summary_table(data.frame())
+      compare_link_summary_table(interpreted$summary)
       compare_topology_table(data.frame())
       source_ids <- paste(input$spec_id, input$env_id, input$module_graph_id, sep = ",")
       plot_item <- register_plot_result(
@@ -662,6 +685,14 @@ mod_compare_environment_server <- function(id, registry) {
         source_ids,
         params
       )
+      if (nrow(interpreted$summary)) {
+        register_stats_result(
+          unique_output_name("module_environment_heatmap_summary"),
+          interpreted$summary,
+          source_ids,
+          list(kind = "module_environment_heatmap_summary")
+        )
+      }
       env_names <- names(result$value$env_select %||% list())
       block_message <- if (length(env_names)) {
         paste0(" Applied module env blocks: ", paste(env_names, collapse = ", "), ".")
@@ -773,15 +804,24 @@ mod_compare_environment_server <- function(id, registry) {
         return()
       }
 
-      stats_table(result$value)
-      compare_link_summary_table(data.frame())
+      interpreted <- environment_interpretation(result$value)
+      stats_table(interpreted$details)
+      compare_link_summary_table(interpreted$summary)
       compare_topology_table(data.frame())
       item <- register_stats_result(
         unique_output_name("mantel_pairwise_stats"),
-        result$value,
+        interpreted$details,
         paste(input$spec_id, input$env_id, sep = ","),
         params
       )
+      if (nrow(interpreted$summary)) {
+        register_stats_result(
+          unique_output_name("mantel_pairwise_summary"),
+          interpreted$summary,
+          paste(input$spec_id, input$env_id, sep = ","),
+          list(kind = "mantel_summary")
+        )
+      }
       status(paste("Registered Mantel result:", item$name))
       shiny::showNotification(paste("Registered Mantel result:", item$name), type = "message")
     })

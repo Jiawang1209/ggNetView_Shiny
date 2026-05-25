@@ -147,6 +147,41 @@ test_that("environment link returns plot and statistics", {
   expect_true(all(c("ID", "Type", "Correlation", "Pvalue") %in% names(result$value$stats)))
 })
 
+test_that("environment link interpretation summarizes strongest and significant links", {
+  stats <- data.frame(
+    ID = c("OTU1", "OTU2", "OTU3", "OTU4"),
+    Type = c("pH", "pH", "moisture", "moisture"),
+    Correlation = c(0.82, -0.4, -0.91, 0.2),
+    Pvalue = c(0.01, 0.2, 0.03, 0.7),
+    spec_block = c("Early", "Early", "Late", "Late"),
+    env_block = c("Climate", "Climate", "Water", "Water"),
+    method = c("correlation", "correlation", "mantel", "mantel"),
+    stringsAsFactors = FALSE
+  )
+
+  interpreted <- interpret_environment_links(stats)
+
+  expect_true(is.data.frame(interpreted$details))
+  expect_true(is.data.frame(interpreted$summary))
+  expect_true(all(c("abs_correlation", "direction", "significant", "link_label") %in% names(interpreted$details)))
+  expect_true(all(c(
+    "env_block", "spec_block", "method", "link_count", "significant_count",
+    "positive_count", "negative_count", "strongest_link", "strongest_correlation",
+    "strongest_pvalue", "mean_abs_correlation"
+  ) %in% names(interpreted$summary)))
+  expect_equal(nrow(interpreted$summary), 2L)
+  climate <- interpreted$summary[interpreted$summary$env_block == "Climate", ]
+  water <- interpreted$summary[interpreted$summary$env_block == "Water", ]
+  expect_equal(climate$link_count, 2L)
+  expect_equal(climate$significant_count, 1L)
+  expect_equal(climate$positive_count, 1L)
+  expect_equal(climate$negative_count, 1L)
+  expect_equal(climate$strongest_link, "OTU1 ~ pH")
+  expect_equal(climate$strongest_correlation, 0.82)
+  expect_equal(water$strongest_link, "OTU3 ~ moisture")
+  expect_equal(water$strongest_correlation, -0.91)
+})
+
 test_that("environment block selectors parse and pass through to environment link", {
   data <- phase2_env_spec()
   env_blocks <- parse_table_blocks("Climate: temperature,pH\nWater: moisture", names(data$env), "Env")

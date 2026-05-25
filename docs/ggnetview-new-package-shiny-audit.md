@@ -71,7 +71,7 @@ New dependencies relative to the old root package:
 | `05-layout.Rmd` | Full graph and subgraph visual layout gallery | Covered for major layout families and every current Visual Lab layout preset in browser smoke. |
 | `06-network_topology.Rmd` | Network topology, sample topology, node centrality, IVI, Zi-Pi | Covered for global topology, direct parallel topology, robustness, sample topology, centrality, IVI, and Zi-Pi. |
 | `07-network_compare.Rmd` | Multi-network comparison via `ggNetView_multi_link()` | Covered with comparison plotting and task feedback. Richer topology comparison displays and link-info tables remain. |
-| `08-network_environment.Rmd` | Advanced `gglink_heatmaps()` with correlation/Mantel, multi-core, collapse modes | Covered for environment links, module-level heatmaps, statistics, Mantel helpers, Gallery-backed geometry presets, and direct multi-core/style controls. Direct report-level interpretation remains a polish area. |
+| `08-network_environment.Rmd` | Advanced `gglink_heatmaps()` with correlation/Mantel, multi-core, collapse modes | Covered for environment links, module-level heatmaps, statistics, Mantel helpers, Gallery-backed geometry presets, direct multi-core/style controls, and report-level interpretation summaries. |
 | `09-multi-omics_netwotk.Rmd` | Multi-omics graph and plot workflows | Starter coverage through multi-matrix graph building and gallery/plot presets. More multi-omics-specific recipes remain. |
 | `10-Gallery_of_Reproducible_Examples.Rmd` | Publication recipes and reusable parameter presets | Covered through gallery recipes, guarded reruns, manifest metadata, and workflow replay preview. Non-gallery imported object rerun support remains partial. |
 
@@ -147,8 +147,8 @@ Recent focused checks and browser smokes cover the rebuilt workflow surface:
    stabilizes.
 2. Task feedback is broadly wired, but deliberately slow-action browser tests
    would make busy-state behavior more defensible.
-3. Environment and multi-omics workflows still need deeper multi-core controls,
-   richer presets, and finer environment/species block selections.
+3. Environment and multi-omics workflows still need richer multi-omics-specific
+   report presets after longer real-use sessions.
 4. Multi-network comparison works, but richer comparison-group controls,
    topology comparison displays, and link-info tables remain valuable.
 5. Export Center behavior is functional, but grouping and wording can be made

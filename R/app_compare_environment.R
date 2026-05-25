@@ -210,6 +210,90 @@ interpret_multi_network_links <- function(link_info) {
   list(details = details, summary = summary)
 }
 
+empty_environment_link_interpretation <- function() {
+  list(
+    details = data.frame(),
+    summary = data.frame()
+  )
+}
+
+interpret_environment_links <- function(stats) {
+  if (is.null(stats) || !is.data.frame(stats) || !nrow(stats)) {
+    return(empty_environment_link_interpretation())
+  }
+
+  details <- as.data.frame(stats, check.names = FALSE)
+  if (!"ID" %in% names(details)) {
+    details$ID <- NA_character_
+  }
+  if (!"Type" %in% names(details)) {
+    details$Type <- NA_character_
+  }
+  if (!"Correlation" %in% names(details)) {
+    details$Correlation <- NA_real_
+  }
+  if (!"Pvalue" %in% names(details)) {
+    details$Pvalue <- NA_real_
+  }
+  if (!"spec_block" %in% names(details)) {
+    details$spec_block <- "All"
+  }
+  if (!"env_block" %in% names(details)) {
+    details$env_block <- "All"
+  }
+  if (!"method" %in% names(details)) {
+    details$method <- "unknown"
+  }
+
+  details$ID <- as.character(details$ID)
+  details$Type <- as.character(details$Type)
+  details$spec_block <- as.character(details$spec_block)
+  details$env_block <- as.character(details$env_block)
+  details$method <- as.character(details$method)
+  details$Correlation <- suppressWarnings(as.numeric(details$Correlation))
+  details$Pvalue <- suppressWarnings(as.numeric(details$Pvalue))
+  details$abs_correlation <- abs(details$Correlation)
+  details$direction <- ifelse(
+    is.na(details$Correlation),
+    "unknown",
+    ifelse(details$Correlation > 0, "positive", ifelse(details$Correlation < 0, "negative", "zero"))
+  )
+  details$significant <- if ("p_signif" %in% names(details)) {
+    nzchar(as.character(details$p_signif)) | (!is.na(details$Pvalue) & details$Pvalue < 0.05)
+  } else {
+    !is.na(details$Pvalue) & details$Pvalue < 0.05
+  }
+  details$link_label <- paste(details$ID, details$Type, sep = " ~ ")
+
+  split_key <- interaction(details$env_block, details$spec_block, details$method, drop = TRUE, lex.order = TRUE)
+  summary_rows <- lapply(split(details, split_key), function(df) {
+    strongest_index <- if (all(is.na(df$abs_correlation))) {
+      1L
+    } else {
+      which.max(replace(df$abs_correlation, is.na(df$abs_correlation), -Inf))
+    }
+    data.frame(
+      env_block = df$env_block[[1]],
+      spec_block = df$spec_block[[1]],
+      method = df$method[[1]],
+      link_count = nrow(df),
+      significant_count = sum(isTRUE(df$significant) | df$significant, na.rm = TRUE),
+      positive_count = sum(df$direction == "positive", na.rm = TRUE),
+      negative_count = sum(df$direction == "negative", na.rm = TRUE),
+      strongest_link = df$link_label[[strongest_index]],
+      strongest_correlation = df$Correlation[[strongest_index]],
+      strongest_pvalue = df$Pvalue[[strongest_index]],
+      mean_abs_correlation = if (all(is.na(df$abs_correlation))) NA_real_ else mean(df$abs_correlation, na.rm = TRUE),
+      stringsAsFactors = FALSE
+    )
+  })
+  summary <- do.call(rbind, summary_rows)
+  rownames(summary) <- NULL
+  summary <- summary[order(summary$env_block, summary$spec_block, summary$method), , drop = FALSE]
+
+  list(details = details, summary = summary)
+}
+
 summarize_multi_network_topology <- function(graphs, params = list()) {
   if (!length(graphs)) {
     return(data.frame())

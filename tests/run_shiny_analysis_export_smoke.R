@@ -67,7 +67,8 @@ select_registry_object_by_type <- function(type) {
       "const el = document.getElementById('export_center-object_id');",
       "if (!el) return null;",
       "const options = el.selectize ? Object.values(el.selectize.options) : Array.from(el.options);",
-      "const option = options.find(o => (o.label || o.text || '').includes(%s));",
+      "const matching = options.filter(o => (o.label || o.text || '').includes(%s));",
+      "const option = matching.length ? matching[matching.length - 1] : null;",
       "return option ? option.value : null;",
       "})()"
     ),
@@ -129,6 +130,9 @@ click("#topology_results-calculate_ivi")
 wait_for_text("Registered node_ivi")
 
 click_tab("Compare & Environment")
+click("#compare_environment-run_environment")
+wait_for_text("Registered environment link plot:", timeout = 120000)
+wait_for_text("strongest_link", timeout = 60000)
 set_input("compare_environment-mantel_kind", "block_vs_col")
 set_input("compare_environment-mantel_method", "spearman")
 set_input("compare_environment-mantel_alternative", "greater")

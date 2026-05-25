@@ -16,7 +16,7 @@ Date: 2026-05-26
 - Visual Lab exposes major manual layout families and common `ggNetView()` parameters, including outline/geometric variants plus additional circular-module petal, square, star, diamond, and heart layouts that pass real `ggNetView()` smoke checks.
 - Topology can register global topology, direct parallel topology, robustness, sample-level topology/statistics, centrality, IVI, and Zi-Pi/keystone result tables.
 - Graph Builder, Visual Lab, Topology, Compare & Environment, and Gallery recipe execution now wrap real ggNetView calls with progress feedback and temporary action-button busy states.
-- Compare & Environment can register multi-network comparison plots with optional pair restrictions, normalized link detail tables, pair-level link summaries, topology comparison summaries, environment-link plots/statistics with environment/spec block selectors, env/spec pair restrictions, multi-core geometry controls, module-level environment heatmaps, and Mantel pairwise tables.
+- Compare & Environment can register multi-network comparison plots with optional pair restrictions, normalized link detail tables, pair-level link summaries, topology comparison summaries, environment-link plots/statistics with environment/spec block selectors, env/spec pair restrictions, multi-core geometry controls, module-level environment heatmaps, Mantel pairwise tables, and report-oriented environment interpretation summaries.
 - `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports.
 - `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, Export graph-node/workflow-manifest downloads, workflow manifest replay preview, and gallery recipe execution.
 - `tests/run_shiny_graph_builder_modes_smoke.R` now runs real browser builds for RMT, matrix, edge+module, node+edge, STRINGDB/PPI, igraph object, adjacency+module, double matrix, multi-matrix, WGCNA/TOM, and consensus builder paths.
@@ -38,11 +38,11 @@ Date: 2026-05-26
    - Still needed: add deeper browser-level assertions for the busy-state handler on deliberately slow test actions.
 
 3. Environment and multi-omics depth.
-   - The environment workflow now uses `gglink_heatmaps_2()`, original `gglink_heatmaps()`, `gglink_heatmap_triple()`, `ggnetview_modularity_heatmaps()`, block-vs-column Mantel controls, distance/permutation Mantel controls, and Mantel pairwise/block helpers. Gallery recipes can reproduce the heatmap, triple-heatmap, and Mantel starter paths.
+   - The environment workflow now uses `gglink_heatmaps_2()`, original `gglink_heatmaps()`, `gglink_heatmap_triple()`, `ggnetview_modularity_heatmaps()`, block-vs-column Mantel controls, distance/permutation Mantel controls, Mantel pairwise/block helpers, and interpretation summaries that identify strongest/significant links by block and method. Gallery recipes can reproduce the heatmap, triple-heatmap, and Mantel starter paths.
    - Gallery recipes now include multi-omics starter paths that build multi-matrix and double-matrix graphs, plus a block-restricted multi-omics environment heatmap from two omics-like matrices.
    - Environment/spec block selectors, block-pair restrictions, multi-core geometry controls, direct heatmap style controls, inward heatmap distance, arc/rotation controls, and collapsed-core Gallery recipes are now exposed for heatmap workflows.
    - Browser smoke now covers the representative geometry matrix for default heatmap, multi-omics block heatmap, collapsed-core heatmap, and rotated-arc/inward-distance collapsed-core heatmap.
-   - Still needed: richer report-level interpretation of environment links and multi-omics blocks after longer real-use sessions.
+   - Still needed: richer multi-omics-specific narrative/report presets after longer real-use sessions.
 
 4. Multi-network comparison depth.
    - The comparison workflow now uses `ggNetView_multi_link()` with graph objects and `ggNetView_multi()` from a matrix plus generated or uploaded/custom group metadata.
@@ -53,6 +53,7 @@ Date: 2026-05-26
 5. Polish layout and wording after real use.
    - Export Center buttons are now grouped into selected-object, type-specific, and session/workflow sections.
    - Selected object type/source/format metadata is now visible near the export controls.
+   - Some advanced environment-link plots can still fail direct PNG export with non-finite line-width errors from the underlying ggplot/ggraph layers; Visual Lab plot export remains smoke-covered.
    - Still needed: continue polishing labels after longer real-use sessions, especially for future report/project-level exports.
 
 6. Gallery completion.
