@@ -41,7 +41,7 @@ invisible(lapply(c(
   "safe_call", "safe_build_graph", "safe_plot_ggnetview", "safe_topology",
   "registry_new", "registry_next_id", "registry_summarize", "registry_add",
   "registry_get", "registry_delete", "registry_count", "registry_list",
-  "registry_choices", "registry_log_error",
+  "registry_choices", "registry_choices_by_type", "registry_log_error",
   "write_registry_table", "write_registry_object", "write_registry_params",
   "write_plot_png", "write_plot_pdf"
 ), load_app_helper))

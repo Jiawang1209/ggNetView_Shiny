@@ -83,6 +83,21 @@ test_that("registry choices returns named ids and filters by type", {
   })
 })
 
+test_that("registry choices by type returns only requested types", {
+  registry <- registry_new()
+  matrix_item <- registry_add(registry, name = "m", type = "matrix", data = matrix(1, nrow = 1))
+  adjacency_item <- registry_add(registry, name = "a", type = "adjacency", data = matrix(1, nrow = 1))
+  registry_add(registry, name = "g", type = "graph", data = list(nodes = 1))
+
+  shiny::isolate({
+    choices <- registry_choices_by_type(registry, c("matrix", "adjacency"))
+    expect_equal(unname(choices), c(matrix_item$id, adjacency_item$id))
+    expect_equal(names(choices), c("m [matrix]", "a [adjacency]"))
+
+    expect_equal(registry_choices_by_type(registry, "missing"), stats::setNames(character(), character()))
+  })
+})
+
 test_that("registry_count is reactive-aware", {
   server <- function(input, output, session) {
     registry <- registry_new()
