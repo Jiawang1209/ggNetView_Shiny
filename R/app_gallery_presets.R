@@ -56,22 +56,46 @@ gallery_recipe_manifest <- function() {
   data.frame(
     recipe = c(
       "network_plot_circle",
-      "grouped_network_plot"
+      "grouped_network_plot",
+      "graph_info_topology",
+      "environment_heatmap",
+      "mantel_pairwise"
     ),
     label = c(
       "Circle network plot",
-      "Grouped matrix network plot"
+      "Grouped matrix network plot",
+      "Graph info and topology",
+      "Environment heatmap",
+      "Mantel pairwise table"
     ),
     output_type = c(
       "plot",
-      "plot,result"
+      "plot,result",
+      "result",
+      "plot,result",
+      "result"
     ),
     manual_area = c(
       "Gallery network layout",
-      "Network comparison from sample metadata"
+      "Network comparison from sample metadata",
+      "Get network information and topology",
+      "Network-environment heatmap",
+      "Environment Mantel helper"
     ),
     stringsAsFactors = FALSE
   )
+}
+
+gallery_environment_fixture <- function(matrix) {
+  spec <- t(as.matrix(matrix))
+  env <- data.frame(
+    temperature = c(12, 13, 14, 16, 18),
+    pH = c(6.8, 6.9, 7.1, 7.2, 7.4),
+    moisture = c(30, 31, 35, 36, 40),
+    row.names = rownames(spec),
+    check.names = FALSE
+  )
+  list(spec = as.data.frame(spec, check.names = FALSE), env = env)
 }
 
 gallery_registry_item_by_name <- function(registry, name) {
@@ -189,6 +213,92 @@ run_gallery_recipe <- function(registry, recipe) {
       list(kind = "sample_groups")
     )
     return(app_success(list(items = list(plot_item, group_item))))
+  }
+
+  if (identical(recipe, "graph_info_topology")) {
+    graph_item <- gallery_registry_item_by_name(registry, "gallery_matrix_graph")
+    if (is.null(graph_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    info <- safe_graph_info(graph_item$data)
+    if (!info$ok) {
+      return(info)
+    }
+    topology <- safe_topology(graph_item$data)
+    if (!topology$ok) {
+      return(topology)
+    }
+    info_item <- add_recipe_item(
+      "gallery_recipe_graph_info",
+      "result",
+      info$value,
+      graph_item$id,
+      list(kind = "graph_info")
+    )
+    topology_item <- add_recipe_item(
+      "gallery_recipe_network_topology",
+      "result",
+      topology$value,
+      graph_item$id,
+      list(kind = "network_topology")
+    )
+    return(app_success(list(items = list(info_item, topology_item))))
+  }
+
+  if (identical(recipe, "environment_heatmap")) {
+    matrix_item <- gallery_registry_item_by_name(registry, "gallery_matrix")
+    if (is.null(matrix_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    fixture <- gallery_environment_fixture(matrix_item$data)
+    result <- safe_environment_heatmap(
+      env = fixture$env,
+      spec = fixture$spec,
+      env_select = list(Environment = seq_len(ncol(fixture$env))),
+      spec_select = list(Species = seq_len(ncol(fixture$spec)))
+    )
+    if (!result$ok) {
+      return(result)
+    }
+    plot_item <- add_recipe_item(
+      "gallery_recipe_environment_heatmap",
+      "plot",
+      result$value$plot,
+      matrix_item$id,
+      list(relation_method = "correlation")
+    )
+    stats_item <- add_recipe_item(
+      "gallery_recipe_environment_stats",
+      "result",
+      result$value$stats,
+      matrix_item$id,
+      list(kind = "environment_stats", relation_method = "correlation")
+    )
+    return(app_success(list(items = list(plot_item, stats_item))))
+  }
+
+  if (identical(recipe, "mantel_pairwise")) {
+    matrix_item <- gallery_registry_item_by_name(registry, "gallery_matrix")
+    if (is.null(matrix_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    fixture <- gallery_environment_fixture(matrix_item$data)
+    result <- safe_mantel_pairwise(
+      spec = fixture$spec[, 1:2, drop = FALSE],
+      env = fixture$env[, 1:2, drop = FALSE],
+      params = list(permutations = 9L)
+    )
+    if (!result$ok) {
+      return(result)
+    }
+    item <- add_recipe_item(
+      "gallery_recipe_mantel_pairwise",
+      "result",
+      result$value,
+      matrix_item$id,
+      list(permutations = 9L)
+    )
+    return(app_success(list(items = list(item))))
   }
 
   app_failure(sprintf("Gallery recipe is not implemented: %s", recipe))

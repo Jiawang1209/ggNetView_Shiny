@@ -9,7 +9,7 @@ Date: 2026-05-26
 - Local source loading now keeps same-package helper dependencies and common ggNetView plotting/data-manipulation helper functions available.
 - Export is object-aware: graph objects expose node, edge, and adjacency CSV exports; plot PNG/PDF buttons remain plot-only.
 - Data Hub can load manual workflow examples for matrix, edge-table-with-module, adjacency, TOM-like, and starter graph workflows.
-- Data Hub can run one-click gallery recipes that register final plot/result objects from those starters.
+- Data Hub can run one-click gallery recipes that register final plot/result objects from those starters, including network layout, grouped comparison, graph info/topology, environment heatmap, and Mantel pairwise workflows.
 - Data Hub can load sample metadata and Compare & Environment can use it for grouped matrix network plots.
 - Graph Builder has real API-backed entry points for matrix, RMT-assisted matrix, edge table, adjacency, double matrix, multi-matrix, WGCNA/TOM, and consensus graph construction.
 - Graph Explorer can register graph info, module subgraphs, and sample subgraphs.
@@ -17,7 +17,7 @@ Date: 2026-05-26
 - Topology can register global topology, robustness, centrality, IVI, and Zi-Pi/keystone result tables.
 - Compare & Environment can register multi-network comparison plots, environment-link plots/statistics, and Mantel pairwise tables.
 - `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports.
-- `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, and Export graph-node downloads.
+- `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, Export graph-node downloads, and gallery recipe execution.
 - `tests/run_shiny_graph_builder_modes_smoke.R` now runs real browser builds for RMT, matrix, edge+module, adjacency+module, double matrix, multi-matrix, WGCNA/TOM, and consensus builder paths.
 - `tests/run_shiny_analysis_export_smoke.R` now covers sample subgraphs, centrality, IVI, Mantel, Visual Lab plot registration, and plot PNG/PDF downloads in a real browser.
 
@@ -48,8 +48,8 @@ Date: 2026-05-26
    - Consider grouping controls into object-specific sections.
 
 6. Gallery completion.
-   - Manual workflow examples are now loadable as starter objects, and first one-click recipes can register final plot/result outputs.
-   - Still needed: more one-click reproducible recipes for additional manual chapters and richer exported workflow manifests.
+   - Manual workflow examples are now loadable as starter objects, and one-click recipes can register final plot/result outputs for layout, comparison, graph-info/topology, environment, and Mantel manual areas.
+   - Still needed: more one-click reproducible recipes for multi-omics-specific chapters and richer exported workflow manifests.
 
 7. Add regression tests for issues found during manual use.
    - Local source dependencies for `build_graph_from_mat()`.

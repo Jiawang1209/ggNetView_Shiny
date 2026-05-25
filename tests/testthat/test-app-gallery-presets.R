@@ -2,6 +2,8 @@ source(testthat::test_path("../../R/app_validation.R"))
 source(testthat::test_path("../../R/app_registry.R"))
 source(testthat::test_path("../../R/app_adapters.R"))
 source(testthat::test_path("../../R/app_graph_builders.R"))
+source(testthat::test_path("../../R/app_graph_inspect.R"))
+source(testthat::test_path("../../R/app_topology_adapters.R"))
 source(testthat::test_path("../../R/app_compare_environment.R"))
 source(testthat::test_path("../../R/app_gallery_presets.R"))
 
@@ -27,7 +29,13 @@ test_that("gallery recipe manifest exposes one-click workflows", {
   recipes <- gallery_recipe_manifest()
 
   expect_true(all(c("recipe", "label", "output_type") %in% names(recipes)))
-  expect_true(all(c("network_plot_circle", "grouped_network_plot") %in% recipes$recipe))
+  expect_true(all(c(
+    "network_plot_circle",
+    "grouped_network_plot",
+    "graph_info_topology",
+    "environment_heatmap",
+    "mantel_pairwise"
+  ) %in% recipes$recipe))
 })
 
 test_that("gallery recipes register reproducible outputs", {
@@ -41,8 +49,22 @@ test_that("gallery recipes register reproducible outputs", {
   grouped <- run_gallery_recipe(registry, "grouped_network_plot")
   expect_true(isTRUE(grouped$ok), info = grouped$trace %||% grouped$message)
 
+  graph_info <- run_gallery_recipe(registry, "graph_info_topology")
+  expect_true(isTRUE(graph_info$ok), info = graph_info$trace %||% graph_info$message)
+
+  environment <- run_gallery_recipe(registry, "environment_heatmap")
+  expect_true(isTRUE(environment$ok), info = environment$trace %||% environment$message)
+
+  mantel <- run_gallery_recipe(registry, "mantel_pairwise")
+  expect_true(isTRUE(mantel$ok), info = mantel$trace %||% mantel$message)
+
   listed <- shiny::isolate(registry_list(registry))
   expect_true(any(listed$name == "gallery_recipe_circle_plot"))
   expect_true(any(listed$name == "gallery_recipe_grouped_network_plot"))
   expect_true(any(listed$name == "gallery_recipe_grouped_network_groups"))
+  expect_true(any(listed$name == "gallery_recipe_graph_info"))
+  expect_true(any(listed$name == "gallery_recipe_network_topology"))
+  expect_true(any(listed$name == "gallery_recipe_environment_heatmap"))
+  expect_true(any(listed$name == "gallery_recipe_environment_stats"))
+  expect_true(any(listed$name == "gallery_recipe_mantel_pairwise"))
 })
