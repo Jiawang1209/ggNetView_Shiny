@@ -7,8 +7,7 @@ mod_export_center_ui <- function(id) {
     shiny::downloadButton(ns("download_rds"), "Download RDS"),
     shiny::downloadButton(ns("download_csv"), "Download CSV"),
     shiny::downloadButton(ns("download_params"), "Download Parameters"),
-    shiny::downloadButton(ns("download_png"), "Download Plot PNG"),
-    shiny::downloadButton(ns("download_pdf"), "Download Plot PDF")
+    shiny::uiOutput(ns("plot_downloads"))
   )
 }
 
@@ -60,6 +59,17 @@ is_plot_item <- function(item) {
   !is.null(item) && identical(item$type, "plot")
 }
 
+plot_download_controls <- function(item, ns = identity) {
+  if (!is_plot_item(item)) {
+    return(NULL)
+  }
+
+  shiny::tagList(
+    shiny::downloadButton(ns("download_png"), "Download Plot PNG"),
+    shiny::downloadButton(ns("download_pdf"), "Download Plot PDF")
+  )
+}
+
 mod_export_center_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     shiny::observe({
@@ -71,6 +81,11 @@ mod_export_center_server <- function(id, registry) {
       item <- registry_get(registry, input$object_id)
       shiny::validate(shiny::need(!is.null(item), "Selected object is no longer available."))
       item
+    })
+
+    output$plot_downloads <- shiny::renderUI({
+      item <- selected_item()
+      plot_download_controls(item, session$ns)
     })
 
     output$download_manifest <- shiny::downloadHandler(

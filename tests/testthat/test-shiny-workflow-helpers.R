@@ -161,4 +161,7 @@ test_that("plot downloads are limited to plot objects", {
   expect_true(is_plot_item(list(type = "plot")))
   expect_false(is_plot_item(list(type = "matrix")))
   expect_false(is_plot_item(NULL))
+
+  expect_null(plot_download_controls(list(type = "matrix")))
+  expect_s3_class(plot_download_controls(list(type = "plot")), "shiny.tag.list")
 })
