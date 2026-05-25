@@ -50,7 +50,7 @@ registry_add <- function(registry, name, type, data, source = NULL, params = lis
 }
 
 registry_get <- function(registry, id) {
-  shiny::isolate(registry$items[[id]])
+  registry$items[[id]]
 }
 
 registry_delete <- function(registry, id) {
@@ -61,11 +61,11 @@ registry_delete <- function(registry, id) {
 }
 
 registry_count <- function(registry) {
-  length(shiny::isolate(registry$items))
+  length(registry$items)
 }
 
 registry_list <- function(registry, type = NULL) {
-  items <- shiny::isolate(registry$items)
+  items <- registry$items
   if (!is.null(type)) {
     items <- Filter(function(x) identical(x$type, type), items)
   }
