@@ -1,4 +1,5 @@
-Sys.setenv(R_PROFILE_USER = "/dev/null")
+# Run with: R_PROFILE_USER=/dev/null Rscript tests/run_shiny_core_workflow_smoke.R
+# or: Rscript --vanilla tests/run_shiny_core_workflow_smoke.R
 
 args <- commandArgs(trailingOnly = FALSE)
 file_arg <- grep("^--file=", args, value = TRUE)
@@ -18,16 +19,53 @@ source_repo_file <- function(...) {
   sys.source(path, envir = globalenv())
 }
 
-warn_missing_packages <- function(packages) {
-  missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
+description_imports <- function() {
+  desc <- read.dcf(file.path(repo_root, "DESCRIPTION"))[1, , drop = TRUE]
+  import_text <- desc[["Imports"]]
+  if (is.null(import_text) || is.na(import_text) || !nzchar(import_text)) {
+    return(character())
+  }
+
+  imports <- unlist(strsplit(import_text, ",", fixed = TRUE), use.names = FALSE)
+  imports <- trimws(gsub("\\s*\\([^)]*\\)", "", imports))
+  imports[nzchar(imports)]
+}
+
+recommended_or_base_packages <- function() {
+  installed <- utils::installed.packages()
+  rownames(installed)[installed[, "Priority"] %in% c("base", "recommended")]
+}
+
+report_missing_imports <- function() {
+  imports <- setdiff(description_imports(), recommended_or_base_packages())
+  missing <- imports[!vapply(imports, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing)) {
-    warning(
-      "Missing packages needed by the real ggNetView workflow: ",
-      paste(missing, collapse = ", "),
-      call. = FALSE
+    message(
+      "Missing non-base/non-recommended DESCRIPTION Imports: ",
+      paste(missing, collapse = ", ")
     )
+  } else {
+    message("All non-base/non-recommended DESCRIPTION Imports are installed.")
   }
   invisible(missing)
+}
+
+try_load_namespace <- function() {
+  if (requireNamespace("pkgload", quietly = TRUE)) {
+    return(tryCatch(
+      {
+        pkgload::load_all(repo_root, quiet = TRUE)
+        TRUE
+      },
+      error = function(e) {
+        message("Could not load ggNetView namespace with pkgload: ", conditionMessage(e))
+        FALSE
+      }
+    ))
+  }
+
+  message("pkgload is not installed; cannot fully load ggNetView namespace for smoke workflow.")
+  FALSE
 }
 
 assert_app_ok <- function(result, step) {
@@ -43,47 +81,19 @@ assert_app_ok <- function(result, step) {
   stop(paste(details, collapse = "\n"), call. = FALSE)
 }
 
-warn_missing_packages(c(
-  "jsonlite",
-  "magrittr",
-  "tibble",
-  "dplyr",
-  "tidyr",
-  "purrr",
-  "igraph",
-  "tidygraph",
-  "psych",
-  "ggplot2",
-  "ggrepel",
-  "ggforce"
-))
+report_missing_imports()
+namespace_loaded <- try_load_namespace()
+if (!namespace_loaded) {
+  message("Continuing through app adapters to expose the first real workflow failure.")
+}
 
 source_repo_file("R", "app_validation.R")
 source_repo_file("R", "app_adapters.R")
 source_repo_file("R", "app_exports.R")
 source_repo_file("R", "apply_transform_method.R")
-source_repo_file("R", "stat_graph.R")
-source_repo_file("R", "ggnetview_palette.R")
-source_repo_file("R", "theme_ggnetview.R")
-source_repo_file("R", "create_layout_nicely.R")
-source_repo_file("R", "build_graph_from_mat.R")
-source_repo_file("R", "get_network_topology.R")
-source_repo_file("R", "ggnetview.R")
 
 if (requireNamespace("magrittr", quietly = TRUE)) {
   `%>%` <- magrittr::`%>%`
-}
-
-if (!requireNamespace("ggNetView", quietly = TRUE) &&
-    requireNamespace("pkgload", quietly = TRUE)) {
-  tryCatch(
-    pkgload::load_all(repo_root, quiet = TRUE),
-    error = function(e) warning(
-      "Could not load ggNetView namespace with pkgload: ",
-      conditionMessage(e),
-      call. = FALSE
-    )
-  )
 }
 
 matrix_path <- file.path("inst", "extdata", "example_matrix.csv")
@@ -112,5 +122,18 @@ tmpdir <- tempfile("ggnetview-smoke-")
 dir.create(tmpdir)
 write_registry_object(graph_result$value, file.path(tmpdir, "graph.rds"))
 write_registry_params(list(builder = "matrix"), file.path(tmpdir, "params.json"))
+stopifnot(file.exists(file.path(tmpdir, "graph.rds")))
+stopifnot(file.exists(file.path(tmpdir, "params.json")))
+
+round_trip_graph <- readRDS(file.path(tmpdir, "graph.rds"))
+if (requireNamespace("igraph", quietly = TRUE) && inherits(graph_result$value, "igraph")) {
+  stopifnot(igraph::vcount(round_trip_graph) == igraph::vcount(graph_result$value))
+  stopifnot(igraph::ecount(round_trip_graph) == igraph::ecount(graph_result$value))
+} else {
+  stopifnot(inherits(round_trip_graph, class(graph_result$value)[1]))
+}
+
+params <- jsonlite::read_json(file.path(tmpdir, "params.json"), simplifyVector = TRUE)
+stopifnot(identical(params$builder, "matrix"))
 
 cat("core workflow smoke passed\n")
