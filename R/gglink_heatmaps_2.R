@@ -764,6 +764,10 @@ gglink_heatmaps_2 <- function(
   if (isTRUE(drop_nonsig)) {
     link_df <- link_df %>% dplyr::filter(.data$Pvalue <= 0.05)
   }
+  link_df <- link_df %>%
+    dplyr::mutate(
+      link_width_value = -log10(pmax(.data$Pvalue, .Machine$double.xmin))
+    )
 
   .offset_env_2 <- function(df, ori, k_per_ori, k_gap, effective_len,
                              side_anchor, heatmap_step,
@@ -1036,7 +1040,7 @@ gglink_heatmaps_2 <- function(
       ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
           color = Correlation,
           linetype = line_type,
-          linewidth = -log10(Pvalue)),
+          linewidth = link_width_value),
       alpha = SigLineAlpha
     ) +
     ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
@@ -1069,7 +1073,7 @@ gglink_heatmaps_2 <- function(
               mapping = ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
                             color = Correlation,
                             linetype = line_type,
-                            linewidth = -log10(Pvalue)),
+                            linewidth = link_width_value),
                alpha = SigLineAlpha,
                curvature = 0.25
     ) +

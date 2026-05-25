@@ -2,6 +2,7 @@ source(testthat::test_path("../../R/app_validation.R"))
 source(testthat::test_path("../../R/app_adapters.R"))
 source(testthat::test_path("../../R/app_graph_builders.R"))
 source(testthat::test_path("../../R/app_compare_environment.R"))
+source(testthat::test_path("../../R/app_exports.R"))
 
 read_phase2_fixture <- function(name, row_names = TRUE) {
   path <- testthat::test_path("../../inst/extdata", name)
@@ -145,6 +146,20 @@ test_that("environment link returns plot and statistics", {
   expect_s3_class(result$value$plot, "ggplot")
   expect_s3_class(result$value$curved_plot, "ggplot")
   expect_true(all(c("ID", "Type", "Correlation", "Pvalue") %in% names(result$value$stats)))
+})
+
+test_that("environment link plot exports with finite linewidths", {
+  mat <- read_phase2_fixture("phase2_example_matrix.csv")
+  spec <- as.data.frame(t(as.matrix(mat)), check.names = FALSE)
+  env <- as.data.frame(t(as.matrix(mat)), check.names = FALSE)
+  result <- safe_environment_link(env = env, spec = spec)
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  path <- tempfile(fileext = ".png")
+  write_plot_png(result$value$plot, path, width = 4, height = 3, dpi = 72)
+
+  expect_true(file.exists(path))
+  expect_gt(file.info(path)$size, 0)
 })
 
 test_that("environment link interpretation summarizes strongest and significant links", {

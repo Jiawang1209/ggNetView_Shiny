@@ -53,7 +53,7 @@ Date: 2026-05-26
 5. Polish layout and wording after real use.
    - Export Center buttons are now grouped into selected-object, type-specific, and session/workflow sections.
    - Selected object type/source/format metadata is now visible near the export controls.
-   - Some advanced environment-link plots can still fail direct PNG export with non-finite line-width errors from the underlying ggplot/ggraph layers; Visual Lab plot export remains smoke-covered.
+   - Environment-link plot export now guards zero P values from producing non-finite line widths, with a focused PNG export regression test alongside the Visual Lab export smoke.
    - Still needed: continue polishing labels after longer real-use sessions, especially for future report/project-level exports.
 
 6. Gallery completion.
