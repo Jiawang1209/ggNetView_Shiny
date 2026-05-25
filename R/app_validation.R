@@ -40,6 +40,10 @@ read_user_table <- function(path, filename = path) {
     stop("Uploaded table must contain an ID column and at least one data column.", call. = FALSE)
   }
 
+  if (is.data.frame(data) && all(c("from", "to") %in% names(data))) {
+    return(data)
+  }
+
   ids <- data[[1]]
   if (anyDuplicated(ids)) {
     stop("The first column contains duplicate IDs. Please make row IDs unique.", call. = FALSE)

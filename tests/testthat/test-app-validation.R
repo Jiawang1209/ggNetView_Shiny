@@ -19,6 +19,18 @@ test_that("read_user_table uses filename extension for temp upload paths", {
   expect_equal(ncol(tbl), 5L)
 })
 
+test_that("read_user_table preserves edge table columns", {
+  path <- tempfile(fileext = ".csv")
+  writeLines(c("from,to,weight", "A,B,0.5", "A,C,0.7"), path)
+  on.exit(unlink(path), add = TRUE)
+
+  tbl <- read_user_table(path)
+
+  expect_equal(names(tbl), c("from", "to", "weight"))
+  expect_equal(nrow(tbl), 2L)
+  expect_equal(detect_upload_type(tbl), "edge_table")
+})
+
 test_that("detect_upload_type identifies numeric matrix", {
   mat <- data.frame(S1 = c(1, 2), S2 = c(3, 4), row.names = c("A", "B"))
   expect_equal(detect_upload_type(mat), "matrix")
