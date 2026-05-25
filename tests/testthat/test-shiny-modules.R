@@ -1,6 +1,7 @@
 source(test_path("../../R/app_validation.R"))
 source(test_path("../../R/app_adapters.R"))
 source(test_path("../../R/app_graph_inspect.R"))
+source(test_path("../../R/app_topology_adapters.R"))
 source(test_path("../../inst/app/modules/mod_graph_explorer.R"))
 source(test_path("../../inst/app/modules/mod_topology_results.R"))
 

@@ -4,7 +4,14 @@ mod_topology_results_ui <- function(id) {
     bslib::card(
       bslib::card_header("Calculate"),
       shiny::selectInput(ns("graph_id"), "Graph object", choices = character()),
-      shiny::actionButton(ns("calculate"), "Calculate topology")
+      shiny::actionButton(ns("calculate"), "Calculate topology"),
+      shiny::checkboxInput(ns("weighted_centrality"), "Weighted centrality", value = FALSE),
+      shiny::actionButton(ns("calculate_centrality"), "Calculate centrality"),
+      shiny::selectInput(ns("ivi_scale"), "IVI scale", choices = c("range", "z-scale", "none")),
+      shiny::actionButton(ns("calculate_ivi"), "Calculate IVI"),
+      shiny::numericInput(ns("zi_threshold"), "Zi threshold", value = 2.5, min = 0, step = 0.1),
+      shiny::numericInput(ns("pi_threshold"), "Pi threshold", value = 0.62, min = 0, max = 1, step = 0.01),
+      shiny::actionButton(ns("calculate_zipi"), "Calculate Zi-Pi")
     ),
     bslib::card(
       bslib::card_header("Topology"),
@@ -15,7 +22,11 @@ mod_topology_results_ui <- function(id) {
       bslib::card_header("Robustness"),
       DT::DTOutput(ns("robustness"))
     ),
-    col_widths = c(4, 8, 12)
+    bslib::card(
+      bslib::card_header("Node Metrics"),
+      DT::DTOutput(ns("node_metrics"))
+    ),
+    col_widths = c(4, 8, 6, 6)
   )
 }
 
@@ -52,6 +63,7 @@ mod_topology_results_server <- function(id, registry) {
 
     topology_table <- shiny::reactiveVal(data.frame())
     robustness_table <- shiny::reactiveVal(data.frame())
+    node_metrics_table <- shiny::reactiveVal(data.frame())
     status <- shiny::reactiveVal("No topology calculated yet.")
 
     shiny::observe({
@@ -99,8 +111,79 @@ mod_topology_results_server <- function(id, registry) {
       status(paste("Registered topology:", topology_name))
     })
 
+    register_node_metric <- function(metric, result, graph_item, params = list()) {
+      if (!result$ok) {
+        node_metrics_table(empty_result_table())
+        detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
+        status(detail)
+        shiny::showNotification(result$message, type = "error")
+        return(NULL)
+      }
+
+      table <- as.data.frame(result$value, check.names = FALSE)
+      result_name <- unique_output_name(paste0(graph_item$name, "_", metric))
+      node_metrics_table(table)
+      registry_add(
+        registry,
+        name = result_name,
+        type = "result",
+        data = table,
+        source = graph_item$id,
+        params = c(list(metric = metric), params)
+      )
+      status(paste("Registered", metric, ":", result_name))
+      shiny::showNotification(paste("Registered", metric, ":", result_name), type = "message")
+    }
+
+    shiny::observeEvent(input$calculate_centrality, {
+      shiny::req(input$graph_id)
+      graph_item <- registry_get(registry, input$graph_id)
+      shiny::req(graph_item)
+
+      result <- safe_node_centrality(graph_item$data, measures = "all", weighted = input$weighted_centrality)
+      register_node_metric(
+        "node_centrality",
+        result,
+        graph_item,
+        params = list(weighted = input$weighted_centrality)
+      )
+    })
+
+    shiny::observeEvent(input$calculate_ivi, {
+      shiny::req(input$graph_id)
+      graph_item <- registry_get(registry, input$graph_id)
+      shiny::req(graph_item)
+
+      result <- safe_node_ivi(graph_item$data, scale = input$ivi_scale, ncores = 1L)
+      register_node_metric(
+        "node_ivi",
+        result,
+        graph_item,
+        params = list(scale = input$ivi_scale, ncores = 1L)
+      )
+    })
+
+    shiny::observeEvent(input$calculate_zipi, {
+      shiny::req(input$graph_id)
+      graph_item <- registry_get(registry, input$graph_id)
+      shiny::req(graph_item)
+
+      result <- safe_zipi(
+        graph_item$data,
+        zi_threshold = input$zi_threshold,
+        pi_threshold = input$pi_threshold
+      )
+      register_node_metric(
+        "zipi",
+        result,
+        graph_item,
+        params = list(zi_threshold = input$zi_threshold, pi_threshold = input$pi_threshold)
+      )
+    })
+
     output$topology <- DT::renderDT(topology_table(), rownames = FALSE)
     output$robustness <- DT::renderDT(robustness_table(), rownames = FALSE)
+    output$node_metrics <- DT::renderDT(node_metrics_table(), rownames = FALSE)
     output$status <- shiny::renderText(status())
   })
 }

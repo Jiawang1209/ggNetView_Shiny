@@ -14,6 +14,7 @@ app_helper_files <- file.path(app_root, "R", c(
   "app_adapters.R",
   "app_graph_builders.R",
   "app_graph_inspect.R",
+  "app_topology_adapters.R",
   "app_exports.R"
 ))
 
@@ -50,6 +51,7 @@ invisible(lapply(c(
   "validate_graph_builder_inputs", "graph_builder_function_name", "graph_builder_call_args",
   "safe_graph_info", "graph_module_choices", "safe_module_subgraph", "safe_sample_subgraph",
   "subgraph_selected_graph", "subgraph_stat_table",
+  "safe_node_centrality", "safe_node_ivi", "safe_zipi", "node_table_from_graph", "adjacency_from_graph",
   "registry_new", "registry_next_id", "registry_summarize", "registry_add",
   "registry_get", "registry_delete", "registry_count", "registry_list",
   "registry_choices", "registry_choices_by_type", "registry_log_error",
