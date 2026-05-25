@@ -31,10 +31,14 @@ test_that("visual layout browser smoke exists and covers layout families", {
   expect_true(file.exists(path))
 
   source_text <- paste(readLines(path, warn = FALSE), collapse = "\n")
-  expect_match(source_text, "circle_outline", fixed = TRUE)
-  expect_match(source_text, "circular_modules_equal_petal_layout", fixed = TRUE)
-  expect_match(source_text, "bipartite_layout", fixed = TRUE)
-  expect_match(source_text, "WGCNA", fixed = TRUE)
+  expect_match(source_text, "source(file.path(repo_root, \"inst\", \"app\", \"modules\", \"mod_visual_lab.R\"))", fixed = TRUE)
+  expect_match(source_text, "visual_lab_layout_choices()", fixed = TRUE)
+  expect_match(source_text, "visual_layout_smoke_cases", fixed = TRUE)
+
+  source(test_path("../../inst/app/modules/mod_visual_lab.R"))
+  choices <- unlist(visual_lab_layout_choices(), use.names = FALSE)
+  expect_gt(length(choices), 40)
+  expect_true(all(choices %in% visual_layout_smoke_cases()$layout))
 })
 
 test_that("package/manual audit reflects the current Shiny coverage", {

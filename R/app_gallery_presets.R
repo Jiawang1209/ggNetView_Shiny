@@ -153,6 +153,52 @@ gallery_registry_item_by_name <- function(registry, name) {
   shiny::isolate(registry_get(registry, hit$id[[1]]))
 }
 
+gallery_layout_graph <- function(module_count = 3L, directed = FALSE) {
+  module_count <- as.integer(module_count)
+  nodes_per_module <- 2L
+  node_names <- paste0("L", module_count, "_", seq_len(module_count * nodes_per_module))
+  modules <- rep(seq_len(module_count), each = nodes_per_module)
+
+  if (isTRUE(directed)) {
+    edges <- data.frame(
+      source = node_names[seq_len(length(node_names) - 1L)],
+      target = node_names[seq_len(length(node_names) - 1L) + 1L],
+      weight = 1,
+      stringsAsFactors = FALSE
+    )
+  } else {
+    within_edges <- do.call(rbind, lapply(seq_len(module_count), function(module_id) {
+      idx <- which(modules == module_id)
+      data.frame(source = node_names[idx[[1]]], target = node_names[idx[[2]]], weight = 1)
+    }))
+    bridge_edges <- data.frame(
+      source = node_names[seq(2L, length(node_names) - 2L, by = 2L)],
+      target = node_names[seq(3L, length(node_names) - 1L, by = 2L)],
+      weight = 0.5,
+      stringsAsFactors = FALSE
+    )
+    edges <- rbind(within_edges, bridge_edges)
+  }
+
+  vertices <- data.frame(
+    name = node_names,
+    node = node_names,
+    type = paste0("M", modules),
+    node_size = 1,
+    Modularity = factor(modules),
+    modularity2 = factor(modules),
+    modularity3 = factor(modules),
+    Degree = 1,
+    Strength = 1,
+    stringsAsFactors = FALSE
+  )
+  graph <- igraph::graph_from_data_frame(edges, directed = directed, vertices = vertices)
+  igraph::V(graph)$Degree <- igraph::degree(graph, mode = "all")
+  igraph::V(graph)$Strength <- igraph::strength(graph, mode = "all", weights = igraph::E(graph)$weight)
+  igraph::V(graph)$node_size <- igraph::V(graph)$Degree
+  tidygraph::as_tbl_graph(graph)
+}
+
 register_gallery_examples <- function(registry, root = getOption("ggnetview.app_root", getwd())) {
   data <- load_gallery_example_tables(root)
   items <- list()
@@ -190,6 +236,10 @@ register_gallery_examples <- function(registry, root = getOption("ggnetview.app_
   }
 
   add_item("gallery_rmt_matrix", "matrix", data$rmt_matrix, "phase2_example_rmt_matrix.csv")
+  add_item("gallery_tripartite_graph", "graph", gallery_layout_graph(3), "manual-layout-starter")
+  add_item("gallery_quadripartite_graph", "graph", gallery_layout_graph(4), "manual-layout-starter")
+  add_item("gallery_pentapartite_graph", "graph", gallery_layout_graph(5), "manual-layout-starter")
+  add_item("gallery_directed_tree_graph", "graph", gallery_layout_graph(2, directed = TRUE), "manual-layout-starter")
 
   invisible(items)
 }

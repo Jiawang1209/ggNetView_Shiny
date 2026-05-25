@@ -22,7 +22,7 @@ Date: 2026-05-26
 - `tests/run_shiny_graph_builder_modes_smoke.R` now runs real browser builds for RMT, matrix, edge+module, adjacency+module, double matrix, multi-matrix, WGCNA/TOM, and consensus builder paths.
 - `tests/run_shiny_analysis_export_smoke.R` now covers sample subgraphs, sample topology, centrality, IVI, Mantel, Visual Lab plot registration, and plot PNG/PDF downloads in a real browser.
 - `tests/run_shiny_mobile_layout_smoke.R` now checks 390px-wide navigation across the main workflow tabs and guards against page-level horizontal overflow.
-- `tests/run_shiny_visual_layouts_smoke.R` now draws representative Visual Lab layouts in a real browser across general, geometric, circular-module, multipartite, and WGCNA-style layout families.
+- `tests/run_shiny_visual_layouts_smoke.R` now draws every Visual Lab layout preset in a real browser, including general, geometric, circular-module, multipartite, WGCNA, dendrogram, and multirings layouts.
 
 ## Remaining Gaps
 
@@ -30,8 +30,7 @@ Date: 2026-05-26
    - Current smoke covers startup, the original core programmatic workflow, the broad manual-backed backend workflow, and a real browser click-through for the main Phase 2/3 path.
    - Current browser smoke also covers every major graph-builder mode.
    - Current browser smoke also covers sample subgraph registration, centrality/IVI buttons, a circular-module Visual Lab preset, Mantel button, and plot PNG/PDF downloads.
-   - Current browser smoke also covers mobile-width navigation, page-level overflow checks, and representative Visual Lab layout families.
-   - Still needed: broader visual-regression coverage for all individual layout presets.
+   - Current browser smoke also covers mobile-width navigation, page-level overflow checks, and every individual Visual Lab layout preset.
 
 2. Long-running operation feedback.
    - Graph build, RMT scan, plot draw, topology, centrality, IVI, Zi-Pi, comparison, grouped multi-network, environment heatmaps, Mantel, and Gallery recipe paths now use shared progress feedback and temporary button busy states.

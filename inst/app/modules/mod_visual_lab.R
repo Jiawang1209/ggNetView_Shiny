@@ -44,6 +44,29 @@ visual_lab_layout_choices <- function() {
   )
 }
 
+visual_layout_smoke_cases <- function(choices = visual_lab_layout_choices()) {
+  layouts <- unlist(choices, use.names = FALSE)
+  family <- rep(names(choices), lengths(choices))
+  module <- ifelse(
+    family %in% c("Circular modules", "Multipartite", "Special"),
+    "order",
+    "adjacent"
+  )
+  graph_name <- rep("gallery_matrix_graph", length(layouts))
+  graph_name[grepl("tripartite", layouts)] <- "gallery_tripartite_graph"
+  graph_name[grepl("quadripartite", layouts)] <- "gallery_quadripartite_graph"
+  graph_name[grepl("pentapartite", layouts)] <- "gallery_pentapartite_graph"
+  graph_name[layouts == "dendrogram"] <- "gallery_directed_tree_graph"
+
+  data.frame(
+    family = family,
+    layout = layouts,
+    module = module,
+    graph_name = graph_name,
+    stringsAsFactors = FALSE
+  )
+}
+
 visual_lab_params <- function(
   layout,
   layout_module = "adjacent",

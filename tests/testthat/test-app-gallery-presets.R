@@ -6,6 +6,7 @@ source(testthat::test_path("../../R/app_graph_inspect.R"))
 source(testthat::test_path("../../R/app_topology_adapters.R"))
 source(testthat::test_path("../../R/app_compare_environment.R"))
 source(testthat::test_path("../../R/app_gallery_presets.R"))
+source(testthat::test_path("../../inst/app/modules/mod_visual_lab.R"))
 
 test_that("gallery workflow manifest maps manual examples", {
   manifest <- gallery_workflow_manifest()
@@ -23,6 +24,30 @@ test_that("gallery examples register typed inputs and starter graphs", {
   expect_true(all(c("matrix", "edge_table", "module_table", "adjacency", "wgcna_tom", "result") %in% listed$type))
   expect_true("graph" %in% listed$type)
   expect_true(any(listed$name == "gallery_workflows"))
+  expect_true(all(c(
+    "gallery_tripartite_graph",
+    "gallery_quadripartite_graph",
+    "gallery_pentapartite_graph",
+    "gallery_directed_tree_graph"
+  ) %in% listed$name))
+
+  tripartite <- gallery_registry_item_by_name(registry, "gallery_tripartite_graph")
+  dendrogram <- gallery_registry_item_by_name(registry, "gallery_directed_tree_graph")
+  expect_equal(length(unique(igraph::vertex_attr(tripartite$data, "Modularity"))), 3)
+  expect_true(igraph::is_directed(dendrogram$data))
+  expect_true(all(c("node", "type", "node_size") %in% igraph::vertex_attr_names(dendrogram$data)))
+})
+
+test_that("gallery directed starter renders the dendrogram layout", {
+  registry <- registry_new()
+  register_gallery_examples(registry, root = testthat::test_path("../.."))
+  graph_item <- gallery_registry_item_by_name(registry, "gallery_directed_tree_graph")
+
+  params <- visual_lab_params("dendrogram", "order", FALSE, "two_column", 18, 0.4, 1, 1, 10, FALSE, FALSE, 1115)
+  result <- safe_plot_ggnetview(graph_item$data, params = params)
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_silent(ggplot2::ggplot_build(result$value))
 })
 
 test_that("gallery recipe manifest exposes one-click workflows", {
