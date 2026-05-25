@@ -91,6 +91,14 @@ registry_list <- function(registry, type = NULL) {
   }))
 }
 
+registry_choices <- function(registry, type = NULL) {
+  listed <- registry_list(registry, type = type)
+  if (!nrow(listed)) {
+    return(stats::setNames(character(), character()))
+  }
+  stats::setNames(listed$id, paste0(listed$name, " [", listed$type, "]"))
+}
+
 registry_log_error <- function(registry, context, error) {
   entry <- list(context = context, message = conditionMessage(error), created_at = Sys.time())
   log <- shiny::isolate(registry$log)
