@@ -87,3 +87,21 @@ test_that("empty result table is safe for stale topology clearing", {
   expect_s3_class(empty, "data.frame")
   expect_equal(nrow(empty), 0L)
 })
+
+source(test_path("../../inst/app/modules/mod_visual_lab.R"))
+
+test_that("visual lab params are stable and JSON-friendly", {
+  params <- visual_lab_params(
+    layout = "nicely",
+    show_labels = TRUE,
+    label_layout = "two_column",
+    label_wrap_width = 18,
+    bandwidth_scale = 1
+  )
+
+  expect_equal(params$layout, "nicely")
+  expect_true(params$label)
+  expect_equal(params$label_layout, "two_column")
+  expect_equal(params$label_wrap_width, 18)
+  expect_equal(params$bandwidth_scale, 1)
+})

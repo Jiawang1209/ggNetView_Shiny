@@ -1,3 +1,19 @@
+visual_lab_params <- function(
+  layout,
+  show_labels,
+  label_layout,
+  label_wrap_width,
+  bandwidth_scale
+) {
+  list(
+    layout = layout,
+    label = isTRUE(show_labels),
+    label_layout = label_layout,
+    label_wrap_width = as.numeric(label_wrap_width),
+    bandwidth_scale = as.numeric(bandwidth_scale)
+  )
+}
+
 mod_visual_lab_ui <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_sidebar(
@@ -17,7 +33,8 @@ mod_visual_lab_ui <- function(id) {
     bslib::card(
       bslib::card_header("Preview"),
       shiny::plotOutput(ns("plot"), height = 650),
-      shiny::verbatimTextOutput(ns("status"))
+      shiny::verbatimTextOutput(ns("status")),
+      shiny::verbatimTextOutput(ns("params"))
     )
   )
 }
@@ -41,9 +58,9 @@ mod_visual_lab_server <- function(id, registry) {
       graph_item <- registry_get(registry, input$graph_id)
       shiny::req(graph_item)
 
-      params <- list(
+      params <- visual_lab_params(
         layout = input$layout,
-        label = isTRUE(input$show_labels),
+        show_labels = input$show_labels,
         label_layout = input$label_layout,
         label_wrap_width = input$label_wrap_width,
         bandwidth_scale = input$bandwidth_scale
@@ -76,5 +93,19 @@ mod_visual_lab_server <- function(id, registry) {
     })
 
     output$status <- shiny::renderText(status())
+
+    output$params <- shiny::renderText({
+      jsonlite::toJSON(
+        visual_lab_params(
+          layout = input$layout,
+          show_labels = input$show_labels,
+          label_layout = input$label_layout,
+          label_wrap_width = input$label_wrap_width,
+          bandwidth_scale = input$bandwidth_scale
+        ),
+        auto_unbox = TRUE,
+        pretty = TRUE
+      )
+    })
   })
 }
