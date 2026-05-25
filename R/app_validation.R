@@ -40,6 +40,23 @@ read_user_table <- function(path, filename = path) {
     stop("Uploaded table must contain an ID column and at least one data column.", call. = FALSE)
   }
 
+  if (is.data.frame(data)) {
+    names_lower <- tolower(names(data))
+    has_cols <- function(cols) all(cols %in% names_lower)
+    if (
+      has_cols(c("source", "target")) ||
+        has_cols(c("from", "to")) ||
+        has_cols(c("node", "module")) ||
+        has_cols(c("name", "module")) ||
+        has_cols(c("id", "module")) ||
+        has_cols(c("node", "label")) ||
+        has_cols(c("name", "class")) ||
+        has_cols(c("id", "group"))
+    ) {
+      return(data)
+    }
+  }
+
   if (is.data.frame(data) && all(c("from", "to") %in% names(data))) {
     return(data)
   }

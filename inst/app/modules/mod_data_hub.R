@@ -53,9 +53,28 @@ unique_registry_name <- function(registry, name) {
   candidate
 }
 
-validated_upload_value <- function(table) {
-  type <- detect_upload_type(table)
-  validation <- if (identical(type, "matrix")) validate_matrix_like(table) else app_success(table)
+upload_type_choices <- function() {
+  c(
+    "Auto detect" = "auto",
+    "Matrix" = "matrix",
+    "Adjacency matrix" = "adjacency",
+    "Edge table" = "edge_table",
+    "Module table" = "module_table",
+    "Annotation" = "annotation",
+    "WGCNA/TOM matrix" = "wgcna_tom",
+    "Sample metadata" = "sample_metadata",
+    "Environment matrix" = "env_matrix"
+  )
+}
+
+validated_upload_value <- function(table, requested_type = "auto") {
+  detected_type <- detect_upload_type(table)
+  type <- if (identical(requested_type, "auto")) detected_type else requested_type
+  validation <- if (type %in% c("matrix", "adjacency", "wgcna_tom", "env_matrix")) {
+    validate_matrix_like(table)
+  } else {
+    app_success(table)
+  }
   list(type = type, validation = validation)
 }
 
@@ -65,6 +84,7 @@ mod_data_hub_ui <- function(id) {
     bslib::card(
       bslib::card_header("Upload"),
       shiny::fileInput(ns("file"), "Upload CSV, TSV, or TXT"),
+      shiny::selectInput(ns("upload_type"), "Object type", choices = upload_type_choices(), selected = "auto"),
       shiny::textInput(ns("object_name"), "Object name", value = "uploaded_matrix"),
       shiny::actionButton(ns("register"), "Register object"),
       shiny::actionButton(ns("load_example"), "Load example matrix")
@@ -84,8 +104,8 @@ mod_data_hub_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     current_table <- shiny::reactiveVal(NULL)
 
-    register_table <- function(table, name, source) {
-      prepared <- validated_upload_value(table)
+    register_table <- function(table, name, source, requested_type = "auto") {
+      prepared <- validated_upload_value(table, requested_type = requested_type)
       type <- prepared$type
       validation <- prepared$validation
 
@@ -113,7 +133,7 @@ mod_data_hub_server <- function(id, registry) {
       result <- tryCatch(
         {
           table <- read_user_table(input$file$datapath, filename = input$file$name)
-          item <- register_table(table, input$object_name, input$file$name)
+          item <- register_table(table, input$object_name, input$file$name, requested_type = input$upload_type)
 
           if (!is.null(item)) {
             current_table(item$data)
@@ -135,7 +155,7 @@ mod_data_hub_server <- function(id, registry) {
         {
           path <- app_example_matrix_path()
           table <- read_user_table(path)
-          item <- register_table(table, "example_matrix", basename(path))
+          item <- register_table(table, "example_matrix", basename(path), requested_type = "matrix")
 
           if (!is.null(item)) {
             current_table(item$data)

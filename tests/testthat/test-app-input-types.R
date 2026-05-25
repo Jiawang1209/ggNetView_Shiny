@@ -32,3 +32,36 @@ test_that("detect_upload_type recognizes phase2 table classes", {
   expect_equal(detect_upload_type(adjacency), "adjacency")
   expect_equal(detect_upload_type(tom), "wgcna_tom")
 })
+
+test_that("read_user_table preserves edge and module schema columns", {
+  source(testthat::test_path("../../R/app_validation.R"))
+
+  edge_path <- testthat::test_path("../../inst/extdata/phase2_example_edges.csv")
+  module_path <- testthat::test_path("../../inst/extdata/phase2_example_modules.csv")
+
+  edges <- read_user_table(edge_path)
+  modules <- read_user_table(module_path)
+
+  expect_true(all(c("source", "target", "weight") %in% names(edges)))
+  expect_true(all(c("node", "module") %in% names(modules)))
+  expect_equal(detect_upload_type(edges), "edge_table")
+  expect_equal(detect_upload_type(modules), "module_table")
+})
+
+test_that("validated_upload_value honors manual type override", {
+  source(testthat::test_path("../../R/app_validation.R"))
+  source(testthat::test_path("../../inst/app/modules/mod_data_hub.R"))
+
+  table <- data.frame(
+    value = c("A", "B"),
+    module = c("blue", "brown"),
+    stringsAsFactors = FALSE
+  )
+
+  auto <- validated_upload_value(table, requested_type = "auto")
+  override <- validated_upload_value(table, requested_type = "module_table")
+
+  expect_equal(auto$type, "unknown")
+  expect_equal(override$type, "module_table")
+  expect_true(override$validation$ok)
+})
