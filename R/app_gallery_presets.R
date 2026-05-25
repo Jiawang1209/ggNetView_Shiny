@@ -52,6 +52,37 @@ gallery_workflow_manifest <- function() {
   )
 }
 
+gallery_recipe_manifest <- function() {
+  data.frame(
+    recipe = c(
+      "network_plot_circle",
+      "grouped_network_plot"
+    ),
+    label = c(
+      "Circle network plot",
+      "Grouped matrix network plot"
+    ),
+    output_type = c(
+      "plot",
+      "plot,result"
+    ),
+    manual_area = c(
+      "Gallery network layout",
+      "Network comparison from sample metadata"
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
+gallery_registry_item_by_name <- function(registry, name) {
+  listed <- shiny::isolate(registry_list(registry))
+  hit <- listed[listed$name == name, , drop = FALSE]
+  if (!nrow(hit)) {
+    return(NULL)
+  }
+  shiny::isolate(registry_get(registry, hit$id[[1]]))
+}
+
 register_gallery_examples <- function(registry, root = getOption("ggnetview.app_root", getwd())) {
   data <- load_gallery_example_tables(root)
   items <- list()
@@ -91,4 +122,74 @@ register_gallery_examples <- function(registry, root = getOption("ggnetview.app_
   add_item("gallery_rmt_matrix", "matrix", data$rmt_matrix, "phase2_example_rmt_matrix.csv")
 
   invisible(items)
+}
+
+run_gallery_recipe <- function(registry, recipe) {
+  recipes <- gallery_recipe_manifest()
+  if (!recipe %in% recipes$recipe) {
+    return(app_failure(sprintf("Unknown gallery recipe: %s", recipe)))
+  }
+
+  add_recipe_item <- function(name, type, data, source, params = list()) {
+    registry_add(
+      registry,
+      name = name,
+      type = type,
+      data = data,
+      source = source,
+      params = c(list(recipe = recipe), params)
+    )
+  }
+
+  if (identical(recipe, "network_plot_circle")) {
+    graph_item <- gallery_registry_item_by_name(registry, "gallery_matrix_graph")
+    if (is.null(graph_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    result <- safe_plot_ggnetview(graph_item$data, params = list(layout = "circle"))
+    if (!result$ok) {
+      return(result)
+    }
+    item <- add_recipe_item(
+      "gallery_recipe_circle_plot",
+      "plot",
+      result$value,
+      graph_item$id,
+      list(layout = "circle")
+    )
+    return(app_success(list(items = list(item))))
+  }
+
+  if (identical(recipe, "grouped_network_plot")) {
+    matrix_item <- gallery_registry_item_by_name(registry, "gallery_matrix")
+    metadata_item <- gallery_registry_item_by_name(registry, "gallery_sample_metadata")
+    if (is.null(matrix_item) || is.null(metadata_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    result <- safe_multi_group_network(
+      matrix_item$data,
+      group_info = metadata_item$data,
+      params = list(r.threshold = 0.2, p.threshold = 1)
+    )
+    if (!result$ok) {
+      return(result)
+    }
+    plot_item <- add_recipe_item(
+      "gallery_recipe_grouped_network_plot",
+      "plot",
+      result$value$plot,
+      paste(matrix_item$id, metadata_item$id, sep = ","),
+      list(r.threshold = 0.2, p.threshold = 1)
+    )
+    group_item <- add_recipe_item(
+      "gallery_recipe_grouped_network_groups",
+      "result",
+      result$value$group_info,
+      paste(matrix_item$id, metadata_item$id, sep = ","),
+      list(kind = "sample_groups")
+    )
+    return(app_success(list(items = list(plot_item, group_item))))
+  }
+
+  app_failure(sprintf("Gallery recipe is not implemented: %s", recipe))
 }

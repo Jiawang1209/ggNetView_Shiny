@@ -9,6 +9,7 @@ Date: 2026-05-26
 - Local source loading now keeps same-package helper dependencies and common ggNetView plotting/data-manipulation helper functions available.
 - Export is object-aware: graph objects expose node, edge, and adjacency CSV exports; plot PNG/PDF buttons remain plot-only.
 - Data Hub can load manual workflow examples for matrix, edge-table-with-module, adjacency, TOM-like, and starter graph workflows.
+- Data Hub can run one-click gallery recipes that register final plot/result objects from those starters.
 - Data Hub can load sample metadata and Compare & Environment can use it for grouped matrix network plots.
 - Graph Builder has real API-backed entry points for matrix, RMT-assisted matrix, edge table, adjacency, double matrix, multi-matrix, WGCNA/TOM, and consensus graph construction.
 - Graph Explorer can register graph info, module subgraphs, and sample subgraphs.
@@ -47,8 +48,8 @@ Date: 2026-05-26
    - Consider grouping controls into object-specific sections.
 
 6. Gallery completion.
-   - Manual workflow examples are now loadable as starter objects.
-   - Still needed: one-click end-to-end reproducible gallery recipes that draw/export final figures for more manual chapters.
+   - Manual workflow examples are now loadable as starter objects, and first one-click recipes can register final plot/result outputs.
+   - Still needed: more one-click reproducible recipes for additional manual chapters and richer exported workflow manifests.
 
 7. Add regression tests for issues found during manual use.
    - Local source dependencies for `build_graph_from_mat()`.

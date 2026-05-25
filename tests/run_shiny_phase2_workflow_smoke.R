@@ -133,4 +133,11 @@ wait_for_text("Download Nodes CSV")
 app$wait_for_idle(timeout = 30000)
 assert_download_nonempty("export_center-download_nodes_csv")
 
+click_tab("Data Hub")
+click("#data_hub-run_gallery_recipe")
+wait_for_text("gallery_recipe_circle_plot", timeout = 120000)
+set_input("data_hub-gallery_recipe", "grouped_network_plot")
+click("#data_hub-run_gallery_recipe")
+wait_for_text("gallery_recipe_grouped_network_plot", timeout = 120000)
+
 cat("phase2 browser workflow smoke passed\n")

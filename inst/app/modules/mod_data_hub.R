@@ -88,7 +88,13 @@ mod_data_hub_ui <- function(id) {
       shiny::textInput(ns("object_name"), "Object name", value = "uploaded_matrix"),
       shiny::actionButton(ns("register"), "Register object"),
       shiny::actionButton(ns("load_example"), "Load example matrix"),
-      shiny::actionButton(ns("load_gallery"), "Load manual examples")
+      shiny::actionButton(ns("load_gallery"), "Load manual examples"),
+      shiny::selectInput(
+        ns("gallery_recipe"),
+        "Gallery recipe",
+        choices = stats::setNames(gallery_recipe_manifest()$recipe, gallery_recipe_manifest()$label)
+      ),
+      shiny::actionButton(ns("run_gallery_recipe"), "Run gallery recipe")
     ),
     bslib::card(
       bslib::card_header("Preview"),
@@ -189,6 +195,24 @@ mod_data_hub_server <- function(id, registry) {
         }
       )
 
+      invisible(result)
+    })
+
+    shiny::observeEvent(input$run_gallery_recipe, {
+      shiny::req(input$gallery_recipe)
+      result <- run_gallery_recipe(registry, input$gallery_recipe)
+      if (!result$ok) {
+        detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
+        shiny::showNotification(detail, type = "error")
+        return(invisible(result))
+      }
+
+      items <- result$value$items
+      if (length(items) && (is.data.frame(items[[1]]$data) || is.matrix(items[[1]]$data))) {
+        current_table(items[[1]]$data)
+      }
+      names <- vapply(items, `[[`, character(1), "name")
+      shiny::showNotification(paste("Registered gallery recipe:", paste(names, collapse = ", ")), type = "message")
       invisible(result)
     })
 
