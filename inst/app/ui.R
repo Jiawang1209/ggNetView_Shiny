@@ -7,5 +7,6 @@ ui <- bslib::page_navbar(
   bslib::nav_panel("Graph Explorer", mod_graph_explorer_ui("graph_explorer")),
   bslib::nav_panel("Visual Lab", mod_visual_lab_ui("visual_lab")),
   bslib::nav_panel("Topology", mod_topology_results_ui("topology_results")),
+  bslib::nav_panel("Compare & Environment", mod_compare_environment_ui("compare_environment")),
   bslib::nav_panel("Export", mod_export_center_ui("export_center"))
 )

@@ -7,6 +7,21 @@ safe_call <- function(expr, user_message) {
 
 .ggnetview_source_cache <- new.env(parent = emptyenv())
 
+inject_package_exports <- function(env, packages) {
+  for (pkg in packages) {
+    if (!requireNamespace(pkg, quietly = TRUE)) {
+      next
+    }
+    exports <- getNamespaceExports(pkg)
+    for (name in exports) {
+      if (!exists(name, envir = env, inherits = FALSE)) {
+        assign(name, getExportedValue(pkg, name), envir = env)
+      }
+    }
+  }
+  invisible(env)
+}
+
 local_source_env <- function(root) {
   root <- normalizePath(root, mustWork = FALSE)
   if (exists(root, envir = .ggnetview_source_cache, inherits = FALSE)) {
@@ -19,9 +34,10 @@ local_source_env <- function(root) {
   }
 
   env <- new.env(parent = .GlobalEnv)
-  if (requireNamespace("magrittr", quietly = TRUE)) {
-    assign("%>%", magrittr::`%>%`, envir = env)
-  }
+  inject_package_exports(env, c(
+    "magrittr", "ggplot2", "dplyr", "tidyr", "tibble", "purrr",
+    "tidygraph", "ggraph", "ggforce", "ggnewscale", "psych", "igraph"
+  ))
   files <- sort(list.files(r_dir, pattern = "[.]R$", full.names = TRUE))
   for (file in files) {
     sys.source(file, envir = env)
