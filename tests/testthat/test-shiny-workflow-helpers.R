@@ -105,3 +105,30 @@ test_that("visual lab params are stable and JSON-friendly", {
   expect_equal(params$label_wrap_width, 18)
   expect_equal(params$bandwidth_scale, 1)
 })
+
+test_that("visual lab params normalize invalid numeric inputs", {
+  params <- visual_lab_params(
+    layout = NULL,
+    show_labels = FALSE,
+    label_layout = NULL,
+    label_wrap_width = NULL,
+    bandwidth_scale = "not-a-number"
+  )
+
+  expect_equal(params$layout, "nicely")
+  expect_equal(params$label_layout, "two_column")
+  expect_equal(params$label_wrap_width, 18)
+  expect_equal(params$bandwidth_scale, 1)
+
+  clamped <- visual_lab_params("fr", FALSE, "label_circle", 999, -1)
+  expect_equal(clamped$label_wrap_width, 80)
+  expect_equal(clamped$bandwidth_scale, 1)
+})
+
+test_that("visual lab params JSON is stable before drawing", {
+  params <- visual_lab_params("nicely", FALSE, "two_column", 18, 1)
+  json <- visual_lab_params_json(params)
+
+  expect_match(json, '"layout": "nicely"', fixed = TRUE)
+  expect_match(json, '"bandwidth_scale": 1', fixed = TRUE)
+})

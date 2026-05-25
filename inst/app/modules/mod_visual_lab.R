@@ -5,13 +5,31 @@ visual_lab_params <- function(
   label_wrap_width,
   bandwidth_scale
 ) {
+  normalize_positive_number <- function(value, default, min = NULL, max = NULL) {
+    value <- suppressWarnings(as.numeric(value))
+    if (length(value) != 1L || is.na(value) || !is.finite(value) || value <= 0) {
+      value <- default
+    }
+    if (!is.null(min)) {
+      value <- max(value, min)
+    }
+    if (!is.null(max)) {
+      value <- min(value, max)
+    }
+    value
+  }
+
   list(
-    layout = layout,
+    layout = if (is.null(layout) || !nzchar(layout)) "nicely" else layout,
     label = isTRUE(show_labels),
-    label_layout = label_layout,
-    label_wrap_width = as.numeric(label_wrap_width),
-    bandwidth_scale = as.numeric(bandwidth_scale)
+    label_layout = if (is.null(label_layout) || !nzchar(label_layout)) "two_column" else label_layout,
+    label_wrap_width = normalize_positive_number(label_wrap_width, default = 18, min = 4, max = 80),
+    bandwidth_scale = normalize_positive_number(bandwidth_scale, default = 1, min = 0.1, max = 5)
   )
+}
+
+visual_lab_params_json <- function(params) {
+  jsonlite::toJSON(params, auto_unbox = TRUE, pretty = TRUE)
 }
 
 mod_visual_lab_ui <- function(id) {
@@ -47,6 +65,7 @@ mod_visual_lab_server <- function(id, registry) {
     }
 
     plot_obj <- shiny::reactiveVal(NULL)
+    last_params <- shiny::reactiveVal(visual_lab_params("nicely", FALSE, "two_column", 18, 1))
     status <- shiny::reactiveVal("No plot drawn yet.")
 
     shiny::observe({
@@ -76,6 +95,7 @@ mod_visual_lab_server <- function(id, registry) {
 
       plot_name <- unique_output_name(paste0(graph_item$name, "_plot"))
       plot_obj(result$value)
+      last_params(params)
       registry_add(
         registry,
         name = plot_name,
@@ -95,17 +115,7 @@ mod_visual_lab_server <- function(id, registry) {
     output$status <- shiny::renderText(status())
 
     output$params <- shiny::renderText({
-      jsonlite::toJSON(
-        visual_lab_params(
-          layout = input$layout,
-          show_labels = input$show_labels,
-          label_layout = input$label_layout,
-          label_wrap_width = input$label_wrap_width,
-          bandwidth_scale = input$bandwidth_scale
-        ),
-        auto_unbox = TRUE,
-        pretty = TRUE
-      )
+      visual_lab_params_json(last_params())
     })
   })
 }
