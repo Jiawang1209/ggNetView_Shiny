@@ -1,6 +1,6 @@
 # ggNetView Shiny Release Evidence
 
-Generated at: 2026-05-26T07:38:56+0800
+Generated at: 2026-05-26T07:40:00+0800
 
 ## Manual Coverage
 
@@ -30,6 +30,7 @@ Generated at: 2026-05-26T07:38:56+0800
 | --- | --- | --- |
 | passed | /usr/local/bin/Rscript -e 'testthat::test_file("tests/testthat/test-shiny-smoke-coverage.R")' | Passed in final audit: 11 coverage-helper assertions. |
 | passed | /usr/local/bin/Rscript -e 'testthat::test_file("tests/testthat/test-shiny-files.R")' | Passed in final audit: 25 Shiny source/file assertions. |
+| passed | /usr/local/bin/Rscript tests/run_shiny_app_startup.R | Passed in final audit: shiny app startup passed. |
 | passed | /usr/local/bin/Rscript tests/run_shiny_manual_workflow_smoke.R | Passed in final audit: manual workflow smoke passed and regenerated 10/10 manual coverage JSON. |
 | passed | /usr/local/bin/Rscript tests/run_shiny_phase2_workflow_smoke.R | Passed in final audit: phase2 browser workflow smoke passed. |
 | passed | /usr/local/bin/Rscript tests/run_shiny_graph_builder_modes_smoke.R | Passed in final audit: graph builder modes browser smoke passed. |
@@ -43,6 +44,7 @@ Generated at: 2026-05-26T07:38:56+0800
 
 | hash | subject |
 | --- | --- |
+| c6a2221 | test: record final validation audit |
 | 5fda78b | test: add release evidence report |
 | bf1229e | test: record manual smoke coverage |
 | 0532db6 | feat: enrich comparison report narratives |
@@ -62,7 +64,6 @@ Generated at: 2026-05-26T07:38:56+0800
 | 0e6058a | feat: add stringdb graph builder |
 | cac175d | feat: add igraph graph builder |
 | 88d901a | feat: add node edge graph builder |
-| 6c6ff50 | feat: add module environment heatmap |
 
 ## Remaining Limits
 

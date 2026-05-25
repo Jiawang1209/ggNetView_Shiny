@@ -10,9 +10,10 @@ Create a durable release-readiness evidence report that summarizes manual covera
 - [x] Implement release evidence helpers in `R/app_release_evidence.R`.
 - [x] Generate `docs/ggnetview-shiny-release-evidence.md` from the current manual smoke coverage JSON and git history.
 - [x] Run focused verification and final diff review.
-- [ ] Commit this release evidence slice.
+- [x] Commit this release evidence slice.
 
 ## Verification
 
 - `/usr/local/bin/Rscript -e 'testthat::test_file("tests/testthat/test-release-evidence.R")'`
+- `/usr/local/bin/Rscript tests/run_shiny_app_startup.R`
 - `/usr/local/bin/Rscript -e 'source("R/app_smoke_coverage.R"); source("R/app_release_evidence.R"); generate_release_evidence_report("docs/ggnetview-shiny-release-evidence.md", final_audit = TRUE)'`

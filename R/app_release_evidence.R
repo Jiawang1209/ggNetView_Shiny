@@ -9,6 +9,7 @@ release_default_validation_commands <- function() {
     command = c(
       "/usr/local/bin/Rscript -e 'testthat::test_file(\"tests/testthat/test-shiny-smoke-coverage.R\")'",
       "/usr/local/bin/Rscript -e 'testthat::test_file(\"tests/testthat/test-shiny-files.R\")'",
+      "/usr/local/bin/Rscript tests/run_shiny_app_startup.R",
       "/usr/local/bin/Rscript tests/run_shiny_manual_workflow_smoke.R",
       "/usr/local/bin/Rscript tests/run_shiny_phase2_workflow_smoke.R",
       "/usr/local/bin/Rscript tests/run_shiny_graph_builder_modes_smoke.R",
@@ -21,6 +22,7 @@ release_default_validation_commands <- function() {
     result = c(
       "Focused coverage helper regression.",
       "Static Shiny source/file regression.",
+      "Shiny app startup smoke.",
       "Manual-backed backend workflow and manual-area coverage.",
       "Main browser workflow smoke.",
       "Graph Builder mode browser smoke.",
@@ -31,6 +33,7 @@ release_default_validation_commands <- function() {
       "Long-running action feedback browser smoke."
     ),
     status = c(
+      "required",
       "required",
       "required",
       "required",
@@ -52,6 +55,7 @@ release_final_validation_commands <- function() {
   validation$result <- c(
     "Passed in final audit: 11 coverage-helper assertions.",
     "Passed in final audit: 25 Shiny source/file assertions.",
+    "Passed in final audit: shiny app startup passed.",
     "Passed in final audit: manual workflow smoke passed and regenerated 10/10 manual coverage JSON.",
     "Passed in final audit: phase2 browser workflow smoke passed.",
     "Passed in final audit: graph builder modes browser smoke passed.",
