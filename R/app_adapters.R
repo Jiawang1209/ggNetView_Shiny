@@ -10,11 +10,6 @@ resolve_ggnetview_function <- function(name) {
     return(get(name, mode = "function", inherits = TRUE))
   }
 
-  ns <- tryCatch(asNamespace("ggNetView"), error = function(e) NULL)
-  if (!is.null(ns) && exists(name, envir = ns, mode = "function", inherits = FALSE)) {
-    return(get(name, envir = ns, mode = "function", inherits = FALSE))
-  }
-
   source_roots <- unique(normalizePath(c(
     getwd(),
     file.path(getwd(), "..", ".."),
@@ -31,6 +26,11 @@ resolve_ggnetview_function <- function(name) {
         return(get(name, envir = env, mode = "function", inherits = FALSE))
       }
     }
+  }
+
+  ns <- tryCatch(asNamespace("ggNetView"), error = function(e) NULL)
+  if (!is.null(ns) && exists(name, envir = ns, mode = "function", inherits = FALSE)) {
+    return(get(name, envir = ns, mode = "function", inherits = FALSE))
   }
 
   NULL
