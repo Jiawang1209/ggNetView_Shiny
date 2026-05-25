@@ -37,7 +37,9 @@ test_that("gallery recipe manifest exposes one-click workflows", {
     "mantel_pairwise",
     "multi_network_compare",
     "triple_environment_heatmap",
-    "multi_omics_network"
+    "multi_omics_network",
+    "multi_omics_double_matrix",
+    "multi_omics_environment_blocks"
   ) %in% recipes$recipe))
 })
 
@@ -70,6 +72,12 @@ test_that("gallery recipes register reproducible outputs", {
   multi_omics <- run_gallery_recipe(registry, "multi_omics_network")
   expect_true(isTRUE(multi_omics$ok), info = multi_omics$trace %||% multi_omics$message)
 
+  double_omics <- run_gallery_recipe(registry, "multi_omics_double_matrix")
+  expect_true(isTRUE(double_omics$ok), info = double_omics$trace %||% double_omics$message)
+
+  block_omics <- run_gallery_recipe(registry, "multi_omics_environment_blocks")
+  expect_true(isTRUE(block_omics$ok), info = block_omics$trace %||% block_omics$message)
+
   listed <- shiny::isolate(registry_list(registry))
   expect_true(any(listed$name == "gallery_recipe_circle_plot"))
   expect_true(any(listed$name == "gallery_recipe_grouped_network_plot"))
@@ -85,4 +93,8 @@ test_that("gallery recipes register reproducible outputs", {
   expect_true(any(listed$name == "gallery_recipe_triple_environment_nodes"))
   expect_true(any(listed$name == "gallery_recipe_multi_omics_graph"))
   expect_true(any(listed$name == "gallery_recipe_multi_omics_plot"))
+  expect_true(any(listed$name == "gallery_recipe_multi_omics_double_graph"))
+  expect_true(any(listed$name == "gallery_recipe_multi_omics_double_plot"))
+  expect_true(any(listed$name == "gallery_recipe_multi_omics_environment_heatmap"))
+  expect_true(any(listed$name == "gallery_recipe_multi_omics_environment_stats"))
 })

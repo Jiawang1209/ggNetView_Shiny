@@ -62,7 +62,9 @@ gallery_recipe_manifest <- function() {
       "mantel_pairwise",
       "multi_network_compare",
       "triple_environment_heatmap",
-      "multi_omics_network"
+      "multi_omics_network",
+      "multi_omics_double_matrix",
+      "multi_omics_environment_blocks"
     ),
     label = c(
       "Circle network plot",
@@ -72,7 +74,9 @@ gallery_recipe_manifest <- function() {
       "Mantel pairwise table",
       "Multi-network comparison",
       "Triple environment heatmap",
-      "Multi-omics network"
+      "Multi-omics network",
+      "Multi-omics double-matrix network",
+      "Multi-omics environment blocks"
     ),
     output_type = c(
       "plot",
@@ -82,7 +86,9 @@ gallery_recipe_manifest <- function() {
       "result",
       "plot,result",
       "result",
-      "graph,plot"
+      "graph,plot",
+      "graph,plot",
+      "plot,result"
     ),
     manual_area = c(
       "Gallery network layout",
@@ -92,7 +98,9 @@ gallery_recipe_manifest <- function() {
       "Environment Mantel helper",
       "Multi-network comparison",
       "Network-environment triple heatmap",
-      "Multi-omics network analysis"
+      "Multi-omics network analysis",
+      "Multi-omics double matrix network analysis",
+      "Multi-omics network-environment analysis"
     ),
     stringsAsFactors = FALSE
   )
@@ -108,6 +116,24 @@ gallery_environment_fixture <- function(matrix) {
     check.names = FALSE
   )
   list(spec = as.data.frame(spec, check.names = FALSE), env = env)
+}
+
+gallery_multi_omics_environment_fixture <- function(matrix_a, matrix_b) {
+  spec_a <- as.data.frame(t(as.matrix(matrix_a)), check.names = FALSE)
+  spec_b <- as.data.frame(t(as.matrix(matrix_b)), check.names = FALSE)
+  spec <- cbind(spec_a, spec_b)
+  env <- gallery_environment_fixture(matrix_a)$env
+  env$conductivity <- c(100, 105, 112, 119, 126)
+  list(
+    spec = spec,
+    env = env,
+    env_select = list(Soil = c("temperature", "pH"), Water = c("moisture", "conductivity")),
+    spec_select = list(
+      Microbiome = colnames(spec_a),
+      Transcriptome = colnames(spec_b)
+    ),
+    env_spec_pairs = "Soil,Microbiome\nWater,Transcriptome"
+  )
 }
 
 gallery_registry_item_by_name <- function(registry, name) {
@@ -407,6 +433,88 @@ run_gallery_recipe <- function(registry, recipe) {
       list(layout = "circle", graph = graph_item$name)
     )
     return(app_success(list(items = list(graph_item, plot_item))))
+  }
+
+  if (identical(recipe, "multi_omics_double_matrix")) {
+    matrix_item <- gallery_registry_item_by_name(registry, "gallery_matrix")
+    matrix_b_item <- gallery_registry_item_by_name(registry, "gallery_matrix_b")
+    if (is.null(matrix_item) || is.null(matrix_b_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    graph_result <- safe_graph_builder(
+      "double_matrix",
+      inputs = list(matrix_a = matrix_item$data, matrix_b = matrix_b_item$data),
+      params = list(module.method = "Fast_greedy")
+    )
+    if (!graph_result$ok) {
+      return(graph_result)
+    }
+    graph_item <- add_recipe_item(
+      "gallery_recipe_multi_omics_double_graph",
+      "graph",
+      graph_result$value,
+      paste(matrix_item$id, matrix_b_item$id, sep = ","),
+      list(kind = "double_matrix_graph", blocks = c("microbiome", "transcriptome"))
+    )
+
+    plot_result <- safe_plot_ggnetview(graph_result$value, params = list(layout = "circle"))
+    if (!plot_result$ok) {
+      return(plot_result)
+    }
+    plot_item <- add_recipe_item(
+      "gallery_recipe_multi_omics_double_plot",
+      "plot",
+      plot_result$value,
+      graph_item$id,
+      list(layout = "circle", graph = graph_item$name)
+    )
+    return(app_success(list(items = list(graph_item, plot_item))))
+  }
+
+  if (identical(recipe, "multi_omics_environment_blocks")) {
+    matrix_item <- gallery_registry_item_by_name(registry, "gallery_matrix")
+    matrix_b_item <- gallery_registry_item_by_name(registry, "gallery_matrix_b")
+    if (is.null(matrix_item) || is.null(matrix_b_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    fixture <- gallery_multi_omics_environment_fixture(matrix_item$data, matrix_b_item$data)
+    result <- safe_environment_heatmap(
+      env = fixture$env,
+      spec = fixture$spec,
+      env_select = fixture$env_select,
+      spec_select = fixture$spec_select,
+      env_spec_pairs = fixture$env_spec_pairs,
+      params = list(
+        relation_method = "correlation",
+        cor.method = "pearson",
+        orientation = c("top_right", "bottom_right"),
+        group_layout = "row",
+        r = 2
+      )
+    )
+    if (!result$ok) {
+      return(result)
+    }
+    source_ids <- paste(matrix_item$id, matrix_b_item$id, sep = ",")
+    plot_item <- add_recipe_item(
+      "gallery_recipe_multi_omics_environment_heatmap",
+      "plot",
+      result$value$plot,
+      source_ids,
+      list(kind = "multi_omics_environment_heatmap", relation_method = "correlation")
+    )
+    stats_item <- add_recipe_item(
+      "gallery_recipe_multi_omics_environment_stats",
+      "result",
+      result$value$stats,
+      source_ids,
+      list(
+        kind = "multi_omics_environment_stats",
+        env_blocks = names(fixture$env_select),
+        spec_blocks = names(fixture$spec_select)
+      )
+    )
+    return(app_success(list(items = list(plot_item, stats_item))))
   }
 
   app_failure(sprintf("Gallery recipe is not implemented: %s", recipe))
