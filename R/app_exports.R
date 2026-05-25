@@ -93,6 +93,56 @@ manifest_param_value <- function(item, key, default = "") {
   paste(as.character(value), collapse = ",")
 }
 
+manifest_param_raw <- function(item, key, default = NULL) {
+  params <- item$params
+  if (is.null(params) || is.null(params[[key]])) {
+    return(default)
+  }
+  params[[key]]
+}
+
+manifest_param_vector <- function(item, key, default = character()) {
+  value <- manifest_param_raw(item, key, default = default)
+  if (is.null(value)) {
+    return(default)
+  }
+  value <- unlist(value, use.names = FALSE)
+  value <- as.character(value)
+  value[nzchar(value)]
+}
+
+workflow_replay_builder <- function(item) {
+  builder <- manifest_param_value(item, "builder")
+  if (!nzchar(builder)) {
+    return("")
+  }
+  builder
+}
+
+workflow_replay_source_ids <- function(item) {
+  source_ids <- manifest_param_vector(item, "source_ids")
+  if (length(source_ids)) {
+    return(unique(source_ids))
+  }
+
+  source <- item$source %||% ""
+  source <- unlist(strsplit(as.character(source), ",", fixed = TRUE), use.names = FALSE)
+  source <- trimws(source)
+  unique(source[nzchar(source)])
+}
+
+workflow_replay_builder_modes <- function() {
+  if (exists("graph_builder_modes", mode = "function", inherits = TRUE)) {
+    return(unname(graph_builder_modes()))
+  }
+  c("matrix", "matrix_rmt", "edge_table", "adjacency", "double_matrix", "multi_matrix", "wgcna_tom", "consensus")
+}
+
+is_workflow_replay_builder_item <- function(item) {
+  identical(item$type %||% "", "graph") &&
+    workflow_replay_builder(item) %in% workflow_replay_builder_modes()
+}
+
 workflow_replay_plan <- function(manifest) {
   items <- manifest$items %||% list()
   if (!length(items)) {
@@ -103,7 +153,9 @@ workflow_replay_plan <- function(manifest) {
       type = character(),
       source = character(),
       recipe = character(),
+      builder = character(),
       status = character(),
+      replay_reason = character(),
       stringsAsFactors = FALSE
     ))
   }
@@ -112,6 +164,22 @@ workflow_replay_plan <- function(manifest) {
     item <- items[[i]]
     recipe <- manifest_param_value(item, "recipe")
     has_recipe <- nzchar(recipe) && !identical(recipe, "manual_starter")
+    builder <- workflow_replay_builder(item)
+    has_builder <- is_workflow_replay_builder_item(item)
+    status <- if (has_recipe) {
+      "recipe-output-needs-rerun"
+    } else if (has_builder) {
+      "builder-output-needs-rerun"
+    } else {
+      "input-or-existing-object"
+    }
+    replay_reason <- if (has_recipe) {
+      "gallery recipe can be rerun"
+    } else if (has_builder) {
+      "graph builder params and source IDs are present"
+    } else {
+      "manifest does not include a supported replay recipe or graph builder"
+    }
     data.frame(
       step = i,
       id = item$id %||% "",
@@ -119,12 +187,22 @@ workflow_replay_plan <- function(manifest) {
       type = item$type %||% "",
       source = item$source %||% "",
       recipe = recipe,
-      status = if (has_recipe) "recipe-output-needs-rerun" else "input-or-existing-object",
+      builder = builder,
+      status = status,
+      replay_reason = replay_reason,
       stringsAsFactors = FALSE
     )
   })
 
   do.call(rbind, records)
+}
+
+workflow_replay_builder_items <- function(manifest) {
+  items <- manifest$items %||% manifest
+  if (!length(items)) {
+    return(list())
+  }
+  Filter(is_workflow_replay_builder_item, items)
 }
 
 workflow_replay_recipes <- function(plan, known_recipes) {
@@ -135,6 +213,116 @@ workflow_replay_recipes <- function(plan, known_recipes) {
   recipes <- recipes[nzchar(recipes)]
   recipes <- setdiff(recipes, "manual_starter")
   recipes[recipes %in% known_recipes]
+}
+
+workflow_replay_graph_builder_params <- function(item) {
+  params <- item$params %||% list()
+  params$builder <- NULL
+  params$source_ids <- NULL
+  params$module_id <- NULL
+  params$recipe <- NULL
+  params
+}
+
+workflow_replay_graph_builder_inputs <- function(builder, source_items, module_item = NULL) {
+  source_data <- lapply(source_items, `[[`, "data")
+  source_names <- vapply(source_items, function(item) item$name %||% item$id, character(1))
+
+  inputs <- switch(builder,
+    matrix = list(matrix = source_data[[1]]),
+    matrix_rmt = list(matrix = source_data[[1]]),
+    edge_table = list(edge_table = source_data[[1]]),
+    adjacency = list(adjacency = source_data[[1]]),
+    double_matrix = list(matrix_a = source_data[[1]], matrix_b = source_data[[2]]),
+    multi_matrix = {
+      names(source_data) <- source_names
+      list(matrices = source_data)
+    },
+    wgcna_tom = list(tom = source_data[[1]]),
+    consensus = {
+      values <- lapply(source_data, function(value) {
+        if (inherits(value, "igraph")) {
+          return(as.matrix(igraph::as_adjacency_matrix(value, attr = "weight", sparse = FALSE)))
+        }
+        value
+      })
+      names(values) <- source_names
+      list(graphs_or_adjacency = values)
+    },
+    list()
+  )
+
+  if (!is.null(module_item)) {
+    inputs$module_table <- module_item$data
+  }
+  inputs
+}
+
+workflow_replay_registry_get <- function(registry, id) {
+  shiny::isolate(registry_get(registry, id))
+}
+
+workflow_replay_graph_builder <- function(registry, item) {
+  builder <- workflow_replay_builder(item)
+  source_ids <- workflow_replay_source_ids(item)
+  if (!length(source_ids)) {
+    return(app_failure(sprintf("Graph builder replay for '%s' has no source IDs.", item$name %||% item$id)))
+  }
+
+  source_items <- lapply(source_ids, function(id) workflow_replay_registry_get(registry, id))
+  missing <- source_ids[vapply(source_items, is.null, logical(1))]
+  if (length(missing)) {
+    return(app_failure(sprintf(
+      "Graph builder replay for '%s' cannot run because source object is not available: %s",
+      item$name %||% item$id,
+      paste(missing, collapse = ", ")
+    )))
+  }
+
+  module_id <- manifest_param_value(item, "module_id")
+  module_item <- if (nzchar(module_id)) workflow_replay_registry_get(registry, module_id) else NULL
+  if (nzchar(module_id) && is.null(module_item)) {
+    return(app_failure(sprintf(
+      "Graph builder replay for '%s' cannot run because module object is not available: %s",
+      item$name %||% item$id,
+      module_id
+    )))
+  }
+
+  inputs <- workflow_replay_graph_builder_inputs(builder, source_items, module_item)
+  params <- workflow_replay_graph_builder_params(item)
+  result <- safe_graph_builder(builder, inputs = inputs, params = params)
+  if (!isTRUE(result$ok)) {
+    return(app_failure(
+      sprintf("Graph builder replay failed for '%s'.", item$name %||% item$id),
+      trace = result$trace %||% result$message
+    ))
+  }
+  if (!inherits(result$value, "igraph")) {
+    return(app_failure(sprintf("Graph builder replay for '%s' did not return an igraph object.", item$name %||% item$id)))
+  }
+
+  replay_params <- item$params %||% list()
+  replay_params$builder <- builder
+  replay_params$source_ids <- source_ids
+  if (nzchar(module_id)) {
+    replay_params$module_id <- module_id
+  }
+  replayed <- registry_add(
+    registry,
+    name = paste0(item$name %||% item$id, "_replay"),
+    type = "graph",
+    data = result$value,
+    source = paste(source_ids, collapse = ","),
+    params = replay_params,
+    warnings = c(item$warnings %||% character(), "Replayed from workflow manifest using current registry sources.")
+  )
+  app_success(replayed, message = paste("Replayed graph builder output:", replayed$name))
+}
+
+workflow_replay_graph_builders <- function(registry, manifest_or_items) {
+  items <- workflow_replay_builder_items(manifest_or_items)
+  lapply(items, function(item) workflow_replay_graph_builder(registry, item))
 }
 
 export_formats_for_type <- function(type) {

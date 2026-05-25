@@ -62,6 +62,20 @@ test_that("graph builder params are empty for edge table builder", {
   expect_equal(params, list())
 })
 
+test_that("graph builder registry params keep replay metadata", {
+  params <- graph_builder_registry_params(
+    builder = "double_matrix",
+    params = list(method = "cor"),
+    source_ids = c("obj_0001", "obj_0002"),
+    module_id = "obj_0003"
+  )
+
+  expect_equal(params$builder, "double_matrix")
+  expect_equal(params$source_ids, c("obj_0001", "obj_0002"))
+  expect_equal(params$module_id, "obj_0003")
+  expect_equal(params$method, "cor")
+})
+
 test_that("graph builder validates source type matches", {
   expect_equal(
     unname(builder_choices_for_type(NULL)),

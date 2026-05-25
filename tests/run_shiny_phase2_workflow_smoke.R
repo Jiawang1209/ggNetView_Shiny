@@ -212,5 +212,7 @@ click_tab("Export")
 replay_manifest <- assert_download_nonempty("export_center-download_workflow_manifest")
 upload_file("export_center-workflow_manifest", replay_manifest)
 wait_for_text("recipe-output-needs-rerun", timeout = 120000)
+wait_for_text("builder-output-needs-rerun", timeout = 120000)
+wait_for_text("Run Replay Plan", timeout = 120000)
 
 cat("phase2 browser workflow smoke passed\n")

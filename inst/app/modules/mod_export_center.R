@@ -9,7 +9,7 @@ mod_export_center_ui <- function(id) {
     workflow_download_controls(ns),
     bslib::card_header("Replay Plan"),
     shiny::fileInput(ns("workflow_manifest"), "Workflow JSON", accept = c(".json", "application/json")),
-    shiny::actionButton(ns("run_replay_recipes"), "Run Replay Recipes"),
+    shiny::actionButton(ns("run_replay_recipes"), "Run Replay Plan"),
     shiny::verbatimTextOutput(ns("replay_status")),
     shiny::tableOutput(ns("replay_plan"))
   )
@@ -211,11 +211,14 @@ mod_export_center_server <- function(id, registry) {
       export_object_summary(selected_item())
     }, striped = TRUE, bordered = TRUE, spacing = "s", rownames = FALSE)
 
-    replay_plan <- shiny::reactive({
+    replay_manifest <- shiny::reactive({
       file <- input$workflow_manifest
       shiny::req(file)
-      manifest <- read_workflow_manifest(file$datapath)
-      workflow_replay_plan(manifest)
+      read_workflow_manifest(file$datapath)
+    })
+
+    replay_plan <- shiny::reactive({
+      workflow_replay_plan(replay_manifest())
     })
 
     output$replay_plan <- shiny::renderTable({
@@ -226,13 +229,17 @@ mod_export_center_server <- function(id, registry) {
 
     shiny::observeEvent(input$run_replay_recipes, {
       plan <- replay_plan()
+      manifest <- replay_manifest()
       recipes <- workflow_replay_recipes(plan, gallery_recipe_manifest()$recipe)
-      if (!length(recipes)) {
-        replay_status("No supported gallery recipes found in the imported manifest.")
+      builder_items <- workflow_replay_builder_items(manifest)
+      if (!length(recipes) && !length(builder_items)) {
+        replay_status("No supported gallery recipes or graph-builder replay steps found in the imported manifest.")
         return(invisible(NULL))
       }
 
-      results <- lapply(recipes, function(recipe) run_gallery_recipe(registry, recipe))
+      recipe_results <- lapply(recipes, function(recipe) run_gallery_recipe(registry, recipe))
+      builder_results <- workflow_replay_graph_builders(registry, builder_items)
+      results <- c(recipe_results, builder_results)
       failed <- vapply(results, function(result) !isTRUE(result$ok), logical(1))
       if (any(failed)) {
         messages <- vapply(results[failed], function(result) result$message %||% "unknown replay failure", character(1))
@@ -240,7 +247,11 @@ mod_export_center_server <- function(id, registry) {
         return(invisible(results))
       }
 
-      replay_status(paste("Replayed gallery recipes:", paste(recipes, collapse = ", ")))
+      replay_status(sprintf(
+        "Replayed workflow plan: %s gallery recipe(s), %s graph-builder step(s).",
+        length(recipes),
+        length(builder_items)
+      ))
       invisible(results)
     })
 

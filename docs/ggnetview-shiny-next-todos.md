@@ -7,7 +7,7 @@ Date: 2026-05-26
 - The Shiny app runs from the root project with `/usr/local/bin/Rscript`.
 - The example workflow can load the bundled matrix, build a graph, inspect objects, draw a plot, calculate topology, and reach export.
 - Local source loading now keeps same-package helper dependencies and common ggNetView plotting/data-manipulation helper functions available.
-- Export is object-aware: graph objects expose node, edge, and adjacency CSV exports; plot PNG/PDF buttons remain plot-only; workflow JSON manifests preserve registry provenance, params, warnings, and recipe metadata; the selected object summary shows type, source, supported formats, summary, and parameter keys. Export Center now groups selected-object downloads, graph/plot-specific downloads, and session/workflow downloads with explicit labels. Export Center can import a workflow JSON, preview a replay plan, and identify supported gallery recipes for guarded reruns.
+- Export is object-aware: graph objects expose node, edge, and adjacency CSV exports; plot PNG/PDF buttons remain plot-only; workflow JSON manifests preserve registry provenance, params, warnings, and recipe metadata; the selected object summary shows type, source, supported formats, summary, and parameter keys. Export Center now groups selected-object downloads, graph/plot-specific downloads, and session/workflow downloads with explicit labels. Export Center can import a workflow JSON, preview a replay plan, identify supported gallery recipes, and rerun graph-builder outputs when the referenced source objects are still present in the current registry.
 - Data Hub can load manual workflow examples for matrix, edge-table-with-module, adjacency, TOM-like, and starter graph workflows.
 - Data Hub can run one-click gallery recipes that register final plot/result objects from those starters, including network layout, grouped comparison, graph info/topology, multi-network comparison, multi-omics network construction, multi-omics double-matrix and environment-block presets, environment heatmaps, collapsed-core and rotated arc collapsed-core environment heatmaps, and Mantel pairwise workflows.
 - Data Hub can load sample metadata and Compare & Environment can use it for grouped matrix network plots.
@@ -57,9 +57,10 @@ Date: 2026-05-26
 
 6. Gallery completion.
    - Manual workflow examples are now loadable as starter objects, and one-click recipes can register final plot/result outputs for layout, grouped comparison, multi-network comparison, multi-omics graph construction, double-matrix omics construction, multi-omics environment links, collapsed-core/rotated-arc environment links, graph-info/topology, environment, triple heatmap, and Mantel manual areas.
-   - Workflow JSON manifests now export registered objects with source IDs, params, warnings, summaries, and recipe metadata.
-   - Exported manifests can be re-imported as a replay plan preview, with supported gallery recipes identified for guarded reruns.
-   - Still needed: fuller rerun support for non-gallery imported objects.
+   - Workflow JSON manifests now export registered objects with source IDs, graph-builder params, warnings, summaries, and recipe metadata.
+   - Exported manifests can be re-imported as a replay plan preview, with supported gallery recipes and graph-builder outputs identified for guarded reruns.
+   - Graph-builder replay is data-light: it reruns when referenced source objects are still present in the current registry, and reports missing-source failures when the manifest is imported into an empty session.
+   - Still needed: fuller project/session restore for non-gallery imported objects when source datasets are not currently loaded.
 
 7. Add regression tests for issues found during manual use.
    - Local source dependencies for `build_graph_from_mat()`.

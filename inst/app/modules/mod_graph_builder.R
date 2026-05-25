@@ -45,6 +45,20 @@ graph_builder_params <- function(
   )
 }
 
+graph_builder_registry_params <- function(builder, params = list(), source_ids = character(), module_id = "") {
+  replay_params <- c(
+    list(
+      builder = builder,
+      source_ids = unique(as.character(source_ids))
+    ),
+    params %||% list()
+  )
+  if (!is.null(module_id) && length(module_id) == 1L && nzchar(module_id)) {
+    replay_params$module_id <- module_id
+  }
+  replay_params
+}
+
 mod_graph_builder_ui <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_columns(
@@ -186,6 +200,7 @@ mod_graph_builder_server <- function(id, registry) {
         transform_method = input$transform_method
       )
 
+      source_ids <- input$source_id
       inputs <- list()
       inputs <- switch(input$builder,
         matrix = list(matrix = source$data),
@@ -196,6 +211,7 @@ mod_graph_builder_server <- function(id, registry) {
           shiny::req(input$source_id_b)
           second <- registry_get(registry, input$source_id_b)
           shiny::req(second)
+          source_ids <- c(input$source_id, input$source_id_b)
           list(matrix_a = source$data, matrix_b = second$data)
         },
         multi_matrix = {
@@ -203,6 +219,7 @@ mod_graph_builder_server <- function(id, registry) {
           ids <- ids[nzchar(ids)]
           items <- lapply(ids, function(id) registry_get(registry, id))
           names(items) <- vapply(items, function(x) x$name, character(1))
+          source_ids <- ids
           list(matrices = lapply(items, `[[`, "data"))
         },
         wgcna_tom = list(tom = source$data),
@@ -217,6 +234,7 @@ mod_graph_builder_server <- function(id, registry) {
             item$data
           })
           names(values) <- vapply(items, function(x) x$name, character(1))
+          source_ids <- ids
           list(graphs_or_adjacency = values)
         },
         list(matrix = source$data)
@@ -255,8 +273,8 @@ mod_graph_builder_server <- function(id, registry) {
         name = input$graph_name,
         type = "graph",
         data = result$value,
-        source = source$id,
-        params = params
+        source = paste(source_ids, collapse = ","),
+        params = graph_builder_registry_params(input$builder, params, source_ids, input$module_id)
       )
       status(paste("Built graph:", item$name))
       shiny::showNotification(paste("Built graph:", item$name), type = "message")
