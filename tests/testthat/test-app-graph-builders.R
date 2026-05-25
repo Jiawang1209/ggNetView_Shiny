@@ -38,6 +38,18 @@ test_that("matrix graph builder returns app_result", {
   expect_s3_class(result$value, "igraph")
 })
 
+test_that("RMT threshold workflow returns a threshold result for gallery RMT fixture", {
+  mat <- read_phase2_fixture("phase2_example_rmt_matrix.csv")
+  result <- safe_rmt_threshold(
+    mat,
+    params = list(transfrom.method = "none", method = "cor", cor.method = "pearson", min.mat.dim = 20, verbose = FALSE)
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_true(is.numeric(result$value$chosen_threshold))
+  expect_s3_class(result$value$scores, "data.frame")
+})
+
 test_that("edge table graph builder returns app_result", {
   edges <- read_phase2_fixture("phase2_example_edges.csv", row_names = FALSE)
   result <- safe_graph_builder(

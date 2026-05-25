@@ -2,6 +2,7 @@ test_that("phase2 example files exist and are readable", {
   paths <- testthat::test_path("../../inst/extdata", c(
     "phase2_example_matrix.csv",
     "phase2_example_matrix_b.csv",
+    "phase2_example_rmt_matrix.csv",
     "phase2_example_edges.csv",
     "phase2_example_modules.csv",
     "phase2_example_adjacency.csv",
@@ -11,9 +12,12 @@ test_that("phase2 example files exist and are readable", {
   expect_true(all(file.exists(paths)))
 
   matrix_a <- utils::read.csv(paths[[1]], row.names = 1, check.names = FALSE)
-  edges <- utils::read.csv(paths[[3]], check.names = FALSE)
+  rmt_matrix <- utils::read.csv(paths[[3]], row.names = 1, check.names = FALSE)
+  edges <- utils::read.csv(paths[[4]], check.names = FALSE)
   expect_equal(nrow(matrix_a), 6)
   expect_equal(ncol(matrix_a), 5)
+  expect_equal(nrow(rmt_matrix), 120)
+  expect_equal(ncol(rmt_matrix), 30)
   expect_true(all(c("source", "target", "weight") %in% names(edges)))
 })
 

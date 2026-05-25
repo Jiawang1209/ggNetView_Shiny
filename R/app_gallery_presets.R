@@ -3,6 +3,7 @@ gallery_example_paths <- function(root = getOption("ggnetview.app_root", getwd()
   list(
     matrix = file.path(extdata, "phase2_example_matrix.csv"),
     matrix_b = file.path(extdata, "phase2_example_matrix_b.csv"),
+    rmt_matrix = file.path(extdata, "phase2_example_rmt_matrix.csv"),
     edges = file.path(extdata, "phase2_example_edges.csv"),
     modules = file.path(extdata, "phase2_example_modules.csv"),
     adjacency = file.path(extdata, "phase2_example_adjacency.csv"),
@@ -15,6 +16,7 @@ load_gallery_example_tables <- function(root = getOption("ggnetview.app_root", g
   list(
     matrix = utils::read.csv(paths$matrix, row.names = 1, check.names = FALSE),
     matrix_b = utils::read.csv(paths$matrix_b, row.names = 1, check.names = FALSE),
+    rmt_matrix = utils::read.csv(paths$rmt_matrix, row.names = 1, check.names = FALSE),
     edges = utils::read.csv(paths$edges, check.names = FALSE),
     modules = utils::read.csv(paths$modules, check.names = FALSE),
     adjacency = utils::read.csv(paths$adjacency, row.names = 1, check.names = FALSE),
@@ -80,6 +82,8 @@ register_gallery_examples <- function(registry, root = getOption("ggnetview.app_
   if (edge_graph$ok) {
     add_item("gallery_edge_module_graph", "graph", edge_graph$value, "gallery_edges,gallery_modules")
   }
+
+  add_item("gallery_rmt_matrix", "matrix", data$rmt_matrix, "phase2_example_rmt_matrix.csv")
 
   invisible(items)
 }

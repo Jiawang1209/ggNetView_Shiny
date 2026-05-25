@@ -41,9 +41,18 @@ phase2_example_data <- function() {
   tom[tom < 0] <- abs(tom[tom < 0])
   diag(tom) <- 1
 
+  set.seed(1115)
+  rmt_matrix <- matrix(
+    stats::rpois(120 * 30, lambda = 20),
+    nrow = 120,
+    ncol = 30,
+    dimnames = list(paste0("RMT", seq_len(120)), paste0("S", seq_len(30)))
+  )
+
   list(
     matrix_a = matrix_a,
     matrix_b = matrix_b,
+    rmt_matrix = as.data.frame(rmt_matrix, check.names = FALSE),
     edges = edges,
     modules = modules,
     adjacency = as.data.frame(adjacency, check.names = FALSE),
@@ -56,6 +65,7 @@ write_phase2_example_data <- function(dir = file.path("inst", "extdata")) {
   data <- phase2_example_data()
   utils::write.csv(data$matrix_a, file.path(dir, "phase2_example_matrix.csv"), quote = FALSE)
   utils::write.csv(data$matrix_b, file.path(dir, "phase2_example_matrix_b.csv"), quote = FALSE)
+  utils::write.csv(data$rmt_matrix, file.path(dir, "phase2_example_rmt_matrix.csv"), quote = FALSE)
   utils::write.csv(data$edges, file.path(dir, "phase2_example_edges.csv"), row.names = FALSE, quote = FALSE)
   utils::write.csv(data$modules, file.path(dir, "phase2_example_modules.csv"), row.names = FALSE, quote = FALSE)
   utils::write.csv(data$adjacency, file.path(dir, "phase2_example_adjacency.csv"), quote = FALSE)

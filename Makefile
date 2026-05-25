@@ -1,7 +1,7 @@
 R ?= /usr/local/bin/R
 RSCRIPT ?= /usr/local/bin/Rscript
 
-.PHONY: shiny-startup shiny-smoke shiny-manual-smoke shiny-browser-smoke shiny-smoke-all shiny-build shiny-test-helpers shiny-run
+.PHONY: shiny-startup shiny-smoke shiny-manual-smoke shiny-browser-smoke shiny-builder-smoke shiny-smoke-all shiny-build shiny-test-helpers shiny-run
 
 shiny-startup:
 	cd inst/app && $(RSCRIPT) ../../tests/run_shiny_app_startup.R
@@ -15,7 +15,10 @@ shiny-manual-smoke:
 shiny-browser-smoke:
 	NOT_CRAN=true $(RSCRIPT) tests/run_shiny_phase2_workflow_smoke.R
 
-shiny-smoke-all: shiny-startup shiny-smoke shiny-manual-smoke shiny-browser-smoke
+shiny-builder-smoke:
+	NOT_CRAN=true $(RSCRIPT) tests/run_shiny_graph_builder_modes_smoke.R
+
+shiny-smoke-all: shiny-startup shiny-smoke shiny-manual-smoke shiny-browser-smoke shiny-builder-smoke
 
 shiny-build:
 	$(R) CMD build . --no-build-vignettes --no-manual
