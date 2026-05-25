@@ -32,6 +32,11 @@ mod_compare_environment_ui <- function(id) {
       shiny::selectInput(ns("relation_method"), "Relation method", choices = c("correlation", "mantel")),
       shiny::selectInput(ns("cor_method"), "Correlation", choices = c("pearson", "spearman", "kendall")),
       shiny::selectInput(ns("mantel_kind"), "Mantel kind", choices = c("block_vs_col", "col_vs_col")),
+      shiny::selectInput(ns("mantel_method"), "Mantel correlation", choices = c("pearson", "spearman", "kendall")),
+      shiny::selectInput(ns("mantel_alternative"), "Mantel alternative", choices = c("two.sided", "less", "greater")),
+      shiny::selectInput(ns("spec_dist_method"), "Spec distance", choices = c("bray", "euclidean", "manhattan", "jaccard")),
+      shiny::selectInput(ns("env_dist_method"), "Env distance", choices = c("euclidean", "manhattan", "bray", "jaccard")),
+      shiny::numericInput(ns("mantel_permutations"), "Mantel permutations", value = 99, min = 1, step = 1),
       shiny::checkboxInput(ns("spec_collapse"), "Collapse species block", value = FALSE),
       shiny::checkboxInput(ns("drop_nonsig"), "Drop non-significant links", value = FALSE),
       shiny::textAreaInput(
@@ -424,6 +429,13 @@ mod_compare_environment_server <- function(id, registry) {
         sig_line_color_high = input$env_sig_line_color_high,
         sig_line_alpha = input$env_sig_line_alpha
       )
+      mantel_params <- environment_mantel_params(
+        method = input$mantel_method,
+        alternative = input$mantel_alternative,
+        spec_dist_method = input$spec_dist_method,
+        env_dist_method = input$env_dist_method,
+        permutations = input$mantel_permutations
+      )
       params <- c(list(
         relation_method = input$relation_method,
         cor.method = input$cor_method,
@@ -431,7 +443,7 @@ mod_compare_environment_server <- function(id, registry) {
         env_blocks = input$env_blocks,
         spec_blocks = input$spec_blocks,
         env_spec_pairs = input$env_spec_pairs
-      ), geometry_params)
+      ), mantel_params, geometry_params)
       status(task_feedback_message("environment link", "running"))
       result <- with_task_feedback(
         session,
@@ -500,6 +512,13 @@ mod_compare_environment_server <- function(id, registry) {
         sig_line_color_high = input$env_sig_line_color_high,
         sig_line_alpha = input$env_sig_line_alpha
       )
+      mantel_params <- environment_mantel_params(
+        method = input$mantel_method,
+        alternative = input$mantel_alternative,
+        spec_dist_method = input$spec_dist_method,
+        env_dist_method = input$env_dist_method,
+        permutations = input$mantel_permutations
+      )
       params <- c(list(
         relation_method = input$relation_method,
         cor.method = input$cor_method,
@@ -509,7 +528,7 @@ mod_compare_environment_server <- function(id, registry) {
         env_blocks = input$env_blocks,
         spec_blocks = input$spec_blocks,
         env_spec_pairs = input$env_spec_pairs
-      ), geometry_params)
+      ), mantel_params, geometry_params)
       status(task_feedback_message("manual environment heatmap", "running"))
       result <- with_task_feedback(
         session,
@@ -580,6 +599,13 @@ mod_compare_environment_server <- function(id, registry) {
         sig_line_color_high = input$env_sig_line_color_high,
         sig_line_alpha = input$env_sig_line_alpha
       )
+      mantel_params <- environment_mantel_params(
+        method = input$mantel_method,
+        alternative = input$mantel_alternative,
+        spec_dist_method = input$spec_dist_method,
+        env_dist_method = input$env_dist_method,
+        permutations = input$mantel_permutations
+      )
       geometry_params$spec_layout <- NULL
       geometry_params$group_layout <- NULL
       geometry_params$group_angle <- NULL
@@ -598,7 +624,7 @@ mod_compare_environment_server <- function(id, registry) {
         abundance_type = input$module_abundance_type,
         layout = "circle",
         layout.module = "adjacent"
-      ), geometry_params)
+      ), mantel_params, geometry_params)
       status(task_feedback_message("module environment heatmap", "running"))
       result <- with_task_feedback(
         session,
@@ -725,13 +751,20 @@ mod_compare_environment_server <- function(id, registry) {
         env <- as.data.frame(t(as.matrix(env_item$data)), check.names = FALSE)
       }
 
-      params <- list(method = input$cor_method, permutations = 99L)
+      mantel_params <- environment_mantel_params(
+        method = input$mantel_method,
+        alternative = input$mantel_alternative,
+        spec_dist_method = input$spec_dist_method,
+        env_dist_method = input$env_dist_method,
+        permutations = input$mantel_permutations
+      )
+      params <- c(list(mantel_kind = input$mantel_kind), mantel_params)
       status(task_feedback_message("Mantel table", "running"))
       result <- with_task_feedback(
         session,
         "Mantel table",
         session$ns("run_mantel"),
-        safe_mantel_pairwise(spec, env, params = params)
+        safe_mantel_table(spec, env, params = params)
       )
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message

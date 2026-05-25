@@ -129,6 +129,12 @@ click("#topology_results-calculate_ivi")
 wait_for_text("Registered node_ivi")
 
 click_tab("Compare & Environment")
+set_input("compare_environment-mantel_kind", "block_vs_col")
+set_input("compare_environment-mantel_method", "spearman")
+set_input("compare_environment-mantel_alternative", "greater")
+set_input("compare_environment-spec_dist_method", "bray")
+set_input("compare_environment-env_dist_method", "euclidean")
+set_input("compare_environment-mantel_permutations", 9)
 click("#compare_environment-run_mantel")
 wait_for_text("Registered Mantel result")
 

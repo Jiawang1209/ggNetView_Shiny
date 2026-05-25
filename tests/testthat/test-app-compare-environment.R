@@ -436,23 +436,42 @@ test_that("module environment heatmap explains env block and orientation mismatc
 
 test_that("manual environment heatmap supports block Mantel links or dependency error", {
   data <- phase2_env_spec()
+  mantel_params <- environment_mantel_params(
+    method = "spearman",
+    alternative = "greater",
+    spec_dist_method = "bray",
+    env_dist_method = "euclidean",
+    permutations = 9L
+  )
+
+  expect_equal(mantel_params$method, "spearman")
+  expect_equal(mantel_params$mantel.method2, "spearman")
+  expect_equal(mantel_params$mantel.alternative, "greater")
+  expect_equal(mantel_params$spec_dist_method, "bray")
+  expect_equal(mantel_params$env_dist_method, "euclidean")
+  expect_equal(mantel_params$permutations, 9L)
+
   result <- safe_environment_heatmap(
     env = data$env,
     spec = data$spec[, 1:3],
     env_select = list(Environment = seq_len(ncol(data$env))),
     spec_select = list(Species = 1:3),
-    params = list(
+    params = c(list(
       relation_method = "mantel",
       mantel_kind = "block_vs_col",
-      permutations = 9L,
       spec_collapse = TRUE
-    )
+    ), mantel_params)
   )
 
   if (requireNamespace("vegan", quietly = TRUE)) {
     expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
     expect_s3_class(result$value$plot, "ggplot")
     expect_true(is.data.frame(result$value$stats))
+    expect_equal(result$value$call_params$mantel.method2, "spearman")
+    expect_equal(result$value$call_params$mantel.alternative, "greater")
+    expect_equal(result$value$call_params$spec_dist_method, "bray")
+    expect_equal(result$value$call_params$env_dist_method, "euclidean")
+    expect_equal(result$value$call_params$permutations, 9L)
   } else {
     expect_false(result$ok)
     expect_match(result$trace, "vegan")
@@ -486,5 +505,44 @@ test_that("Mantel pairwise returns a statistics table or dependency error", {
   } else {
     expect_false(result$ok)
     expect_match(result$trace, "vegan")
+  }
+})
+
+test_that("direct Mantel table routes block and pairwise helpers", {
+  data <- phase2_env_spec()
+  block <- safe_mantel_table(
+    data$spec[, 1:3],
+    data$env[, 1:2],
+    params = list(
+      mantel_kind = "block_vs_col",
+      method = "spearman",
+      spec_dist_method = "bray",
+      env_dist_method = "euclidean",
+      permutations = 9L
+    )
+  )
+  pairwise <- safe_mantel_table(
+    data$spec[, 1:2],
+    data$env[, 1:2],
+    params = list(
+      mantel_kind = "col_vs_col",
+      method = "kendall",
+      alternative = "less",
+      permutations = 9L
+    )
+  )
+
+  if (requireNamespace("vegan", quietly = TRUE)) {
+    expect_true(isTRUE(block$ok), info = block$trace %||% block$message)
+    expect_true(isTRUE(pairwise$ok), info = pairwise$trace %||% pairwise$message)
+    expect_true(all(c("ID", "Type", "Correlation", "Pvalue") %in% names(block$value)))
+    expect_true(all(c("ID", "Type", "Correlation", "Pvalue") %in% names(pairwise$value)))
+    expect_true(all(block$value$ID == "Species"))
+    expect_equal(nrow(pairwise$value), 4L)
+  } else {
+    expect_false(block$ok)
+    expect_false(pairwise$ok)
+    expect_match(block$trace, "vegan")
+    expect_match(pairwise$trace, "vegan")
   }
 })

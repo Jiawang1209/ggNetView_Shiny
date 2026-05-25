@@ -637,6 +637,48 @@ environment_geometry_params <- function(
   params
 }
 
+environment_mantel_params <- function(
+  method = "pearson",
+  alternative = "two.sided",
+  spec_dist_method = "bray",
+  env_dist_method = "euclidean",
+  permutations = 99L
+) {
+  method_choices <- c("pearson", "spearman", "kendall")
+  alternative_choices <- c("two.sided", "less", "greater")
+  method <- as.character(method %||% "pearson")[[1]]
+  alternative <- as.character(alternative %||% "two.sided")[[1]]
+  if (!method %in% method_choices) {
+    method <- "pearson"
+  }
+  if (!alternative %in% alternative_choices) {
+    alternative <- "two.sided"
+  }
+
+  spec_dist_method <- trimws(as.character(spec_dist_method %||% "bray")[[1]])
+  env_dist_method <- trimws(as.character(env_dist_method %||% "euclidean")[[1]])
+  if (!nzchar(spec_dist_method)) {
+    spec_dist_method <- "bray"
+  }
+  if (!nzchar(env_dist_method)) {
+    env_dist_method <- "euclidean"
+  }
+
+  permutations <- optional_positive_integer(permutations)
+  if (is.null(permutations)) {
+    permutations <- 99L
+  }
+
+  list(
+    method = method,
+    mantel.method2 = method,
+    mantel.alternative = alternative,
+    spec_dist_method = spec_dist_method,
+    env_dist_method = env_dist_method,
+    permutations = permutations
+  )
+}
+
 apply_environment_pair_params <- function(params, env_select, spec_select) {
   env_spec_pairs <- params$env_spec_pairs
   params$env_spec_pairs <- NULL
@@ -1052,9 +1094,49 @@ safe_mantel_pairwise <- function(spec, env, params = list()) {
     permutations = 99L
   )
   call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
+  call_args <- filter_function_call_args(fn, call_args)
 
   safe_call(
     do.call(fn, call_args),
     "Failed to run Mantel pairwise test."
+  )
+}
+
+safe_mantel_table <- function(spec, env, params = list()) {
+  kind <- as.character(params$mantel_kind %||% "col_vs_col")[[1]]
+  if (!kind %in% c("block_vs_col", "col_vs_col")) {
+    kind <- "col_vs_col"
+  }
+  params$mantel_kind <- NULL
+
+  method <- params$method %||% params$mantel.method2 %||% "pearson"
+  params$method <- method
+  params$mantel.method2 <- NULL
+
+  if (identical(kind, "col_vs_col")) {
+    return(safe_mantel_pairwise(spec, env, params = params))
+  }
+
+  fn <- resolve_ggnetview_function("mantel_block_vs_col")
+  if (is.null(fn)) {
+    return(app_failure("Cannot find ggNetView function: mantel_block_vs_col"))
+  }
+
+  params$mantel.alternative <- NULL
+  defaults <- list(
+    spec_df = as.data.frame(spec, check.names = FALSE),
+    env_df = as.data.frame(env, check.names = FALSE),
+    block_name = "Species",
+    method = "pearson",
+    spec_dist_method = "bray",
+    env_dist_method = "euclidean",
+    permutations = 99L
+  )
+  call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
+  call_args <- filter_function_call_args(fn, call_args)
+
+  safe_call(
+    do.call(fn, call_args),
+    "Failed to run block-vs-column Mantel test."
   )
 }

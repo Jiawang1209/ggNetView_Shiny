@@ -105,7 +105,7 @@ Status definitions:
 | `get_node_centrality` | covered_shiny | Node metric table and ranking workflow. |
 | `get_node_ivi` | covered_shiny | Keystone/IVI workflow with graceful dependency handling. |
 | `get_sample_subgraph` | covered_shiny | Chapters 03, 04; sample subgraph extraction and registry handoff. |
-| `get_sample_subgraph_topology` | partial | Sample subgraph topology is reachable through saved subgraphs; direct runner remains. |
+| `get_sample_subgraph_topology` | covered_shiny | Direct Topology runner supports serial and parallel sample-level topology with matrix input. |
 | `get_subgraph` | covered_shiny | Chapters 03, 04, 05; module subgraph extraction and visualization. |
 | `gglink_heatmaps` | covered_shiny | `08-network_environment.Rmd`; environment linkage workflow. |
 | `gglink_heatmaps_2` | covered_shiny | Advanced Compare & Environment path. |
@@ -116,7 +116,7 @@ Status definitions:
 | `ggNetView_RMT` | covered_shiny | `02-RMT.Rmd`; RMT graph builder path. |
 | `ggnetview_modularity_heatmaps` | covered_shiny | Module-level environment heatmap workflow in Compare & Environment. |
 | `ggnetview_zipi` | covered_shiny | `06-network_topology.Rmd`; Zi-Pi workflow. |
-| `mantel_pairwise`, `mantel_between_blocks`, `mantel_block_vs_col` | partial | Mantel helpers are represented in environment workflows; finer block controls remain. |
+| `mantel_pairwise`, `mantel_between_blocks`, `mantel_block_vs_col` | covered_shiny | Compare & Environment exposes Mantel table output plus heatmap Mantel method, distance, alternative, and permutation controls. |
 | `trans_TOM_in_WGCNA` | covered_shiny | Chapters 01, 10; WGCNA/TOM builder path. |
 
 ## Current Evidence
