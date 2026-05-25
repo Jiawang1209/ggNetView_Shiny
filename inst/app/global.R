@@ -62,7 +62,7 @@ invisible(lapply(c(
   "registry_get", "registry_delete", "registry_count", "registry_list",
   "registry_choices", "registry_choices_by_type", "registry_log_error",
   "write_registry_table", "write_registry_object", "write_registry_params", "write_workflow_manifest",
-  "read_workflow_manifest", "workflow_replay_plan",
+  "read_workflow_manifest", "workflow_replay_plan", "workflow_replay_recipes",
   "export_formats_for_type", "write_graph_nodes_csv", "write_graph_edges_csv",
   "write_graph_adjacency_csv", "write_plot_png", "write_plot_pdf"
 ), load_app_helper))

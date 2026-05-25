@@ -127,6 +127,16 @@ workflow_replay_plan <- function(manifest) {
   do.call(rbind, records)
 }
 
+workflow_replay_recipes <- function(plan, known_recipes) {
+  if (is.null(plan) || !nrow(plan) || !"recipe" %in% names(plan)) {
+    return(character())
+  }
+  recipes <- unique(as.character(plan$recipe))
+  recipes <- recipes[nzchar(recipes)]
+  recipes <- setdiff(recipes, "manual_starter")
+  recipes[recipes %in% known_recipes]
+}
+
 export_formats_for_type <- function(type) {
   switch(type,
     graph = c("rds", "nodes_csv", "edges_csv", "adjacency_csv", "params_json"),

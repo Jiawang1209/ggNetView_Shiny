@@ -3,7 +3,7 @@ mod_export_center_ui <- function(id) {
   bslib::card(
     bslib::card_header("Export Center"),
     shiny::selectInput(ns("object_id"), "Object", choices = character()),
-    DT::DTOutput(ns("object_summary")),
+    shiny::tableOutput(ns("object_summary")),
     shiny::downloadButton(ns("download_manifest"), "Download Manifest"),
     shiny::downloadButton(ns("download_workflow_manifest"), "Download Workflow JSON"),
     shiny::downloadButton(ns("download_rds"), "Download RDS"),
@@ -12,7 +12,9 @@ mod_export_center_ui <- function(id) {
     shiny::uiOutput(ns("type_downloads")),
     bslib::card_header("Replay Plan"),
     shiny::fileInput(ns("workflow_manifest"), "Workflow JSON", accept = c(".json", "application/json")),
-    DT::DTOutput(ns("replay_plan"))
+    shiny::actionButton(ns("run_replay_recipes"), "Run Replay Recipes"),
+    shiny::verbatimTextOutput(ns("replay_status")),
+    shiny::tableOutput(ns("replay_plan"))
   )
 }
 
@@ -163,9 +165,9 @@ mod_export_center_server <- function(id, registry) {
       type_download_controls(item, session$ns)
     })
 
-    output$object_summary <- DT::renderDT({
+    output$object_summary <- shiny::renderTable({
       export_object_summary(selected_item())
-    }, rownames = FALSE, options = list(dom = "t", paging = FALSE))
+    }, striped = TRUE, bordered = TRUE, spacing = "s", rownames = FALSE)
 
     replay_plan <- shiny::reactive({
       file <- input$workflow_manifest
@@ -174,9 +176,33 @@ mod_export_center_server <- function(id, registry) {
       workflow_replay_plan(manifest)
     })
 
-    output$replay_plan <- DT::renderDT({
+    output$replay_plan <- shiny::renderTable({
       replay_plan()
-    }, rownames = FALSE, options = list(pageLength = 8))
+    }, striped = TRUE, bordered = TRUE, spacing = "s", rownames = FALSE)
+
+    replay_status <- shiny::reactiveVal("Import a workflow JSON to preview replay steps.")
+
+    shiny::observeEvent(input$run_replay_recipes, {
+      plan <- replay_plan()
+      recipes <- workflow_replay_recipes(plan, gallery_recipe_manifest()$recipe)
+      if (!length(recipes)) {
+        replay_status("No supported gallery recipes found in the imported manifest.")
+        return(invisible(NULL))
+      }
+
+      results <- lapply(recipes, function(recipe) run_gallery_recipe(registry, recipe))
+      failed <- vapply(results, function(result) !isTRUE(result$ok), logical(1))
+      if (any(failed)) {
+        messages <- vapply(results[failed], function(result) result$message %||% "unknown replay failure", character(1))
+        replay_status(paste("Replay failed:", paste(messages, collapse = " | ")))
+        return(invisible(results))
+      }
+
+      replay_status(paste("Replayed gallery recipes:", paste(recipes, collapse = ", ")))
+      invisible(results)
+    })
+
+    output$replay_status <- shiny::renderText(replay_status())
 
     output$download_manifest <- shiny::downloadHandler(
       filename = function() "ggnetview_manifest.csv",

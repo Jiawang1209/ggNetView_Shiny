@@ -35,6 +35,12 @@ set_input <- function(id, value) {
   do.call(app$set_inputs, args)
 }
 
+upload_file <- function(id, path) {
+  args <- c(stats::setNames(list(path), id), list(wait_ = TRUE))
+  do.call(app$upload_file, args)
+  app$wait_for_idle(timeout = 30000)
+}
+
 click <- function(selector) {
   app$click(selector = selector)
   app$wait_for_idle(timeout = 30000)
@@ -161,5 +167,10 @@ wait_for_text("gallery_recipe_triple_environment_heatmap", timeout = 120000)
 set_input("data_hub-gallery_recipe", "multi_omics_network")
 click("#data_hub-run_gallery_recipe")
 wait_for_text("gallery_recipe_multi_omics_graph", timeout = 120000)
+
+click_tab("Export")
+replay_manifest <- assert_download_nonempty("export_center-download_workflow_manifest")
+upload_file("export_center-workflow_manifest", replay_manifest)
+wait_for_text("recipe-output-needs-rerun", timeout = 120000)
 
 cat("phase2 browser workflow smoke passed\n")

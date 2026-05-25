@@ -115,6 +115,24 @@ test_that("workflow manifest can be imported as a replay plan", {
   expect_equal(plan$status[[2]], "recipe-output-needs-rerun")
 })
 
+test_that("workflow replay recipes are unique and limited to known recipes", {
+  plan <- data.frame(
+    recipe = c("manual_starter", "network_plot_circle", "network_plot_circle", "unknown_recipe", ""),
+    status = c(
+      "input-or-existing-object",
+      "recipe-output-needs-rerun",
+      "recipe-output-needs-rerun",
+      "recipe-output-needs-rerun",
+      "input-or-existing-object"
+    ),
+    stringsAsFactors = FALSE
+  )
+  known <- c("network_plot_circle", "multi_omics_network")
+
+  expect_equal(workflow_replay_recipes(plan, known), "network_plot_circle")
+  expect_equal(workflow_replay_recipes(plan[0, ], known), character())
+})
+
 test_that("write_plot_png writes extensionless download path", {
   path <- tempfile()
   plot <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
@@ -144,6 +162,7 @@ test_that("global helper bridge includes export helpers", {
     "write_workflow_manifest",
     "read_workflow_manifest",
     "workflow_replay_plan",
+    "workflow_replay_recipes",
     "write_plot_png",
     "write_plot_pdf"
   )
