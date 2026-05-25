@@ -37,6 +37,19 @@ normalize_module_table <- function(module_table) {
   )
 }
 
+normalize_wgcna_module_table <- function(module_table) {
+  module_table <- normalize_module_table(module_table)
+  if (is.null(module_table)) {
+    return(NULL)
+  }
+  data.frame(
+    ID = module_table$name,
+    Module = module_table$Modularity,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+}
+
 normalize_graph_builder_params <- function(mode, params = list()) {
   params <- params %||% list()
   mode <- as.character(mode)
@@ -100,6 +113,32 @@ graph_builder_function_name <- function(mode, inputs) {
 graph_builder_call_args <- function(mode, inputs, params) {
   module_annotation <- normalize_module_table(inputs$module_table)
 
+  if (identical(mode, "wgcna_tom")) {
+    module <- normalize_wgcna_module_table(inputs$module_table)
+    tom <- inputs$tom
+    if (is.data.frame(tom)) {
+      tom <- as.matrix(tom)
+    }
+    if (is.matrix(tom) && nrow(tom) == ncol(tom)) {
+      trans_fn <- resolve_ggnetview_function("trans_TOM_in_WGCNA")
+      if (is.null(trans_fn)) {
+        stop("Cannot find ggNetView function: trans_TOM_in_WGCNA", call. = FALSE)
+      }
+      mat_for_names <- inputs$matrix
+      if (is.null(mat_for_names)) {
+        node_names <- rownames(tom) %||% colnames(tom) %||% paste0("node_", seq_len(ncol(tom)))
+        mat_for_names <- matrix(0, nrow = 1, ncol = length(node_names), dimnames = list("sample_1", node_names))
+      } else if (is.data.frame(mat_for_names) || is.matrix(mat_for_names)) {
+        mat_for_names <- t(as.matrix(mat_for_names))
+      }
+      edge_df <- trans_fn(TOM = tom, mat = mat_for_names, threshold = params$threshold %||% NULL, top_k = params$top_k %||% NULL)
+      params$threshold <- NULL
+      params$top_k <- NULL
+      return(c(list(edge_df, module = module), params))
+    }
+    return(c(list(tom, module = module), params))
+  }
+
   switch(mode,
     matrix = c(list(inputs$matrix), params),
     matrix_rmt = c(list(inputs$matrix), params),
@@ -118,7 +157,7 @@ graph_builder_call_args <- function(mode, inputs, params) {
     } else {
       c(list(inputs$matrix_a, inputs$matrix_b), params)
     },
-    multi_matrix = c(inputs$matrices, params),
+    multi_matrix = c(unname(inputs$matrices), params),
     wgcna_tom = c(list(inputs$tom), params),
     consensus = c(list(inputs$graphs_or_adjacency), params)
   )

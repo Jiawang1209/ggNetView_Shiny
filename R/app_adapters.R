@@ -19,6 +19,9 @@ local_source_env <- function(root) {
   }
 
   env <- new.env(parent = .GlobalEnv)
+  if (requireNamespace("magrittr", quietly = TRUE)) {
+    assign("%>%", magrittr::`%>%`, envir = env)
+  }
   files <- sort(list.files(r_dir, pattern = "[.]R$", full.names = TRUE))
   for (file in files) {
     sys.source(file, envir = env)
