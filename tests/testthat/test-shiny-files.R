@@ -25,3 +25,14 @@ test_that("mobile layout browser smoke exists and checks overflow", {
   expect_match(source_text, "Data Hub", fixed = TRUE)
   expect_match(source_text, "Export", fixed = TRUE)
 })
+
+test_that("visual layout browser smoke exists and covers layout families", {
+  path <- test_path("../../tests/run_shiny_visual_layouts_smoke.R")
+  expect_true(file.exists(path))
+
+  source_text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  expect_match(source_text, "circle_outline", fixed = TRUE)
+  expect_match(source_text, "circular_modules_equal_petal_layout", fixed = TRUE)
+  expect_match(source_text, "bipartite_layout", fixed = TRUE)
+  expect_match(source_text, "WGCNA", fixed = TRUE)
+})
