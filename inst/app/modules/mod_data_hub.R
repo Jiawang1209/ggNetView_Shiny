@@ -21,6 +21,44 @@ preview_table <- function(x, max_rows = 10, max_cols = 8) {
   ]
 }
 
+normalize_object_name <- function(name, fallback = "object") {
+  if (is.null(name)) {
+    name <- ""
+  }
+  name <- trimws(as.character(name))
+  if (!nzchar(name)) {
+    name <- fallback
+  }
+  name <- gsub("[^A-Za-z0-9._-]+", "_", name)
+  name <- gsub("_+", "_", name)
+  name <- gsub("^_+|_+$", "", name)
+  if (!nzchar(name)) {
+    name <- fallback
+  }
+  name
+}
+
+unique_registry_name <- function(registry, name) {
+  listed <- shiny::isolate(registry_list(registry))
+  if (!nrow(listed) || !name %in% listed$name) {
+    return(name)
+  }
+
+  index <- 2L
+  candidate <- paste0(name, "_", index)
+  while (candidate %in% listed$name) {
+    index <- index + 1L
+    candidate <- paste0(name, "_", index)
+  }
+  candidate
+}
+
+validated_upload_value <- function(table) {
+  type <- detect_upload_type(table)
+  validation <- if (identical(type, "matrix")) validate_matrix_like(table) else app_success(table)
+  list(type = type, validation = validation)
+}
+
 mod_data_hub_ui <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_columns(
@@ -47,17 +85,21 @@ mod_data_hub_server <- function(id, registry) {
     current_table <- shiny::reactiveVal(NULL)
 
     register_table <- function(table, name, source) {
-      type <- detect_upload_type(table)
-      validation <- if (identical(type, "matrix")) validate_matrix_like(table) else app_success(table)
+      prepared <- validated_upload_value(table)
+      type <- prepared$type
+      validation <- prepared$validation
 
       if (!validation$ok) {
         shiny::showNotification(validation$message, type = "error")
         return(NULL)
       }
 
+      fallback_name <- if (is.null(source) || !nzchar(source)) "object" else tools::file_path_sans_ext(basename(source))
+      clean_name <- normalize_object_name(name, fallback = fallback_name)
+      clean_name <- unique_registry_name(registry, clean_name)
       registry_add(
         registry,
-        name = name,
+        name = clean_name,
         type = type,
         data = validation$value,
         source = source,
@@ -71,10 +113,10 @@ mod_data_hub_server <- function(id, registry) {
       result <- tryCatch(
         {
           table <- read_user_table(input$file$datapath, filename = input$file$name)
-          current_table(table)
           item <- register_table(table, input$object_name, input$file$name)
 
           if (!is.null(item)) {
+            current_table(item$data)
             shiny::showNotification(paste("Registered", item$name), type = "message")
           }
           item
@@ -93,10 +135,10 @@ mod_data_hub_server <- function(id, registry) {
         {
           path <- app_example_matrix_path()
           table <- read_user_table(path)
-          current_table(table)
           item <- register_table(table, "example_matrix", basename(path))
 
           if (!is.null(item)) {
+            current_table(item$data)
             shiny::showNotification(paste("Registered", item$name), type = "message")
           }
           item

@@ -15,3 +15,21 @@ test_that("preview table limits rows and columns", {
   expect_equal(ncol(preview), 2L)
   expect_equal(names(preview), c("a", "b"))
 })
+
+test_that("object names are normalized and made unique", {
+  registry <- registry_new()
+  registry_add(registry, name = "example_matrix", type = "matrix", data = matrix(1, nrow = 1))
+  registry_add(registry, name = "example_matrix_2", type = "matrix", data = matrix(1, nrow = 1))
+
+  expect_equal(normalize_object_name("  ", fallback = "uploaded_matrix"), "uploaded_matrix")
+  expect_equal(normalize_object_name("bad name.csv"), "bad_name.csv")
+  expect_equal(unique_registry_name(registry, "example_matrix"), "example_matrix_3")
+})
+
+test_that("validated upload values reject invalid matrix previews", {
+  invalid <- matrix(1:4, nrow = 2, dimnames = list(c("sample", "sample"), c("a", "b")))
+  prepared <- validated_upload_value(invalid)
+
+  expect_equal(prepared$type, "matrix")
+  expect_false(prepared$validation$ok)
+})
