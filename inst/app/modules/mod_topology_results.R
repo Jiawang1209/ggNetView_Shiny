@@ -8,7 +8,8 @@ mod_topology_results_ui <- function(id) {
     ),
     bslib::card(
       bslib::card_header("Topology"),
-      DT::DTOutput(ns("topology"))
+      DT::DTOutput(ns("topology")),
+      shiny::verbatimTextOutput(ns("status"))
     ),
     col_widths = c(4, 8)
   )
@@ -16,7 +17,12 @@ mod_topology_results_ui <- function(id) {
 
 mod_topology_results_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
+    unique_output_name <- function(base) {
+      paste0(base, "_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+    }
+
     topology_table <- shiny::reactiveVal(data.frame())
+    status <- shiny::reactiveVal("No topology calculated yet.")
 
     shiny::observe({
       shiny::updateSelectInput(session, "graph_id", choices = registry_choices(registry, type = "graph"))
@@ -29,22 +35,27 @@ mod_topology_results_server <- function(id, registry) {
 
       result <- safe_topology(graph_item$data)
       if (!result$ok) {
+        detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
+        status(detail)
         shiny::showNotification(result$message, type = "error")
         return()
       }
 
       table <- as.data.frame(result$value)
+      topology_name <- unique_output_name(paste0(graph_item$name, "_topology"))
       topology_table(table)
       registry_add(
         registry,
-        name = paste0(graph_item$name, "_topology"),
+        name = topology_name,
         type = "result",
         data = table,
         source = graph_item$id,
         params = list(metric = "network_topology")
       )
+      status(paste("Registered topology:", topology_name))
     })
 
     output$topology <- DT::renderDT(topology_table(), rownames = FALSE)
+    output$status <- shiny::renderText(status())
   })
 }
