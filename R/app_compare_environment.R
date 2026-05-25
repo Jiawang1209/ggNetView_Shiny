@@ -164,6 +164,23 @@ empty_multi_network_link_interpretation <- function() {
   )
 }
 
+report_signal_level <- function(primary_count, total_count, effect = NA_real_) {
+  primary_count <- suppressWarnings(as.numeric(primary_count))
+  total_count <- suppressWarnings(as.numeric(total_count))
+  effect <- suppressWarnings(as.numeric(effect))
+  ratio <- ifelse(is.na(total_count) | total_count <= 0, 0, primary_count / total_count)
+  ifelse(
+    primary_count >= 3 | ratio >= 0.5 | (!is.na(effect) & effect >= 0.7),
+    "strong",
+    ifelse(primary_count > 0 | (!is.na(effect) & effect >= 0.4), "moderate", "screening")
+  )
+}
+
+report_text_value <- function(x, digits = 3) {
+  x <- suppressWarnings(as.numeric(x))
+  ifelse(is.na(x), "NA", format(round(x, digits), nsmall = digits))
+}
+
 multi_network_report_presets <- function(summary, workflow = "multi_network_compare") {
   columns <- c(
     "workflow",
@@ -173,7 +190,11 @@ multi_network_report_presets <- function(summary, workflow = "multi_network_comp
     "link_level",
     "signal_scope",
     "evidence_label",
-    "report_text"
+    "report_text",
+    "domain_label",
+    "interpretation_level",
+    "narrative_text",
+    "caveat_text"
   )
   if (is.null(summary) || !is.data.frame(summary) || !nrow(summary)) {
     return(stats::setNames(data.frame(matrix(ncol = length(columns), nrow = 0)), columns))
@@ -226,6 +247,25 @@ multi_network_report_presets <- function(summary, workflow = "multi_network_comp
     signal_scope,
     evidence_label
   )
+  interpretation_level <- report_signal_level(link_count, link_count, mean_distance)
+  domain_label <- sprintf(
+    "%s %s-level shared network structure",
+    as.character(summary$pair),
+    link_level
+  )
+  narrative_text <- sprintf(
+    "%s shows %s evidence for shared network structure at the %s level, with %s connection(s) across %s source(s) and %s target(s).",
+    as.character(summary$pair),
+    interpretation_level,
+    link_level,
+    ifelse(is.na(link_count), 0, link_count),
+    ifelse(is.na(unique_sources), 0, unique_sources),
+    ifelse(is.na(unique_targets), 0, unique_targets)
+  )
+  caveat_text <- sprintf(
+    "Confirm %s-level shared links against sample metadata, module labels, and biological context before treating them as conserved mechanisms.",
+    link_level
+  )
 
   data.frame(
     workflow = rep(workflow, nrow(summary)),
@@ -236,6 +276,10 @@ multi_network_report_presets <- function(summary, workflow = "multi_network_comp
     signal_scope = signal_scope,
     evidence_label = evidence_label,
     report_text = report_text,
+    domain_label = domain_label,
+    interpretation_level = interpretation_level,
+    narrative_text = narrative_text,
+    caveat_text = caveat_text,
     stringsAsFactors = FALSE
   )
 }
@@ -310,7 +354,11 @@ environment_report_presets <- function(summary, workflow = "environment_link") {
     "block_pair",
     "signal_direction",
     "evidence_label",
-    "report_text"
+    "report_text",
+    "domain_label",
+    "interpretation_level",
+    "narrative_text",
+    "caveat_text"
   )
   if (is.null(summary) || !is.data.frame(summary) || !nrow(summary)) {
     return(stats::setNames(data.frame(matrix(ncol = length(columns), nrow = 0)), columns))
@@ -372,6 +420,35 @@ environment_report_presets <- function(summary, workflow = "environment_link") {
     ifelse(is.na(summary$strongest_correlation), "NA", format(round(summary$strongest_correlation, 3), nsmall = 3)),
     ifelse(is.na(summary$strongest_pvalue), "NA", format(signif(summary$strongest_pvalue, 3), scientific = FALSE))
   )
+  interpretation_level <- report_signal_level(
+    summary$significant_count,
+    summary$link_count,
+    summary$mean_abs_correlation
+  )
+  interpretation_level <- ifelse(
+    summary$significant_count <= 0,
+    "screening",
+    interpretation_level
+  )
+  domain_label <- paste(summary$env_block, summary$spec_block, "association", sep = "-")
+  narrative_text <- sprintf(
+    "%s has %s %s evidence in the %s workflow: %s of %s tested links are statistically supported, the dominant direction is %s, and the strongest link is %s (r=%s, p=%s).",
+    block_pair,
+    interpretation_level,
+    summary$method,
+    workflow,
+    ifelse(is.na(summary$significant_count), 0, summary$significant_count),
+    ifelse(is.na(summary$link_count), 0, summary$link_count),
+    signal_direction,
+    summary$strongest_link,
+    report_text_value(summary$strongest_correlation),
+    ifelse(is.na(summary$strongest_pvalue), "NA", format(signif(summary$strongest_pvalue, 3), scientific = FALSE))
+  )
+  caveat_text <- ifelse(
+    grepl("mantel", summary$method, ignore.case = TRUE),
+    "Mantel-style interpretation depends on distance choices and permutation count; verify robustness with domain-specific distance metrics.",
+    "Correlation-style interpretation is associative; confirm directionality with study design, covariates, and independent validation."
+  )
 
   data.frame(
     workflow = rep(workflow, nrow(summary)),
@@ -382,6 +459,10 @@ environment_report_presets <- function(summary, workflow = "environment_link") {
     signal_direction = signal_direction,
     evidence_label = evidence_label,
     report_text = report_text,
+    domain_label = domain_label,
+    interpretation_level = interpretation_level,
+    narrative_text = narrative_text,
+    caveat_text = caveat_text,
     stringsAsFactors = FALSE
   )
 }

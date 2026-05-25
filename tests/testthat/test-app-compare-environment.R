@@ -191,6 +191,30 @@ test_that("multi-network link interpretation summarizes pair-level links", {
   expect_true(any(grepl("shared module", interpreted$report$report_text, fixed = TRUE)))
 })
 
+test_that("multi-network reports include narrative interpretation templates", {
+  summary <- data.frame(
+    pair = "A vs B",
+    group_a = "A",
+    group_b = "B",
+    link_level = c("module", "node"),
+    link_count = c(5, 1),
+    unique_sources = c(3, 1),
+    unique_targets = c(4, 1),
+    mean_distance = c(2.25, NA),
+    stringsAsFactors = FALSE
+  )
+
+  report <- multi_network_report_presets(summary)
+
+  expect_true(all(c(
+    "domain_label", "interpretation_level", "narrative_text", "caveat_text"
+  ) %in% names(report)))
+  expect_true(any(grepl("module-level", report$domain_label, fixed = TRUE)))
+  expect_true(any(report$interpretation_level == "strong"))
+  expect_true(any(grepl("shared network structure", report$narrative_text, fixed = TRUE)))
+  expect_true(any(grepl("Confirm", report$caveat_text, fixed = TRUE)))
+})
+
 test_that("grouped matrix workflow returns a multi-network plot", {
   mat <- read_phase2_fixture("phase2_example_matrix.csv")
   group_info <- default_group_info_for_matrix(mat)
@@ -302,6 +326,34 @@ test_that("environment report presets convert block summaries into report rows",
   expect_true(any(grepl("Nutrients -> Microbiome", interpreted$report$block_pair, fixed = TRUE)))
   expect_true(any(grepl("strongest link", interpreted$report$report_text, fixed = TRUE)))
   expect_true(any(interpreted$report$signal_direction == "mixed"))
+})
+
+test_that("environment reports include domain and statistical narrative templates", {
+  summary <- data.frame(
+    env_block = c("Nutrients", "Water"),
+    spec_block = c("Microbiome", "Transcriptome"),
+    method = c("correlation", "mantel"),
+    link_count = c(4, 3),
+    significant_count = c(3, 0),
+    positive_count = c(2, 0),
+    negative_count = c(2, 3),
+    strongest_link = c("OTU1 ~ pH", "Gene3 ~ moisture"),
+    strongest_correlation = c(0.82, -0.91),
+    strongest_pvalue = c(0.01, 0.2),
+    mean_abs_correlation = c(0.71, 0.44),
+    stringsAsFactors = FALSE
+  )
+
+  report <- environment_report_presets(summary, workflow = "manual_environment_heatmap")
+
+  expect_true(all(c(
+    "domain_label", "interpretation_level", "narrative_text", "caveat_text"
+  ) %in% names(report)))
+  expect_true(any(grepl("Nutrients-Microbiome", report$domain_label, fixed = TRUE)))
+  expect_true(any(report$interpretation_level == "strong"))
+  expect_true(any(report$interpretation_level == "screening"))
+  expect_true(any(grepl("statistically supported", report$narrative_text, fixed = TRUE)))
+  expect_true(any(grepl("permutation", report$caveat_text, fixed = TRUE)))
 })
 
 test_that("environment block selectors parse and pass through to environment link", {

@@ -16,7 +16,7 @@ Date: 2026-05-26
 - Visual Lab exposes major manual layout families and common `ggNetView()` parameters, including outline/geometric variants plus additional circular-module petal, square, star, diamond, and heart layouts that pass real `ggNetView()` smoke checks. Advanced Visual Lab controls now cover manual layout/rendering knobs such as node layers, rings, radius, shrink/inner-shrink, nearest-neighbor module placement, jitter, edge visibility/curves, edge alpha/color, point labels, and "Others" offsets.
 - Topology can register global topology, direct parallel topology, robustness, sample-level topology/statistics, centrality, IVI, and Zi-Pi/keystone result tables.
 - Graph Builder, Visual Lab, Topology, Compare & Environment, and Gallery recipe execution now wrap real ggNetView calls with progress feedback and temporary action-button busy states.
-- Compare & Environment can register multi-network comparison plots with optional pair restrictions, normalized link detail tables, pair-level link summaries, topology comparison summaries, environment-link plots/statistics with environment/spec block selectors, env/spec pair restrictions, multi-core geometry controls, module-level environment heatmaps, Mantel pairwise tables, and report-oriented environment interpretation summaries.
+- Compare & Environment can register multi-network comparison plots with optional pair restrictions, normalized link detail tables, pair-level link summaries, topology comparison summaries, environment-link plots/statistics with environment/spec block selectors, env/spec pair restrictions, multi-core geometry controls, module-level environment heatmaps, Mantel pairwise tables, and report-oriented interpretation summaries with domain labels, signal levels, narrative text, and caveats.
 - Compare Networks now exposes the broader manual-backed multi-network group layouts, including row/column/geometric/snake/sine/cosine/center-pairs arrangements plus advanced rotation, anchor, row/column, sine-period, and label controls for real `ggNetView_multi_link()` and compatible grouped `ggNetView_multi()` paths.
 - `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports.
 - `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, Export graph-node/workflow-manifest downloads, workflow manifest replay preview, and gallery recipe execution.
@@ -45,16 +45,16 @@ Date: 2026-05-26
    - Gallery recipes now include multi-omics starter paths that build multi-matrix and double-matrix graphs, plus a block-restricted multi-omics environment heatmap from two omics-like matrices.
    - Environment/spec block selectors, block-pair restrictions, multi-core geometry controls, direct heatmap style controls, inward heatmap distance, arc/rotation controls, and collapsed-core Gallery recipes are now exposed for heatmap workflows.
    - Browser smoke now covers the representative geometry matrix for default heatmap, multi-omics block heatmap, collapsed-core heatmap, and rotated-arc/inward-distance collapsed-core heatmap.
-   - Environment and multi-omics environment outputs now register report-ready preset tables with block-pair evidence labels and draft result text for export.
-   - Still needed: deeper biological/statistical narrative after longer real-use sessions and domain-specific report templates.
+   - Environment and multi-omics environment outputs now register report-ready preset tables with block-pair evidence labels, domain labels, statistical signal levels, narrative text, and caveats for export.
+   - Still needed: refine biological/statistical wording after longer real-use sessions and add project-specific report templates when target manuscript styles are known.
 
 4. Multi-network comparison depth.
    - The comparison workflow now uses `ggNetView_multi_link()` with graph objects and `ggNetView_multi()` from a matrix plus generated or uploaded/custom group metadata.
    - Users can restrict comparisons to selected group pairs, which are passed to the real `comparisons_groups` argument.
    - Group layouts now include the manual's broader row/column/geometric/snake/sine/cosine/center-pairs arrangements with advanced layout controls.
    - Link information is normalized into detail and pair-level summary result tables, and graph-level topology comparison summaries are displayed and registered for export.
-   - Multi-network comparison outputs now register report-ready presets that summarize shared node/module connections by comparison pair, link level, source/target diversity, and layout distance.
-   - Still needed: deeper biological/statistical interpretation after longer real-use sessions and domain-specific labels for shared modules/nodes.
+   - Multi-network comparison outputs now register report-ready presets that summarize shared node/module connections by comparison pair, link level, source/target diversity, layout distance, signal level, narrative text, and caveats.
+   - Still needed: refine biological/statistical interpretation after longer real-use sessions and add project-specific labels for shared modules/nodes.
 
 5. Polish layout and wording after real use.
    - Export Center buttons are now grouped into selected-object, type-specific, and session/workflow sections.
