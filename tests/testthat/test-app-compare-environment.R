@@ -58,6 +58,7 @@ test_that("multi-network comparison exposes link and topology tables", {
 
   expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
   expect_true(is.data.frame(result$value$link_table))
+  expect_true(is.data.frame(result$value$link_summary))
   expect_true(is.data.frame(result$value$topology_table))
   expect_true(all(c("graph", "Topology", "Value") %in% names(result$value$topology_table)))
   expect_true(all(c("A", "B") %in% unique(result$value$topology_table$graph)))
@@ -79,6 +80,31 @@ test_that("multi-network comparison parses and applies selected comparison pairs
 
   expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
   expect_equal(result$value$comparison_pairs[[1]], c("A", "B"))
+})
+
+test_that("multi-network link interpretation summarizes pair-level links", {
+  link_info <- data.frame(
+    link_level = c("module", "module", "node"),
+    group_a = c("A", "A", "A"),
+    group_b = c("B", "B", "B"),
+    source = c("1", "2", "OTU1"),
+    target = c("1", "3", "OTU1"),
+    x = c(0, 0, 1),
+    y = c(0, 2, 1),
+    xend = c(3, 4, 1),
+    yend = c(4, 2, 3),
+    stringsAsFactors = FALSE
+  )
+
+  interpreted <- interpret_multi_network_links(link_info)
+
+  expect_true(is.data.frame(interpreted$details))
+  expect_true(is.data.frame(interpreted$summary))
+  expect_true(all(c("pair", "link_label", "distance") %in% names(interpreted$details)))
+  expect_equal(interpreted$details$pair, rep("A vs B", 3))
+  expect_equal(interpreted$summary$link_count[interpreted$summary$link_level == "module"], 2L)
+  expect_equal(interpreted$summary$link_count[interpreted$summary$link_level == "node"], 1L)
+  expect_equal(interpreted$summary$unique_sources[interpreted$summary$link_level == "module"], 2L)
 })
 
 test_that("grouped matrix workflow returns a multi-network plot", {

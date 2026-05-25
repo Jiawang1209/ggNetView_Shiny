@@ -93,7 +93,9 @@ safe_multi_network_compare <- function(graphs, params = list()) {
   plot <- if (is.list(value) && !is.null(value$p)) value$p else value
   info <- if (is.list(value)) value$info else NULL
   link_info <- if (is.list(value)) value$link_info else NULL
-  link_table <- normalize_multi_network_link_table(link_info)
+  link_interpretation <- interpret_multi_network_links(link_info)
+  link_table <- link_interpretation$details
+  link_summary <- link_interpretation$summary
   topology_table <- if (include_topology_summary) {
     summarize_multi_network_topology(graphs, params = topology_params %||% list(bootstrap = 0L))
   } else {
@@ -105,6 +107,7 @@ safe_multi_network_compare <- function(graphs, params = list()) {
     info = info,
     link_info = link_info,
     link_table = link_table,
+    link_summary = link_summary,
     topology_table = topology_table,
     comparison_pairs = parsed_pairs$pairs,
     comparison_warnings = parsed_pairs$warnings,
@@ -149,6 +152,62 @@ normalize_multi_network_link_table <- function(link_info) {
     }
   }
   data.frame(value = utils::capture.output(utils::str(link_info)), stringsAsFactors = FALSE)
+}
+
+empty_multi_network_link_interpretation <- function() {
+  list(
+    details = data.frame(),
+    summary = data.frame()
+  )
+}
+
+interpret_multi_network_links <- function(link_info) {
+  details <- normalize_multi_network_link_table(link_info)
+  if (!is.data.frame(details) || !nrow(details)) {
+    return(empty_multi_network_link_interpretation())
+  }
+
+  details <- as.data.frame(details, check.names = FALSE)
+  required <- c("group_a", "group_b", "link_level", "source", "target")
+  missing <- setdiff(required, names(details))
+  if (length(missing)) {
+    details[missing] <- NA_character_
+  }
+  details$group_a <- as.character(details$group_a)
+  details$group_b <- as.character(details$group_b)
+  details$link_level <- as.character(details$link_level)
+  details$source <- as.character(details$source)
+  details$target <- as.character(details$target)
+  details$pair <- paste(details$group_a, details$group_b, sep = " vs ")
+  details$link_label <- paste(details$source, details$target, sep = " -> ")
+
+  coord_cols <- c("x", "y", "xend", "yend")
+  if (all(coord_cols %in% names(details))) {
+    coords <- lapply(details[coord_cols], function(x) suppressWarnings(as.numeric(x)))
+    details$distance <- sqrt((coords$xend - coords$x)^2 + (coords$yend - coords$y)^2)
+  } else {
+    details$distance <- NA_real_
+  }
+
+  split_key <- interaction(details$pair, details$group_a, details$group_b, details$link_level, drop = TRUE, lex.order = TRUE)
+  summary_rows <- lapply(split(details, split_key), function(df) {
+    data.frame(
+      pair = df$pair[[1]],
+      group_a = df$group_a[[1]],
+      group_b = df$group_b[[1]],
+      link_level = df$link_level[[1]],
+      link_count = nrow(df),
+      unique_sources = length(unique(stats::na.omit(df$source))),
+      unique_targets = length(unique(stats::na.omit(df$target))),
+      mean_distance = if (all(is.na(df$distance))) NA_real_ else mean(df$distance, na.rm = TRUE),
+      stringsAsFactors = FALSE
+    )
+  })
+  summary <- do.call(rbind, summary_rows)
+  rownames(summary) <- NULL
+  summary <- summary[order(summary$pair, summary$link_level), , drop = FALSE]
+
+  list(details = details, summary = summary)
 }
 
 summarize_multi_network_topology <- function(graphs, params = list()) {

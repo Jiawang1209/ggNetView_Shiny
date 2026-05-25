@@ -57,6 +57,7 @@ invisible(lapply(c(
   "subgraph_selected_graph", "subgraph_stat_table",
   "safe_node_centrality", "safe_node_ivi", "safe_zipi", "node_table_from_graph", "adjacency_from_graph",
   "safe_multi_network_compare", "default_group_info_for_matrix", "align_group_info_for_matrix", "safe_multi_group_network",
+  "interpret_multi_network_links",
   "environment_geometry_params",
   "safe_environment_link", "safe_environment_heatmap", "safe_environment_triple_heatmap", "safe_mantel_pairwise",
   "gallery_example_paths", "load_gallery_example_tables", "gallery_workflow_manifest",
