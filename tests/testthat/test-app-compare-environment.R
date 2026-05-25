@@ -173,6 +173,47 @@ test_that("environment block pairs restrict computed environment links", {
   expect_equal(result$value$comparison_pairs, list(c("Climate", "Early"), c("Water", "Late")))
 })
 
+test_that("environment multi-core geometry params parse and pass through", {
+  data <- phase2_env_spec()
+  data$env$conductivity <- c(100, 105, 112, 119, 126)
+  params <- environment_geometry_params(
+    orientation_text = "top_right,bottom_right",
+    spec_layout_text = "circle_outline,square_outline",
+    group_layout = "row",
+    anchor_dist = 4,
+    distance = 2,
+    nrow = 1,
+    scale_networks = FALSE,
+    core_point_size = 6
+  )
+
+  expect_equal(params$orientation, c("top_right", "bottom_right"))
+  expect_equal(params$spec_layout, c("circle_outline", "square_outline"))
+  expect_equal(params$group_layout, "row")
+  expect_equal(params$anchor_dist, 4)
+  expect_equal(params$distance, 2)
+  expect_equal(params$nrow, 1L)
+  expect_false(params$scale_networks)
+  expect_equal(params$CorePointSize, 6)
+
+  result <- safe_environment_heatmap(
+    env = data$env,
+    spec = data$spec,
+    env_blocks = "Climate: temperature,pH\nWater: moisture,conductivity",
+    spec_blocks = "Early: OTU1,OTU2,OTU3\nLate: OTU4,OTU5,OTU6",
+    env_spec_pairs = "Climate,Early\nWater,Late",
+    params = params
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_equal(result$value$call_params$orientation, c("top_right", "bottom_right"))
+  expect_equal(result$value$call_params$spec_layout, c("circle_outline", "square_outline"))
+  expect_equal(result$value$call_params$group_layout, "row")
+  expect_equal(result$value$call_params$nrow, 1L)
+  expect_false(result$value$call_params$scale_networks)
+  expect_equal(result$value$call_params$CorePointSize, 6)
+})
+
 test_that("manual environment heatmap returns plot and statistics", {
   data <- phase2_env_spec()
   result <- safe_environment_heatmap(

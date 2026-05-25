@@ -16,7 +16,7 @@ Date: 2026-05-26
 - Visual Lab exposes major manual layout families and common `ggNetView()` parameters, including outline/geometric variants plus additional circular-module petal, square, star, diamond, and heart layouts that pass real `ggNetView()` smoke checks.
 - Topology can register global topology, robustness, centrality, IVI, and Zi-Pi/keystone result tables.
 - Graph Builder, Visual Lab, Topology, Compare & Environment, and Gallery recipe execution now wrap real ggNetView calls with progress feedback and temporary action-button busy states.
-- Compare & Environment can register multi-network comparison plots with optional pair restrictions, normalized link tables, topology comparison summaries, environment-link plots/statistics with environment/spec block selectors and env/spec pair restrictions, and Mantel pairwise tables.
+- Compare & Environment can register multi-network comparison plots with optional pair restrictions, normalized link tables, topology comparison summaries, environment-link plots/statistics with environment/spec block selectors, env/spec pair restrictions, multi-core geometry controls, and Mantel pairwise tables.
 - `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports.
 - `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, Export graph-node/workflow-manifest downloads, workflow manifest replay preview, and gallery recipe execution.
 - `tests/run_shiny_graph_builder_modes_smoke.R` now runs real browser builds for RMT, matrix, edge+module, adjacency+module, double matrix, multi-matrix, WGCNA/TOM, and consensus builder paths.
@@ -40,8 +40,8 @@ Date: 2026-05-26
 3. Environment and multi-omics depth.
    - The environment workflow now uses `gglink_heatmaps_2()`, original `gglink_heatmaps()`, `gglink_heatmap_triple()`, block-vs-column Mantel controls, and Mantel pairwise helpers. Gallery recipes can reproduce the heatmap, triple-heatmap, and Mantel starter paths.
    - Gallery recipes now include multi-omics starter paths that build multi-matrix and double-matrix graphs, plus a block-restricted multi-omics environment heatmap from two omics-like matrices.
-   - Environment/spec block selectors and block-pair restrictions are now exposed for heatmap workflows.
-   - Still needed: multi-core options.
+   - Environment/spec block selectors, block-pair restrictions, and multi-core geometry controls are now exposed for heatmap workflows.
+   - Still needed: more visual examples that demonstrate how each multi-core geometry preset changes the rendered plot.
 
 4. Multi-network comparison depth.
    - The comparison workflow now uses `ggNetView_multi_link()` with graph objects and `ggNetView_multi()` from a matrix plus generated or uploaded/custom group metadata.

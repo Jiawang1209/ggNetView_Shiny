@@ -55,6 +55,30 @@ mod_compare_environment_ui <- function(id) {
         placeholder = "Optional: Climate,Early\nWater,Late",
         rows = 3
       ),
+      shiny::textAreaInput(
+        ns("env_orientation"),
+        "Heatmap orientations",
+        value = "top_right",
+        placeholder = "top_right,bottom_right,top_left,bottom_left",
+        rows = 2
+      ),
+      shiny::textAreaInput(
+        ns("env_spec_layouts"),
+        "Spec block layouts",
+        value = "circle_outline",
+        placeholder = "circle_outline,square_outline,rectangle_outline",
+        rows = 2
+      ),
+      shiny::selectInput(
+        ns("env_group_layout"),
+        "Core group layout",
+        choices = c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake")
+      ),
+      shiny::numericInput(ns("env_anchor_dist"), "Core anchor distance", value = 6, min = 0.5, step = 0.5),
+      shiny::numericInput(ns("env_distance"), "Heatmap distance", value = 3, min = 0, step = 0.5),
+      shiny::numericInput(ns("env_nrow"), "Core rows", value = 1, min = 1, step = 1),
+      shiny::checkboxInput(ns("env_scale_networks"), "Scale core networks", value = TRUE),
+      shiny::numericInput(ns("env_core_point_size"), "Core point size", value = 8.5, min = 0.5, step = 0.5),
       shiny::selectInput(ns("triple_graph_id"), "Triple heatmap graph", choices = character()),
       shiny::numericInput(ns("triple_feature_count"), "Triple feature count", value = 3, min = 1, step = 1),
       shiny::actionButton(ns("run_environment"), "Run environment link"),
@@ -344,14 +368,24 @@ mod_compare_environment_server <- function(id, registry) {
         env <- as.data.frame(t(as.matrix(env_item$data)), check.names = FALSE)
       }
 
-      params <- list(
+      geometry_params <- environment_geometry_params(
+        orientation_text = input$env_orientation,
+        spec_layout_text = input$env_spec_layouts,
+        group_layout = input$env_group_layout,
+        anchor_dist = input$env_anchor_dist,
+        distance = input$env_distance,
+        nrow = input$env_nrow,
+        scale_networks = input$env_scale_networks,
+        core_point_size = input$env_core_point_size
+      )
+      params <- c(list(
         relation_method = input$relation_method,
         cor.method = input$cor_method,
         drop_nonsig = input$drop_nonsig,
         env_blocks = input$env_blocks,
         spec_blocks = input$spec_blocks,
         env_spec_pairs = input$env_spec_pairs
-      )
+      ), geometry_params)
       status(task_feedback_message("environment link", "running"))
       result <- with_task_feedback(
         session,
@@ -398,7 +432,17 @@ mod_compare_environment_server <- function(id, registry) {
         env <- as.data.frame(t(as.matrix(env_item$data)), check.names = FALSE)
       }
 
-      params <- list(
+      geometry_params <- environment_geometry_params(
+        orientation_text = input$env_orientation,
+        spec_layout_text = input$env_spec_layouts,
+        group_layout = input$env_group_layout,
+        anchor_dist = input$env_anchor_dist,
+        distance = input$env_distance,
+        nrow = input$env_nrow,
+        scale_networks = input$env_scale_networks,
+        core_point_size = input$env_core_point_size
+      )
+      params <- c(list(
         relation_method = input$relation_method,
         cor.method = input$cor_method,
         mantel_kind = input$mantel_kind,
@@ -407,7 +451,7 @@ mod_compare_environment_server <- function(id, registry) {
         env_blocks = input$env_blocks,
         spec_blocks = input$spec_blocks,
         env_spec_pairs = input$env_spec_pairs
-      )
+      ), geometry_params)
       status(task_feedback_message("manual environment heatmap", "running"))
       result <- with_task_feedback(
         session,

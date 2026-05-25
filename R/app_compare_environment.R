@@ -416,6 +416,97 @@ parse_environment_block_pairs <- function(text, env_names, spec_names) {
   list(pairs = if (length(pairs)) pairs else NULL, warnings = warnings)
 }
 
+parse_environment_option_list <- function(text, allowed = NULL) {
+  if (is.null(text) || length(text) == 0L || !nzchar(trimws(as.character(text[[1]])))) {
+    return(character())
+  }
+  values <- trimws(unlist(strsplit(as.character(text[[1]]), "\\s*(?:,|;|\\||\\r?\\n)+\\s*", perl = TRUE)))
+  values <- values[nzchar(values)]
+  if (!is.null(allowed)) {
+    values <- values[values %in% allowed]
+  }
+  unique(values)
+}
+
+optional_positive_numeric <- function(x) {
+  if (is.null(x) || length(x) == 0L || is.na(x[[1]])) {
+    return(NULL)
+  }
+  value <- suppressWarnings(as.numeric(x[[1]]))
+  if (!is.finite(value) || value <= 0) {
+    return(NULL)
+  }
+  value
+}
+
+optional_nonnegative_numeric <- function(x) {
+  if (is.null(x) || length(x) == 0L || is.na(x[[1]])) {
+    return(NULL)
+  }
+  value <- suppressWarnings(as.numeric(x[[1]]))
+  if (!is.finite(value) || value < 0) {
+    return(NULL)
+  }
+  value
+}
+
+optional_positive_integer <- function(x) {
+  value <- optional_positive_numeric(x)
+  if (is.null(value)) {
+    return(NULL)
+  }
+  as.integer(round(value))
+}
+
+environment_geometry_params <- function(
+  orientation_text = NULL,
+  spec_layout_text = NULL,
+  group_layout = NULL,
+  anchor_dist = NULL,
+  distance = NULL,
+  nrow = NULL,
+  scale_networks = NULL,
+  core_point_size = NULL
+) {
+  allowed_orientations <- c("top_right", "bottom_right", "top_left", "bottom_left")
+  allowed_spec_layouts <- c("circle_outline", "diamond_outline", "rectangle_outline", "square_outline")
+  allowed_group_layouts <- c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake")
+
+  params <- list()
+  orientation <- parse_environment_option_list(orientation_text, allowed_orientations)
+  if (length(orientation)) {
+    params$orientation <- orientation
+  }
+  spec_layout <- parse_environment_option_list(spec_layout_text, allowed_spec_layouts)
+  if (length(spec_layout)) {
+    params$spec_layout <- spec_layout
+  }
+  if (!is.null(group_layout) && length(group_layout) && group_layout[[1]] %in% allowed_group_layouts) {
+    params$group_layout <- group_layout[[1]]
+  }
+  anchor_dist <- optional_positive_numeric(anchor_dist)
+  if (!is.null(anchor_dist)) {
+    params$anchor_dist <- anchor_dist
+  }
+  distance <- optional_nonnegative_numeric(distance)
+  if (!is.null(distance)) {
+    params$distance <- distance
+  }
+  nrow <- optional_positive_integer(nrow)
+  if (!is.null(nrow)) {
+    params$nrow <- nrow
+  }
+  if (!is.null(scale_networks) && length(scale_networks) && !is.na(scale_networks[[1]])) {
+    params$scale_networks <- isTRUE(scale_networks[[1]])
+  }
+  core_point_size <- optional_positive_numeric(core_point_size)
+  if (!is.null(core_point_size)) {
+    params$CorePointSize <- core_point_size
+  }
+
+  params
+}
+
 apply_environment_pair_params <- function(params, env_select, spec_select) {
   env_spec_pairs <- params$env_spec_pairs
   params$env_spec_pairs <- NULL
@@ -505,6 +596,7 @@ safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NU
     comparison_pairs = pair_params$pairs,
     comparison_warnings = pair_params$warnings,
     block_warnings = c(block_selectors$warnings, pair_params$warnings),
+    call_params = call_args,
     raw = value
   ))
 }
@@ -587,6 +679,7 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
     comparison_pairs = pair_params$pairs,
     comparison_warnings = pair_params$warnings,
     block_warnings = c(block_selectors$warnings, pair_params$warnings),
+    call_params = call_args,
     raw = value
   ))
 }
