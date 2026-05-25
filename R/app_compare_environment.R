@@ -784,6 +784,100 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
   ))
 }
 
+safe_module_environment_heatmap <- function(graph, env, otu_mat, env_blocks = NULL, params = list()) {
+  fn <- resolve_ggnetview_function("ggnetview_modularity_heatmaps")
+  if (is.null(fn)) {
+    return(app_failure("Cannot find ggNetView function: ggnetview_modularity_heatmaps"))
+  }
+  if (!inherits(graph, "igraph")) {
+    return(app_failure("Module environment heatmap requires a graph object."))
+  }
+
+  env <- as.data.frame(env, check.names = FALSE)
+  otu_mat <- as.matrix(otu_mat)
+  if (is.null(rownames(otu_mat)) || is.null(colnames(otu_mat))) {
+    return(app_failure("Module environment heatmap requires an OTU matrix with row and column names."))
+  }
+  common_samples <- if (!is.null(rownames(env))) {
+    intersect(rownames(env), colnames(otu_mat))
+  } else {
+    character()
+  }
+  if (is.null(rownames(env)) || length(common_samples) < 3L) {
+    if (ncol(env) == length(colnames(otu_mat))) {
+      env <- as.data.frame(t(as.matrix(env)), check.names = FALSE)
+    }
+  }
+
+  orientation <- params$orientation
+  if (is.null(orientation) || !length(orientation)) {
+    orientation <- "top_right"
+  }
+  orientation <- as.character(orientation)
+  params$orientation <- NULL
+
+  env_parsed <- parse_table_blocks(env_blocks %||% params$env_blocks, colnames(env), "Environment")
+  params$env_blocks <- NULL
+  env_select <- env_parsed$blocks
+  if (is.null(env_select)) {
+    return(app_failure(paste(
+      c("No valid environment blocks were provided.", env_parsed$warnings),
+      collapse = "\n"
+    )))
+  }
+  if (length(env_select) != length(orientation)) {
+    return(app_failure("Module environment heatmap requires the same number of environment blocks and orientations."))
+  }
+
+  if (!is.null(params$distance) && is.finite(params$distance) && params$distance < 0) {
+    return(app_failure("Module environment heatmap requires a non-negative heatmap distance."))
+  }
+
+  defaults <- list(
+    graph_obj = graph,
+    env = env,
+    otu_mat = otu_mat,
+    env_select = env_select,
+    module_index = "eigengene",
+    abundance_type = "sum",
+    relation_method = "correlation",
+    cor.method = "pearson",
+    cor.use = "pairwise",
+    mantel_kind = "block_vs_col",
+    permutations = 99L,
+    drop_nonsig = FALSE,
+    layout = "circle",
+    layout.module = "adjacent",
+    orientation = orientation,
+    distance = 3
+  )
+  call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
+  call_args <- filter_function_call_args(fn, call_args)
+
+  result <- safe_call(
+    do.call(fn, call_args),
+    "Failed to calculate module environment heatmap."
+  )
+  if (!result$ok) {
+    return(result)
+  }
+
+  value <- result$value
+  plot <- if (is.list(value) && length(value) >= 1L) value[[1]] else value
+  curved_plot <- if (is.list(value) && length(value) >= 2L) value[[2]] else NULL
+  stats <- if (is.list(value) && length(value) >= 3L) value[[3]] else data.frame()
+
+  app_success(list(
+    plot = plot,
+    curved_plot = curved_plot,
+    stats = stats,
+    env_select = env_select,
+    block_warnings = env_parsed$warnings,
+    call_params = call_args,
+    raw = value
+  ))
+}
+
 graph_to_triple_tables <- function(graph) {
   if (!inherits(graph, "igraph")) {
     stop("Triple heatmap requires a graph object for edge/node tables.", call. = FALSE)

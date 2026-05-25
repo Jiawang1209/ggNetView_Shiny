@@ -81,10 +81,14 @@ mod_compare_environment_ui <- function(id) {
       shiny::numericInput(ns("env_nrow"), "Core rows", value = 1, min = 1, step = 1),
       shiny::checkboxInput(ns("env_scale_networks"), "Scale core networks", value = TRUE),
       shiny::numericInput(ns("env_core_point_size"), "Core point size", value = 8.5, min = 0.5, step = 0.5),
+      shiny::selectInput(ns("module_graph_id"), "Module heatmap graph", choices = character()),
+      shiny::selectInput(ns("module_index"), "Module index", choices = c("eigengene", "abundance")),
+      shiny::selectInput(ns("module_abundance_type"), "Module abundance", choices = c("sum", "mean")),
       shiny::selectInput(ns("triple_graph_id"), "Triple heatmap graph", choices = character()),
       shiny::numericInput(ns("triple_feature_count"), "Triple feature count", value = 3, min = 1, step = 1),
       shiny::actionButton(ns("run_environment"), "Run environment link"),
       shiny::actionButton(ns("run_environment_manual"), "Run manual heatmap"),
+      shiny::actionButton(ns("run_module_environment"), "Run module heatmap"),
       shiny::actionButton(ns("run_environment_triple"), "Run triple heatmap"),
       shiny::actionButton(ns("run_mantel"), "Run Mantel table")
     ),
@@ -129,6 +133,11 @@ mod_compare_environment_server <- function(id, registry) {
       if (is.null(selected_triple) || !selected_triple %in% graph_choices) {
         selected_triple <- if (length(graph_choices)) graph_choices[[1]] else character()
       }
+      selected_module <- input$module_graph_id
+      if (is.null(selected_module) || !selected_module %in% graph_choices) {
+        selected_module <- if (length(graph_choices)) graph_choices[[1]] else character()
+      }
+      shiny::updateSelectInput(session, "module_graph_id", choices = graph_choices, selected = selected_module)
       shiny::updateSelectInput(session, "triple_graph_id", choices = graph_choices, selected = selected_triple)
     })
 
@@ -508,6 +517,102 @@ mod_compare_environment_server <- function(id, registry) {
       )
       status(paste0("Registered manual environment heatmap: ", plot_item$name, environment_block_message(result)))
       shiny::showNotification(paste("Registered manual environment heatmap:", plot_item$name), type = "message")
+    })
+
+    shiny::observeEvent(input$run_module_environment, {
+      shiny::req(input$spec_id, input$env_id, input$module_graph_id)
+      spec_item <- registry_get(registry, input$spec_id)
+      env_item <- registry_get(registry, input$env_id)
+      graph_item <- registry_get(registry, input$module_graph_id)
+      shiny::req(spec_item, env_item, graph_item)
+
+      otu_mat <- as.matrix(spec_item$data)
+      env <- as.data.frame(env_item$data, check.names = FALSE)
+      if (nrow(env) != ncol(otu_mat)) {
+        env <- as.data.frame(t(as.matrix(env_item$data)), check.names = FALSE)
+      }
+
+      geometry_params <- environment_geometry_params(
+        orientation_text = input$env_orientation,
+        spec_layout_text = input$env_spec_layouts,
+        group_layout = input$env_group_layout,
+        group_angle = input$env_group_angle,
+        group_arc_angle = input$env_group_arc_angle,
+        anchor_dist = input$env_anchor_dist,
+        distance = input$env_distance,
+        nrow = input$env_nrow,
+        scale_networks = input$env_scale_networks,
+        core_point_size = input$env_core_point_size
+      )
+      geometry_params$spec_layout <- NULL
+      geometry_params$group_layout <- NULL
+      geometry_params$group_angle <- NULL
+      geometry_params$group_arc_angle <- NULL
+      geometry_params$anchor_dist <- NULL
+      geometry_params$nrow <- NULL
+      geometry_params$scale_networks <- NULL
+      geometry_params$core_point_size <- NULL
+      params <- c(list(
+        relation_method = input$relation_method,
+        cor.method = input$cor_method,
+        mantel_kind = input$mantel_kind,
+        drop_nonsig = input$drop_nonsig,
+        env_blocks = input$env_blocks,
+        module_index = input$module_index,
+        abundance_type = input$module_abundance_type,
+        layout = "circle",
+        layout.module = "adjacent"
+      ), geometry_params)
+      status(task_feedback_message("module environment heatmap", "running"))
+      result <- with_task_feedback(
+        session,
+        "module environment heatmap",
+        session$ns("run_module_environment"),
+        safe_module_environment_heatmap(
+          graph = graph_item$data,
+          env = env,
+          otu_mat = otu_mat,
+          params = params
+        )
+      )
+      if (!result$ok) {
+        detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
+        status(detail)
+        shiny::showNotification(result$message, type = "error")
+        return()
+      }
+
+      plot_obj(result$value$plot)
+      stats <- normalize_stats(result$value$stats)
+      stats_table(stats)
+      compare_link_summary_table(data.frame())
+      compare_topology_table(data.frame())
+      source_ids <- paste(input$spec_id, input$env_id, input$module_graph_id, sep = ",")
+      plot_item <- register_plot_result(
+        unique_output_name("module_environment_heatmap_plot"),
+        result$value$plot,
+        source_ids,
+        params
+      )
+      register_stats_result(
+        unique_output_name("module_environment_heatmap_stats"),
+        stats,
+        source_ids,
+        params
+      )
+      env_names <- names(result$value$env_select %||% list())
+      block_message <- if (length(env_names)) {
+        paste0(" Applied module env blocks: ", paste(env_names, collapse = ", "), ".")
+      } else {
+        ""
+      }
+      warning_message <- if (length(result$value$block_warnings)) {
+        paste0("\n", paste(result$value$block_warnings, collapse = "\n"))
+      } else {
+        ""
+      }
+      status(paste0("Registered module environment heatmap: ", plot_item$name, block_message, warning_message))
+      shiny::showNotification(paste("Registered module environment heatmap:", plot_item$name), type = "message")
     })
 
     shiny::observeEvent(input$run_environment_triple, {

@@ -337,6 +337,52 @@ test_that("manual environment heatmap returns plot and statistics", {
   expect_true(all(c("ID", "Type", "Correlation", "Pvalue") %in% names(result$value$stats)))
 })
 
+test_that("module environment heatmap returns plot and module-level statistics", {
+  data <- phase2_env_spec()
+  graph <- phase2_graph_pair()[[1]]
+  otu_mat <- read_phase2_fixture("phase2_example_matrix.csv")
+
+  result <- safe_module_environment_heatmap(
+    graph = graph,
+    env = data$env,
+    otu_mat = otu_mat,
+    env_blocks = "Climate: temperature,pH\nWater: moisture",
+    params = list(
+      relation_method = "correlation",
+      cor.method = "pearson",
+      orientation = c("top_right", "bottom_right"),
+      layout = "circle",
+      layout.module = "adjacent",
+      distance = 2
+    )
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_s3_class(result$value$plot, "ggplot")
+  expect_s3_class(result$value$curved_plot, "ggplot")
+  expect_true(is.data.frame(result$value$stats))
+  expect_true(all(c("ID", "Type", "Correlation", "Pvalue", "env_block") %in% names(result$value$stats)))
+  expect_equal(names(result$value$env_select), c("Climate", "Water"))
+  expect_equal(result$value$call_params$orientation, c("top_right", "bottom_right"))
+})
+
+test_that("module environment heatmap explains env block and orientation mismatches", {
+  data <- phase2_env_spec()
+  graph <- phase2_graph_pair()[[1]]
+  otu_mat <- read_phase2_fixture("phase2_example_matrix.csv")
+
+  result <- safe_module_environment_heatmap(
+    graph = graph,
+    env = data$env,
+    otu_mat = otu_mat,
+    env_blocks = "Climate: temperature,pH\nWater: moisture",
+    params = list(orientation = "top_right")
+  )
+
+  expect_false(isTRUE(result$ok))
+  expect_match(result$message, "same number of environment blocks and orientations")
+})
+
 test_that("manual environment heatmap supports block Mantel links or dependency error", {
   data <- phase2_env_spec()
   result <- safe_environment_heatmap(
