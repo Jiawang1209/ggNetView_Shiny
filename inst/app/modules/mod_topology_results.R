@@ -39,6 +39,10 @@ topology_robustness_table <- function(value) {
   data.frame()
 }
 
+empty_result_table <- function() {
+  data.frame()
+}
+
 mod_topology_results_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     unique_output_name <- function(base) {
@@ -61,6 +65,8 @@ mod_topology_results_server <- function(id, registry) {
 
       result <- safe_topology(graph_item$data)
       if (!result$ok) {
+        topology_table(empty_result_table())
+        robustness_table(empty_result_table())
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
         shiny::showNotification(result$message, type = "error")

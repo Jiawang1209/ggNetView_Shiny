@@ -81,3 +81,9 @@ test_that("topology robustness table extracts optional robustness payload", {
   expect_equal(topology_robustness_table(payload), robustness)
   expect_equal(topology_robustness_table(data.frame(a = 1)), data.frame())
 })
+
+test_that("empty result table is safe for stale topology clearing", {
+  empty <- empty_result_table()
+  expect_s3_class(empty, "data.frame")
+  expect_equal(nrow(empty), 0L)
+})
