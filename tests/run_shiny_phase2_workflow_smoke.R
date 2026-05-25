@@ -123,6 +123,8 @@ click("#graph_explorer-register_module_subgraph")
 wait_for_text("Registered module subgraph")
 
 click_tab("Visual Lab")
+set_input("visual_lab-layout", "circular_modules_equal_petal_layout")
+set_input("visual_lab-layout_module", "order")
 click("#visual_lab-draw")
 wait_for_text("Registered plot:")
 

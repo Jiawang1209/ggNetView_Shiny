@@ -181,6 +181,18 @@ assert_app_ok(plot_nicely, "Visual Lab nicely layout")
 plot_circle <- safe_plot_ggnetview(graph, params = list(layout = "circle"))
 assert_app_ok(plot_circle, "Visual Lab circle layout")
 
+visual_lab_manual_layouts <- list(
+  circle_outline = list(layout = "circle_outline", layout.module = "adjacent"),
+  square_outline = list(layout = "square_outline", layout.module = "adjacent"),
+  circular_modules_petal = list(layout = "circular_modules_equal_petal_layout", layout.module = "order"),
+  circular_modules_star = list(layout = "circular_modules_star_layout", layout.module = "order"),
+  rightiso_layers = list(layout = "rightiso_layers", layout.module = "adjacent")
+)
+for (layout_name in names(visual_lab_manual_layouts)) {
+  layout_result <- safe_plot_ggnetview(graph, params = visual_lab_manual_layouts[[layout_name]])
+  assert_app_ok(layout_result, paste("Visual Lab manual layout", layout_name))
+}
+
 topology <- safe_topology(graph)
 assert_app_ok(topology, "network topology")
 

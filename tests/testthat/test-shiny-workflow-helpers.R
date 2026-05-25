@@ -163,8 +163,14 @@ test_that("visual lab exposes manual layout families", {
 
   expect_true(all(c(
     "gephi",
+    "circle_outline",
+    "square2",
+    "rectangle_outline",
+    "rightiso_layers",
     "diamond",
     "circular_modules_gephi_layout",
+    "circular_modules_equal_petal_layout",
+    "circular_modules_star_layout",
     "consensus_module_equal_gephi",
     "bipartite_gephi_layout",
     "tripartite_equal_gephi_layout",

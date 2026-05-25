@@ -13,7 +13,7 @@ Date: 2026-05-26
 - Data Hub can load sample metadata and Compare & Environment can use it for grouped matrix network plots.
 - Graph Builder has real API-backed entry points for matrix, RMT-assisted matrix, edge table, adjacency, double matrix, multi-matrix, WGCNA/TOM, and consensus graph construction.
 - Graph Explorer can register graph info, module subgraphs, and sample subgraphs.
-- Visual Lab exposes major manual layout families and common `ggNetView()` parameters.
+- Visual Lab exposes major manual layout families and common `ggNetView()` parameters, including outline/geometric variants plus additional circular-module petal, square, star, diamond, and heart layouts that pass real `ggNetView()` smoke checks.
 - Topology can register global topology, robustness, centrality, IVI, and Zi-Pi/keystone result tables.
 - Compare & Environment can register multi-network comparison plots, environment-link plots/statistics, and Mantel pairwise tables.
 - `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports.
@@ -26,8 +26,8 @@ Date: 2026-05-26
 1. Full browser-level workflow smoke.
    - Current smoke covers startup, the original core programmatic workflow, the broad manual-backed backend workflow, and a real browser click-through for the main Phase 2/3 path.
    - Current browser smoke also covers every major graph-builder mode.
-   - Current browser smoke also covers sample subgraph registration, centrality/IVI buttons, Mantel button, and plot PNG/PDF downloads.
-   - Still needed: mobile-width layout checks and deeper browser coverage for additional layout presets.
+   - Current browser smoke also covers sample subgraph registration, centrality/IVI buttons, a circular-module Visual Lab preset, Mantel button, and plot PNG/PDF downloads.
+   - Still needed: mobile-width layout checks and deeper browser coverage across all layout families.
 
 2. Long-running operation feedback.
    - Add progress/status indicators for graph build, plot draw, topology, comparison, environment, and Mantel calculations.

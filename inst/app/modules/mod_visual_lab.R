@@ -1,15 +1,32 @@
 visual_lab_layout_choices <- function() {
   list(
     "General" = c(
-      "nicely", "fr", "fr2", "kk", "gephi", "stress", "lgl", "randomly"
+      "nicely", "nicely1", "fr", "fr1", "fr2", "kk", "gephi", "stress", "lgl", "randomly"
     ),
     "Geometric" = c(
-      "circle", "grid", "diamond", "diamond_outline", "rectangle", "square",
-      "star", "star_concentric", "petal", "heart_centered"
+      "circle", "circle_outline", "grid", "diamond", "diamond_outline", "rectangle",
+      "rectangle_outline", "square", "square2", "square_outline", "star",
+      "star_concentric", "petal", "petal2", "heart_centered", "rightiso_layers"
     ),
     "Circular modules" = c(
       "circular_modules_gephi_layout",
       "circular_modules_equal_gephi_layout",
+      "circular_modules_petal_layout",
+      "circular_modules_equal_petal_layout",
+      "circular_modules_petal2_layout",
+      "circular_modules_equal_petal2_layout",
+      "circular_modules_square_layout",
+      "circular_modules_equal_square_layout",
+      "circular_modules_square2_layout",
+      "circular_modules_equal_square2_layout",
+      "circular_modules_star_layout",
+      "circular_modules_equal_star_layout",
+      "circular_modules_star_concentric_layout",
+      "circular_modules_equal_star_concentric_layout",
+      "circular_modules_diamond_layout",
+      "circular_modules_equal_diamond_layout",
+      "circular_modules_heart_centered_layout",
+      "circular_modules_equal_heart_centered_layout",
       "consensus_module_gephi",
       "consensus_module_equal_gephi"
     ),
