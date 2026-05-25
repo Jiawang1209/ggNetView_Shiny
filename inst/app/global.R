@@ -11,6 +11,7 @@ app_helper_env <- new.env(parent = .GlobalEnv)
 app_helper_files <- file.path(app_root, "R", c(
   "app_validation.R",
   "app_registry.R",
+  "app_task_feedback.R",
   "app_adapters.R",
   "app_graph_builders.R",
   "app_graph_inspect.R",
@@ -47,6 +48,7 @@ load_app_helper <- function(name) {
 
 invisible(lapply(c(
   "app_result", "app_success", "app_failure",
+  "task_feedback_message", "task_busy_payload", "app_task_feedback_script", "send_task_busy", "with_task_feedback",
   "read_user_table", "detect_upload_type", "validate_matrix_like",
   "safe_call", "safe_build_graph", "safe_graph_builder", "safe_rmt_threshold", "safe_plot_ggnetview", "safe_topology",
   "graph_builder_modes", "normalize_graph_builder_params", "required_builder_inputs",

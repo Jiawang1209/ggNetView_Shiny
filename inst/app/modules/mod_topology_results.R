@@ -75,7 +75,13 @@ mod_topology_results_server <- function(id, registry) {
       graph_item <- registry_get(registry, input$graph_id)
       shiny::req(graph_item)
 
-      result <- safe_topology(graph_item$data)
+      status(task_feedback_message("network topology", "running"))
+      result <- with_task_feedback(
+        session,
+        "network topology",
+        session$ns("calculate"),
+        safe_topology(graph_item$data)
+      )
       if (!result$ok) {
         topology_table(empty_result_table())
         robustness_table(empty_result_table())
@@ -140,7 +146,13 @@ mod_topology_results_server <- function(id, registry) {
       graph_item <- registry_get(registry, input$graph_id)
       shiny::req(graph_item)
 
-      result <- safe_node_centrality(graph_item$data, measures = "all", weighted = input$weighted_centrality)
+      status(task_feedback_message("node centrality", "running"))
+      result <- with_task_feedback(
+        session,
+        "node centrality",
+        session$ns("calculate_centrality"),
+        safe_node_centrality(graph_item$data, measures = "all", weighted = input$weighted_centrality)
+      )
       register_node_metric(
         "node_centrality",
         result,
@@ -154,7 +166,13 @@ mod_topology_results_server <- function(id, registry) {
       graph_item <- registry_get(registry, input$graph_id)
       shiny::req(graph_item)
 
-      result <- safe_node_ivi(graph_item$data, scale = input$ivi_scale, ncores = 1L)
+      status(task_feedback_message("node IVI", "running"))
+      result <- with_task_feedback(
+        session,
+        "node IVI",
+        session$ns("calculate_ivi"),
+        safe_node_ivi(graph_item$data, scale = input$ivi_scale, ncores = 1L)
+      )
       register_node_metric(
         "node_ivi",
         result,
@@ -168,10 +186,16 @@ mod_topology_results_server <- function(id, registry) {
       graph_item <- registry_get(registry, input$graph_id)
       shiny::req(graph_item)
 
-      result <- safe_zipi(
-        graph_item$data,
-        zi_threshold = input$zi_threshold,
-        pi_threshold = input$pi_threshold
+      status(task_feedback_message("Zi-Pi classification", "running"))
+      result <- with_task_feedback(
+        session,
+        "Zi-Pi classification",
+        session$ns("calculate_zipi"),
+        safe_zipi(
+          graph_item$data,
+          zi_threshold = input$zi_threshold,
+          pi_threshold = input$pi_threshold
+        )
       )
       register_node_metric(
         "zipi",

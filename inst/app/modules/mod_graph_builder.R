@@ -123,14 +123,20 @@ mod_graph_builder_server <- function(id, registry) {
         return()
       }
 
-      result <- safe_rmt_threshold(
-        source$data,
-        params = list(
-          transfrom.method = input$transform_method,
-          method = input$method,
-          cor.method = input$cor_method,
-          min.mat.dim = 2,
-          verbose = FALSE
+      status(task_feedback_message("RMT threshold scan", "running"))
+      result <- with_task_feedback(
+        session,
+        "RMT threshold scan",
+        session$ns("run_rmt"),
+        safe_rmt_threshold(
+          source$data,
+          params = list(
+            transfrom.method = input$transform_method,
+            method = input$method,
+            cor.method = input$cor_method,
+            min.mat.dim = 2,
+            verbose = FALSE
+          )
         )
       )
 
@@ -223,7 +229,13 @@ mod_graph_builder_server <- function(id, registry) {
         }
       }
 
-      result <- safe_graph_builder(input$builder, inputs = inputs, params = params)
+      status(task_feedback_message("graph build", "running"))
+      result <- with_task_feedback(
+        session,
+        "graph build",
+        session$ns("build"),
+        safe_graph_builder(input$builder, inputs = inputs, params = params)
+      )
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)

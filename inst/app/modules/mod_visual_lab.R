@@ -161,7 +161,13 @@ mod_visual_lab_server <- function(id, registry) {
         seed = input$seed
       )
 
-      result <- safe_plot_ggnetview(graph_item$data, params = params)
+      status(task_feedback_message("plot draw", "running"))
+      result <- with_task_feedback(
+        session,
+        "plot draw",
+        session$ns("draw"),
+        safe_plot_ggnetview(graph_item$data, params = params)
+      )
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
