@@ -68,3 +68,16 @@ test_that("graph builder validates source type matches", {
   expect_false(builder_matches_source_type("edge_table", "matrix"))
   expect_false(builder_matches_source_type("Louvain", "matrix"))
 })
+
+source(test_path("../../inst/app/modules/mod_topology_results.R"))
+
+test_that("topology robustness table extracts optional robustness payload", {
+  robustness <- data.frame(step = 1:3, score = c(1, 0.7, 0.2))
+  payload <- list(
+    topology = data.frame(metric = "nodes", value = 3),
+    Robustness = robustness
+  )
+
+  expect_equal(topology_robustness_table(payload), robustness)
+  expect_equal(topology_robustness_table(data.frame(a = 1)), data.frame())
+})

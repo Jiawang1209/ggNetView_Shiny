@@ -11,7 +11,11 @@ mod_topology_results_ui <- function(id) {
       DT::DTOutput(ns("topology")),
       shiny::verbatimTextOutput(ns("status"))
     ),
-    col_widths = c(4, 8)
+    bslib::card(
+      bslib::card_header("Robustness"),
+      DT::DTOutput(ns("robustness"))
+    ),
+    col_widths = c(4, 8, 12)
   )
 }
 
@@ -27,6 +31,14 @@ topology_result_table <- function(value) {
   as.data.frame(value)
 }
 
+topology_robustness_table <- function(value) {
+  if (is.list(value) && is.data.frame(value$Robustness)) {
+    return(value$Robustness)
+  }
+
+  data.frame()
+}
+
 mod_topology_results_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     unique_output_name <- function(base) {
@@ -35,6 +47,7 @@ mod_topology_results_server <- function(id, registry) {
     }
 
     topology_table <- shiny::reactiveVal(data.frame())
+    robustness_table <- shiny::reactiveVal(data.frame())
     status <- shiny::reactiveVal("No topology calculated yet.")
 
     shiny::observe({
@@ -55,8 +68,10 @@ mod_topology_results_server <- function(id, registry) {
       }
 
       table <- topology_result_table(result$value)
+      robustness <- topology_robustness_table(result$value)
       topology_name <- unique_output_name(paste0(graph_item$name, "_topology"))
       topology_table(table)
+      robustness_table(robustness)
       registry_add(
         registry,
         name = topology_name,
@@ -65,10 +80,21 @@ mod_topology_results_server <- function(id, registry) {
         source = graph_item$id,
         params = list(metric = "network_topology")
       )
+      if (nrow(robustness) > 0L) {
+        registry_add(
+          registry,
+          name = unique_output_name(paste0(graph_item$name, "_robustness")),
+          type = "result",
+          data = robustness,
+          source = graph_item$id,
+          params = list(metric = "network_robustness")
+        )
+      }
       status(paste("Registered topology:", topology_name))
     })
 
     output$topology <- DT::renderDT(topology_table(), rownames = FALSE)
+    output$robustness <- DT::renderDT(robustness_table(), rownames = FALSE)
     output$status <- shiny::renderText(status())
   })
 }
