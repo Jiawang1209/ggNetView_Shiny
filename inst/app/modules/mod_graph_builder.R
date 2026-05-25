@@ -7,6 +7,29 @@ builder_choices_for_type <- function(type) {
   )
 }
 
+graph_builder_params <- function(
+  builder,
+  method = "cor",
+  cor_method = "pearson",
+  proc = "none",
+  r_threshold = 0.1,
+  p_threshold = 1,
+  module_method = "Fast_greedy"
+) {
+  if (!identical(builder, "matrix")) {
+    return(list())
+  }
+
+  list(
+    method = method,
+    cor.method = cor_method,
+    proc = proc,
+    r.threshold = r_threshold,
+    p.threshold = p_threshold,
+    module.method = module_method
+  )
+}
+
 mod_graph_builder_ui <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_columns(
@@ -18,6 +41,12 @@ mod_graph_builder_ui <- function(id) {
         "Builder",
         choices = c("Matrix" = "matrix", "Adjacency matrix" = "adjacency", "Edge table" = "edge_table")
       ),
+      shiny::selectInput(ns("method"), "Association method", choices = c("cor")),
+      shiny::selectInput(ns("cor_method"), "Correlation", choices = c("pearson", "spearman")),
+      shiny::selectInput(ns("proc"), "Preprocess", choices = c("none")),
+      shiny::numericInput(ns("r_threshold"), "r threshold", value = 0.1, min = 0, max = 1, step = 0.01),
+      shiny::numericInput(ns("p_threshold"), "p threshold", value = 1, min = 0, max = 1, step = 0.01),
+      shiny::selectInput(ns("module_method"), "Module method", choices = c("Fast_greedy", "Louvain", "Walktrap")),
       shiny::textInput(ns("graph_name"), "Graph name", value = "network_graph"),
       shiny::actionButton(ns("build"), "Build graph")
     ),
@@ -52,7 +81,17 @@ mod_graph_builder_server <- function(id, registry) {
       source <- registry_get(registry, input$source_id)
       shiny::req(source)
 
-      result <- safe_build_graph(source$data, input$builder, params = list())
+      params <- graph_builder_params(
+        builder = input$builder,
+        method = input$method,
+        cor_method = input$cor_method,
+        proc = input$proc,
+        r_threshold = input$r_threshold,
+        p_threshold = input$p_threshold,
+        module_method = input$module_method
+      )
+
+      result <- safe_build_graph(source$data, input$builder, params = params)
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
@@ -73,7 +112,7 @@ mod_graph_builder_server <- function(id, registry) {
         type = "graph",
         data = result$value,
         source = source$id,
-        params = list(builder = input$builder)
+        params = params
       )
       status(paste("Built graph:", item$name))
       shiny::showNotification(paste("Built graph:", item$name), type = "message")

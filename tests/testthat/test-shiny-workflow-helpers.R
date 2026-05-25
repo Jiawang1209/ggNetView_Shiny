@@ -33,3 +33,29 @@ test_that("validated upload values reject invalid matrix previews", {
   expect_equal(prepared$type, "matrix")
   expect_false(prepared$validation$ok)
 })
+
+source(test_path("../../inst/app/modules/mod_graph_builder.R"))
+
+test_that("graph builder params match ggNetView matrix workflow", {
+  params <- graph_builder_params(
+    builder = "matrix",
+    method = "cor",
+    cor_method = "pearson",
+    proc = "none",
+    r_threshold = 0.1,
+    p_threshold = 1,
+    module_method = "Fast_greedy"
+  )
+
+  expect_equal(params$method, "cor")
+  expect_equal(params$cor.method, "pearson")
+  expect_equal(params$proc, "none")
+  expect_equal(params$r.threshold, 0.1)
+  expect_equal(params$p.threshold, 1)
+  expect_equal(params$module.method, "Fast_greedy")
+})
+
+test_that("graph builder params are empty for edge table builder", {
+  params <- graph_builder_params(builder = "edge_table")
+  expect_equal(params, list())
+})

@@ -91,6 +91,7 @@ source_repo_file("R", "app_validation.R")
 source_repo_file("R", "app_adapters.R")
 source_repo_file("R", "app_exports.R")
 source_repo_file("R", "apply_transform_method.R")
+source_repo_file("inst", "app", "modules", "mod_graph_builder.R")
 
 if (requireNamespace("magrittr", quietly = TRUE)) {
   `%>%` <- magrittr::`%>%`
@@ -101,13 +102,14 @@ mat <- read_user_table(matrix_path)
 valid <- validate_matrix_like(mat)
 assert_app_ok(valid, "matrix validation")
 
-graph_params <- list(
+graph_params <- graph_builder_params(
+  builder = "matrix",
   method = "cor",
-  cor.method = "pearson",
+  cor_method = "pearson",
   proc = "none",
-  r.threshold = 0.1,
-  p.threshold = 1,
-  module.method = "Fast_greedy"
+  r_threshold = 0.1,
+  p_threshold = 1,
+  module_method = "Fast_greedy"
 )
 graph_result <- safe_build_graph(valid$value, builder = "matrix", params = graph_params)
 assert_app_ok(graph_result, "graph build")
