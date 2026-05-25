@@ -240,6 +240,57 @@ test_that("environment multi-core geometry params parse and pass through", {
   expect_equal(result$value$call_params$CorePointSize, 6)
 })
 
+test_that("environment style geometry params parse and pass through", {
+  data <- phase2_env_spec()
+  data$env$conductivity <- c(100, 105, 112, 119, 126)
+  params <- environment_geometry_params(
+    orientation_text = "top_right,bottom_right",
+    spec_layout_text = "circle_outline,square_outline",
+    group_layout = "row",
+    anchor_dist = 4,
+    distance = 2,
+    nrow = 1,
+    ncol = 2,
+    heatmap_label_size = 4,
+    heatmap_sig_size = 3,
+    heatmap_point_size = 4.5,
+    core_point_size = 6,
+    sig_line_width_min = 0.25,
+    sig_line_width_max = 1.75,
+    sig_line_color_low = "#2166ac",
+    sig_line_color_high = "#b2182b",
+    sig_line_alpha = 0.8
+  )
+
+  expect_equal(params$ncol, 2L)
+  expect_equal(params$HeatmapLabelSize, 4)
+  expect_equal(params$HeatmapSigSize, 3)
+  expect_equal(params$HeatmapPointSize, 4.5)
+  expect_equal(params$CorePointSize, 6)
+  expect_equal(params$SigLineWidth, c(0.25, 1.75))
+  expect_equal(params$SigLineColor, c("#2166ac", "#b2182b"))
+  expect_equal(params$SigLineAlpha, 0.8)
+
+  result <- safe_environment_link(
+    env = data$env,
+    spec = data$spec,
+    env_blocks = "Climate: temperature,pH\nWater: moisture,conductivity",
+    spec_blocks = "Early: OTU1,OTU2,OTU3\nLate: OTU4,OTU5,OTU6",
+    env_spec_pairs = "Climate,Early\nWater,Late",
+    params = params
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_equal(result$value$call_params$ncol, 2L)
+  expect_equal(result$value$call_params$HeatmapLabelSize, 4)
+  expect_equal(result$value$call_params$HeatmapSigSize, 3)
+  expect_equal(result$value$call_params$HeatmapPointSize, 4.5)
+  expect_equal(result$value$call_params$CorePointSize, 6)
+  expect_equal(result$value$call_params$SigLineWidth, c(0.25, 1.75))
+  expect_equal(result$value$call_params$SigLineColor, c("#2166ac", "#b2182b"))
+  expect_equal(result$value$call_params$SigLineAlpha, 0.8)
+})
+
 test_that("environment geometry supports arc rotation and inward heatmap distance", {
   data <- phase2_env_spec()
   data$env$conductivity <- c(100, 105, 112, 119, 126)

@@ -528,6 +528,17 @@ optional_positive_integer <- function(x) {
   as.integer(round(value))
 }
 
+optional_color <- function(x) {
+  if (is.null(x) || length(x) == 0L || is.na(x[[1]])) {
+    return(NULL)
+  }
+  value <- trimws(as.character(x[[1]]))
+  if (!nzchar(value)) {
+    return(NULL)
+  }
+  value
+}
+
 environment_geometry_params <- function(
   orientation_text = NULL,
   spec_layout_text = NULL,
@@ -537,8 +548,17 @@ environment_geometry_params <- function(
   anchor_dist = NULL,
   distance = NULL,
   nrow = NULL,
+  ncol = NULL,
   scale_networks = NULL,
-  core_point_size = NULL
+  core_point_size = NULL,
+  heatmap_label_size = NULL,
+  heatmap_sig_size = NULL,
+  heatmap_point_size = NULL,
+  sig_line_width_min = NULL,
+  sig_line_width_max = NULL,
+  sig_line_color_low = NULL,
+  sig_line_color_high = NULL,
+  sig_line_alpha = NULL
 ) {
   allowed_orientations <- c("top_right", "bottom_right", "top_left", "bottom_left")
   allowed_spec_layouts <- c("circle_outline", "diamond_outline", "rectangle_outline", "square_outline")
@@ -576,12 +596,42 @@ environment_geometry_params <- function(
   if (!is.null(nrow)) {
     params$nrow <- nrow
   }
+  ncol <- optional_positive_integer(ncol)
+  if (!is.null(ncol)) {
+    params$ncol <- ncol
+  }
   if (!is.null(scale_networks) && length(scale_networks) && !is.na(scale_networks[[1]])) {
     params$scale_networks <- isTRUE(scale_networks[[1]])
   }
   core_point_size <- optional_positive_numeric(core_point_size)
   if (!is.null(core_point_size)) {
     params$CorePointSize <- core_point_size
+  }
+  heatmap_label_size <- optional_positive_numeric(heatmap_label_size)
+  if (!is.null(heatmap_label_size)) {
+    params$HeatmapLabelSize <- heatmap_label_size
+  }
+  heatmap_sig_size <- optional_positive_numeric(heatmap_sig_size)
+  if (!is.null(heatmap_sig_size)) {
+    params$HeatmapSigSize <- heatmap_sig_size
+  }
+  heatmap_point_size <- optional_positive_numeric(heatmap_point_size)
+  if (!is.null(heatmap_point_size)) {
+    params$HeatmapPointSize <- heatmap_point_size
+  }
+  sig_line_width_min <- optional_positive_numeric(sig_line_width_min)
+  sig_line_width_max <- optional_positive_numeric(sig_line_width_max)
+  if (!is.null(sig_line_width_min) && !is.null(sig_line_width_max)) {
+    params$SigLineWidth <- sort(c(sig_line_width_min, sig_line_width_max))
+  }
+  sig_line_color_low <- optional_color(sig_line_color_low)
+  sig_line_color_high <- optional_color(sig_line_color_high)
+  if (!is.null(sig_line_color_low) && !is.null(sig_line_color_high)) {
+    params$SigLineColor <- c(sig_line_color_low, sig_line_color_high)
+  }
+  sig_line_alpha <- optional_nonnegative_numeric(sig_line_alpha)
+  if (!is.null(sig_line_alpha)) {
+    params$SigLineAlpha <- min(sig_line_alpha, 1)
   }
 
   params

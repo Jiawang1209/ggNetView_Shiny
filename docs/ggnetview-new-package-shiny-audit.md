@@ -55,7 +55,7 @@ New dependencies relative to the old root package:
 | Function | Notable new arguments / behavior | Current Shiny state |
 | --- | --- | --- |
 | `ggNetView()` | Adds `label_layout`, `label_wrap_width`, `label_outer_pad`, and `bandwidth_scale`. | Visual Lab exposes the main layout families and common visual controls; exhaustive per-argument coverage still needs broader visual regression. |
-| `gglink_heatmaps()` | Adds Mantel/correlation distance choices, collapse modes, significance mapping, group angle, and line styling. | Compare & Environment exposes the main heatmap and Mantel path; deeper geometry controls remain. |
+| `gglink_heatmaps()` | Adds Mantel/correlation distance choices, collapse modes, significance mapping, group angle, and line styling. | Compare & Environment exposes the main heatmap, Mantel path, multi-core geometry, point/label sizing, and significant-line styling controls. |
 | `ggnetview_modularity_heatmaps()` | Adds module-level Mantel heatmap behavior. | Covered as a direct module-level environment heatmap path. |
 | `ggNetView_multi()` | Adds `bandwidth_scale`. | Covered as grouped multi-network plot path with room for richer group controls. |
 | `ggNetView_multi_link()` | Adds `bandwidth_scale`; manual chapter 07 relies on it. | Covered as a multi-network comparison path with remaining display-depth work. |
@@ -71,7 +71,7 @@ New dependencies relative to the old root package:
 | `05-layout.Rmd` | Full graph and subgraph visual layout gallery | Covered for major layout families and every current Visual Lab layout preset in browser smoke. |
 | `06-network_topology.Rmd` | Network topology, sample topology, node centrality, IVI, Zi-Pi | Covered for global topology, direct parallel topology, robustness, sample topology, centrality, IVI, and Zi-Pi. |
 | `07-network_compare.Rmd` | Multi-network comparison via `ggNetView_multi_link()` | Covered with comparison plotting and task feedback. Richer topology comparison displays and link-info tables remain. |
-| `08-network_environment.Rmd` | Advanced `gglink_heatmaps()` with correlation/Mantel, multi-core, collapse modes | Covered for environment links, module-level heatmaps, statistics, Mantel helpers, and Gallery-backed geometry presets. Direct non-gallery geometry controls remain a polish area. |
+| `08-network_environment.Rmd` | Advanced `gglink_heatmaps()` with correlation/Mantel, multi-core, collapse modes | Covered for environment links, module-level heatmaps, statistics, Mantel helpers, Gallery-backed geometry presets, and direct multi-core/style controls. Direct report-level interpretation remains a polish area. |
 | `09-multi-omics_netwotk.Rmd` | Multi-omics graph and plot workflows | Starter coverage through multi-matrix graph building and gallery/plot presets. More multi-omics-specific recipes remain. |
 | `10-Gallery_of_Reproducible_Examples.Rmd` | Publication recipes and reusable parameter presets | Covered through gallery recipes, guarded reruns, manifest metadata, and workflow replay preview. Non-gallery imported object rerun support remains partial. |
 

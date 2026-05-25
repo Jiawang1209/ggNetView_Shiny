@@ -79,8 +79,17 @@ mod_compare_environment_ui <- function(id) {
       shiny::numericInput(ns("env_anchor_dist"), "Core anchor distance", value = 6, min = 0.5, step = 0.5),
       shiny::numericInput(ns("env_distance"), "Heatmap distance", value = 3, step = 0.5),
       shiny::numericInput(ns("env_nrow"), "Core rows", value = 1, min = 1, step = 1),
+      shiny::numericInput(ns("env_ncol"), "Core columns", value = NA, min = 1, step = 1),
       shiny::checkboxInput(ns("env_scale_networks"), "Scale core networks", value = TRUE),
       shiny::numericInput(ns("env_core_point_size"), "Core point size", value = 8.5, min = 0.5, step = 0.5),
+      shiny::numericInput(ns("env_heatmap_label_size"), "Heatmap label size", value = 5, min = 0.5, step = 0.5),
+      shiny::numericInput(ns("env_heatmap_sig_size"), "Heatmap sig size", value = 5, min = 0.5, step = 0.5),
+      shiny::numericInput(ns("env_heatmap_point_size"), "Heatmap point size", value = 5, min = 0.5, step = 0.5),
+      shiny::numericInput(ns("env_sig_line_width_min"), "Sig line min width", value = 0.5, min = 0.05, step = 0.05),
+      shiny::numericInput(ns("env_sig_line_width_max"), "Sig line max width", value = 2, min = 0.05, step = 0.05),
+      shiny::textInput(ns("env_sig_line_color_low"), "Sig line low color", value = "#fdbb84"),
+      shiny::textInput(ns("env_sig_line_color_high"), "Sig line high color", value = "#d7301f"),
+      shiny::numericInput(ns("env_sig_line_alpha"), "Sig line alpha", value = 0.5, min = 0, max = 1, step = 0.05),
       shiny::selectInput(ns("module_graph_id"), "Module heatmap graph", choices = character()),
       shiny::selectInput(ns("module_index"), "Module index", choices = c("eigengene", "abundance")),
       shiny::selectInput(ns("module_abundance_type"), "Module abundance", choices = c("sum", "mean")),
@@ -403,8 +412,17 @@ mod_compare_environment_server <- function(id, registry) {
         anchor_dist = input$env_anchor_dist,
         distance = input$env_distance,
         nrow = input$env_nrow,
+        ncol = input$env_ncol,
         scale_networks = input$env_scale_networks,
-        core_point_size = input$env_core_point_size
+        core_point_size = input$env_core_point_size,
+        heatmap_label_size = input$env_heatmap_label_size,
+        heatmap_sig_size = input$env_heatmap_sig_size,
+        heatmap_point_size = input$env_heatmap_point_size,
+        sig_line_width_min = input$env_sig_line_width_min,
+        sig_line_width_max = input$env_sig_line_width_max,
+        sig_line_color_low = input$env_sig_line_color_low,
+        sig_line_color_high = input$env_sig_line_color_high,
+        sig_line_alpha = input$env_sig_line_alpha
       )
       params <- c(list(
         relation_method = input$relation_method,
@@ -470,8 +488,17 @@ mod_compare_environment_server <- function(id, registry) {
         anchor_dist = input$env_anchor_dist,
         distance = input$env_distance,
         nrow = input$env_nrow,
+        ncol = input$env_ncol,
         scale_networks = input$env_scale_networks,
-        core_point_size = input$env_core_point_size
+        core_point_size = input$env_core_point_size,
+        heatmap_label_size = input$env_heatmap_label_size,
+        heatmap_sig_size = input$env_heatmap_sig_size,
+        heatmap_point_size = input$env_heatmap_point_size,
+        sig_line_width_min = input$env_sig_line_width_min,
+        sig_line_width_max = input$env_sig_line_width_max,
+        sig_line_color_low = input$env_sig_line_color_low,
+        sig_line_color_high = input$env_sig_line_color_high,
+        sig_line_alpha = input$env_sig_line_alpha
       )
       params <- c(list(
         relation_method = input$relation_method,
@@ -541,8 +568,17 @@ mod_compare_environment_server <- function(id, registry) {
         anchor_dist = input$env_anchor_dist,
         distance = input$env_distance,
         nrow = input$env_nrow,
+        ncol = input$env_ncol,
         scale_networks = input$env_scale_networks,
-        core_point_size = input$env_core_point_size
+        core_point_size = input$env_core_point_size,
+        heatmap_label_size = input$env_heatmap_label_size,
+        heatmap_sig_size = input$env_heatmap_sig_size,
+        heatmap_point_size = input$env_heatmap_point_size,
+        sig_line_width_min = input$env_sig_line_width_min,
+        sig_line_width_max = input$env_sig_line_width_max,
+        sig_line_color_low = input$env_sig_line_color_low,
+        sig_line_color_high = input$env_sig_line_color_high,
+        sig_line_alpha = input$env_sig_line_alpha
       )
       geometry_params$spec_layout <- NULL
       geometry_params$group_layout <- NULL
