@@ -104,44 +104,72 @@ source(test_path("../../inst/app/modules/mod_visual_lab.R"))
 test_that("visual lab params are stable and JSON-friendly", {
   params <- visual_lab_params(
     layout = "nicely",
+    layout_module = "adjacent",
     show_labels = TRUE,
     label_layout = "two_column",
     label_wrap_width = 18,
-    bandwidth_scale = 1
+    label_outer_pad = 0.4,
+    bandwidth_scale = 1,
+    point_size_min = 1,
+    point_size_max = 10,
+    add_group_outer = TRUE,
+    drop_others = FALSE,
+    seed = 1115
   )
 
   expect_equal(params$layout, "nicely")
+  expect_equal(params$layout.module, "adjacent")
   expect_true(params$label)
   expect_equal(params$label_layout, "two_column")
   expect_equal(params$label_wrap_width, 18)
+  expect_equal(params$label_outer_pad, 0.4)
   expect_equal(params$bandwidth_scale, 1)
+  expect_equal(params$pointsize, c(1, 10))
+  expect_true(params$add_group_outer)
+  expect_false(params$dropOthers)
+  expect_equal(params$seed, 1115L)
 })
 
 test_that("visual lab params normalize invalid numeric inputs", {
-  params <- visual_lab_params(
-    layout = NULL,
-    show_labels = FALSE,
-    label_layout = NULL,
-    label_wrap_width = NULL,
-    bandwidth_scale = "not-a-number"
-  )
+  params <- visual_lab_params(NULL, NULL, FALSE, NULL, NULL, NULL, "not-a-number", NULL, NULL, FALSE, FALSE, NULL)
 
   expect_equal(params$layout, "nicely")
+  expect_equal(params$layout.module, "adjacent")
   expect_equal(params$label_layout, "two_column")
   expect_equal(params$label_wrap_width, 18)
+  expect_equal(params$label_outer_pad, 0.4)
   expect_equal(params$bandwidth_scale, 1)
 
-  clamped <- visual_lab_params("fr", FALSE, "label_circle", 999, -1)
+  clamped <- visual_lab_params("fr", "order", FALSE, "label_circle", 999, -1, -1, -5, 999, FALSE, FALSE, -1)
   expect_equal(clamped$label_wrap_width, 80)
+  expect_equal(clamped$label_outer_pad, 0.4)
   expect_equal(clamped$bandwidth_scale, 1)
+  expect_equal(clamped$pointsize, c(1, 50))
+  expect_equal(clamped$seed, 1115L)
 })
 
 test_that("visual lab params JSON is stable before drawing", {
-  params <- visual_lab_params("nicely", FALSE, "two_column", 18, 1)
+  params <- visual_lab_params("nicely", "adjacent", FALSE, "two_column", 18, 0.4, 1, 1, 10, FALSE, FALSE, 1115)
   json <- visual_lab_params_json(params)
 
   expect_match(json, '"layout": "nicely"', fixed = TRUE)
+  expect_match(json, '"layout.module": "adjacent"', fixed = TRUE)
   expect_match(json, '"bandwidth_scale": 1', fixed = TRUE)
+})
+
+test_that("visual lab exposes manual layout families", {
+  choices <- visual_lab_layout_choices()
+  flattened <- unname(unlist(choices))
+
+  expect_true(all(c(
+    "gephi",
+    "diamond",
+    "circular_modules_gephi_layout",
+    "consensus_module_equal_gephi",
+    "bipartite_gephi_layout",
+    "tripartite_equal_gephi_layout",
+    "WGCNA"
+  ) %in% flattened))
 })
 
 source(test_path("../../R/app_exports.R"))
