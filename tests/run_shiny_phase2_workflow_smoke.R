@@ -99,6 +99,7 @@ wait_for_text("gallery_edge_module_graph")
 
 click_tab("Compare & Environment")
 set_input("compare_environment-compare_graph_ids", c("obj_0009", "obj_0010"))
+wait_for_element("compare_environment-comparison_pairs")
 wait_for_element("compare_environment-compare_topology")
 click("#compare_environment-run_compare")
 wait_for_text("Registered comparison plot:", timeout = 120000)

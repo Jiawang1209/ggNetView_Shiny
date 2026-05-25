@@ -64,6 +64,23 @@ test_that("multi-network comparison exposes link and topology tables", {
   expect_true(nrow(result$value$topology_table) > 0)
 })
 
+test_that("multi-network comparison parses and applies selected comparison pairs", {
+  pairs <- parse_comparison_pairs("A,B\nB,A\nA,Missing", c("A", "B", "C"))
+
+  expect_equal(length(pairs$pairs), 1L)
+  expect_equal(pairs$pairs[[1]], c("A", "B"))
+  expect_true(any(grepl("duplicate", pairs$warnings)))
+  expect_true(any(grepl("not available", pairs$warnings)))
+
+  result <- safe_multi_network_compare(
+    phase2_graph_pair(),
+    params = list(comparison_pairs = "A,B")
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_equal(result$value$comparison_pairs[[1]], c("A", "B"))
+})
+
 test_that("grouped matrix workflow returns a multi-network plot", {
   mat <- read_phase2_fixture("phase2_example_matrix.csv")
   group_info <- default_group_info_for_matrix(mat)

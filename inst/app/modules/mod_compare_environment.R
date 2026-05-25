@@ -11,6 +11,13 @@ mod_compare_environment_ui <- function(id) {
       ),
       shiny::selectInput(ns("link_level"), "Link level", choices = c("Module", "Node")),
       shiny::checkboxInput(ns("scale_groups"), "Scale groups", value = TRUE),
+      shiny::textAreaInput(
+        ns("comparison_pairs"),
+        "Comparison pairs",
+        value = "",
+        placeholder = "Optional: one pair per line, for example Group_A,Group_B",
+        rows = 3
+      ),
       shiny::actionButton(ns("run_compare"), "Compare networks"),
       shiny::hr(),
       shiny::selectInput(ns("multi_matrix_id"), "Matrix for groups", choices = character()),
@@ -151,6 +158,7 @@ mod_compare_environment_server <- function(id, registry) {
         group_layout = input$compare_layout,
         link_level = input$link_level,
         scale_groups = input$scale_groups,
+        comparison_pairs = input$comparison_pairs,
         include_topology_summary = TRUE
       )
 
@@ -195,7 +203,17 @@ mod_compare_environment_server <- function(id, registry) {
           list(kind = "comparison_topology")
         )
       }
-      status(paste("Registered comparison plot:", plot_item$name))
+      pair_message <- if (length(result$value$comparison_pairs)) {
+        paste0(" Applied pairs: ", paste(vapply(result$value$comparison_pairs, paste, character(1), collapse = " vs "), collapse = "; "), ".")
+      } else {
+        ""
+      }
+      warning_message <- if (length(result$value$comparison_warnings)) {
+        paste0("\n", paste(result$value$comparison_warnings, collapse = "\n"))
+      } else {
+        ""
+      }
+      status(paste0("Registered comparison plot: ", plot_item$name, pair_message, warning_message))
       shiny::showNotification(paste("Registered comparison plot:", plot_item$name), type = "message")
     })
 

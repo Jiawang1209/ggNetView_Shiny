@@ -1,3 +1,46 @@
+parse_comparison_pairs <- function(text, available_groups) {
+  if (is.null(text) || length(text) == 0L || !nzchar(trimws(text[[1]]))) {
+    return(list(pairs = NULL, warnings = character()))
+  }
+
+  available_groups <- as.character(available_groups)
+  lines <- unlist(strsplit(as.character(text[[1]]), "[\n;]+"))
+  lines <- trimws(lines)
+  lines <- lines[nzchar(lines)]
+
+  pairs <- list()
+  warnings <- character()
+  seen <- character()
+  for (line in lines) {
+    parts <- trimws(unlist(strsplit(line, "\\s*(,|->|\\|)\\s*")))
+    parts <- parts[nzchar(parts)]
+    if (length(parts) != 2L) {
+      warnings <- c(warnings, paste0("Skipping malformed comparison pair: ", line))
+      next
+    }
+    if (!all(parts %in% available_groups)) {
+      warnings <- c(
+        warnings,
+        paste0(
+          "Skipping comparison pair ",
+          paste(parts, collapse = ","),
+          ": group not available."
+        )
+      )
+      next
+    }
+    key <- paste(sort(parts), collapse = "\r")
+    if (key %in% seen) {
+      warnings <- c(warnings, paste0("Skipping duplicate comparison pair: ", paste(parts, collapse = ",")))
+      next
+    }
+    seen <- c(seen, key)
+    pairs[[length(pairs) + 1L]] <- parts
+  }
+
+  list(pairs = if (length(pairs)) pairs else NULL, warnings = warnings)
+}
+
 safe_multi_network_compare <- function(graphs, params = list()) {
   if (!is.list(graphs) || length(graphs) < 2L) {
     return(app_failure("Multi-network comparison requires at least two graph objects."))
@@ -13,8 +56,21 @@ safe_multi_network_compare <- function(graphs, params = list()) {
 
   include_topology_summary <- isTRUE(params$include_topology_summary)
   topology_params <- params$topology_params
+  comparison_pairs_input <- params$comparison_pairs
   params$include_topology_summary <- NULL
   params$topology_params <- NULL
+  params$comparison_pairs <- NULL
+
+  parsed_pairs <- parse_comparison_pairs(comparison_pairs_input, names(graphs))
+  if (!is.null(parsed_pairs$pairs)) {
+    params$comparisons_groups <- parsed_pairs$pairs
+  }
+  if (!is.null(comparison_pairs_input) && nzchar(trimws(as.character(comparison_pairs_input[[1]]))) && is.null(parsed_pairs$pairs)) {
+    return(app_failure(paste(
+      c("No valid comparison pairs were provided.", parsed_pairs$warnings),
+      collapse = "\n"
+    )))
+  }
 
   defaults <- list(
     graph_obj_list = graphs,
@@ -50,6 +106,8 @@ safe_multi_network_compare <- function(graphs, params = list()) {
     link_info = link_info,
     link_table = link_table,
     topology_table = topology_table,
+    comparison_pairs = parsed_pairs$pairs,
+    comparison_warnings = parsed_pairs$warnings,
     raw = value
   ))
 }
