@@ -15,6 +15,18 @@ mod_topology_results_ui <- function(id) {
   )
 }
 
+topology_result_table <- function(value) {
+  if (is.data.frame(value)) {
+    return(value)
+  }
+
+  if (is.list(value) && is.data.frame(value$topology)) {
+    return(value$topology)
+  }
+
+  as.data.frame(value)
+}
+
 mod_topology_results_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     unique_output_name <- function(base) {
@@ -42,7 +54,7 @@ mod_topology_results_server <- function(id, registry) {
         return()
       }
 
-      table <- as.data.frame(result$value)
+      table <- topology_result_table(result$value)
       topology_name <- unique_output_name(paste0(graph_item$name, "_topology"))
       topology_table(table)
       registry_add(
