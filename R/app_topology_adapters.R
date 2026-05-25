@@ -40,6 +40,64 @@ safe_node_centrality <- function(graph, measures = "all", weighted = FALSE) {
   app_success(node_table_from_graph(result$value))
 }
 
+safe_sample_topology <- function(graph, matrix, params = list()) {
+  if (!inherits(graph, "igraph")) {
+    return(app_failure("Sample topology requires an igraph graph object."))
+  }
+  if (is.null(matrix)) {
+    return(app_failure("Sample topology requires the matrix used to build or interpret the graph."))
+  }
+
+  matrix <- as.matrix(matrix)
+  storage.mode(matrix) <- "numeric"
+  use_parallel_api <- isTRUE(params$parallel_api)
+  fn_name <- if (use_parallel_api) {
+    "get_sample_subgraph_topology_parallel"
+  } else {
+    "get_sample_subgraph_topology"
+  }
+  fn <- resolve_ggnetview_function(fn_name)
+  if (is.null(fn)) {
+    return(app_failure(paste("Cannot find ggNetView function:", fn_name)))
+  }
+
+  defaults <- list(
+    graph_obj = graph,
+    mat = matrix,
+    transfrom.method = "none",
+    method = "cor",
+    cor.method = "pearson",
+    proc = "none",
+    r.threshold = 0.2,
+    p.threshold = 1,
+    bootstrap = 0
+  )
+  if (identical(fn_name, "get_sample_subgraph_topology_parallel")) {
+    defaults$parallel <- FALSE
+    defaults$n_workers <- 1L
+  }
+  params$parallel_api <- NULL
+  call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
+  allowed <- names(formals(fn))
+  call_args <- call_args[names(call_args) %in% allowed]
+
+  result <- safe_call(
+    do.call(fn, call_args),
+    "Failed to calculate sample-level topology."
+  )
+  if (!result$ok) {
+    return(result)
+  }
+
+  value <- result$value
+  if (is.list(value)) {
+    value$topology <- if (is.data.frame(value$topology)) value$topology else data.frame()
+    value$Robustness <- if (is.data.frame(value$Robustness)) value$Robustness else data.frame()
+    value$sample_stat <- if (is.data.frame(value$sample_stat)) value$sample_stat else data.frame()
+  }
+  app_success(value)
+}
+
 safe_node_ivi <- function(graph, scale = "range", ncores = 1L) {
   if (!inherits(graph, "igraph")) {
     return(app_failure("Node IVI requires an igraph graph object."))

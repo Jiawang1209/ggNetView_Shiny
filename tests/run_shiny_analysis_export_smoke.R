@@ -60,6 +60,26 @@ wait_for_element <- function(id, timeout = 60000) {
   app$wait_for_js(script, timeout = timeout)
 }
 
+select_registry_object_by_type <- function(type) {
+  script <- sprintf(
+    paste(
+      "(() => {",
+      "const el = document.getElementById('export_center-object_id');",
+      "if (!el) return null;",
+      "const options = el.selectize ? Object.values(el.selectize.options) : Array.from(el.options);",
+      "const option = options.find(o => (o.label || o.text || '').includes(%s));",
+      "return option ? option.value : null;",
+      "})()"
+    ),
+    jsonlite::toJSON(sprintf("[%s]", type), auto_unbox = TRUE)
+  )
+  value <- app$get_js(script)
+  if (is.null(value) || !nzchar(value)) {
+    stop("Could not find registry object of type: ", type, call. = FALSE)
+  }
+  set_input("export_center-object_id", value)
+}
+
 assert_download_nonempty <- function(output_id) {
   path <- NULL
   deadline <- Sys.time() + 30
@@ -93,8 +113,12 @@ click("#graph_explorer-register_sample_subgraph")
 wait_for_text("Registered sample subgraph")
 
 click_tab("Topology")
+set_input("topology_results-graph_id", "obj_0009")
+set_input("topology_results-matrix_id", "obj_0001")
 click("#topology_results-calculate_centrality")
 wait_for_text("Registered node_centrality")
+click("#topology_results-calculate_sample_topology")
+wait_for_text("Registered sample topology:", timeout = 120000)
 click("#topology_results-calculate_ivi")
 wait_for_text("Registered node_ivi")
 
@@ -107,7 +131,7 @@ click("#visual_lab-draw")
 wait_for_text("Registered plot:")
 
 click_tab("Export")
-set_input("export_center-object_id", "obj_0016")
+select_registry_object_by_type("plot")
 wait_for_element("export_center-download_png")
 wait_for_element("export_center-download_pdf")
 assert_download_nonempty("export_center-download_png")

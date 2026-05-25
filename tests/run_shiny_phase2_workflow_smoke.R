@@ -35,6 +35,11 @@ set_input <- function(id, value) {
   do.call(app$set_inputs, args)
 }
 
+set_input_nowait <- function(id, value) {
+  args <- c(stats::setNames(list(value), id), list(wait_ = FALSE))
+  do.call(app$set_inputs, args)
+}
+
 upload_file <- function(id, path) {
   args <- c(stats::setNames(list(path), id), list(wait_ = TRUE))
   do.call(app$upload_file, args)
@@ -141,8 +146,13 @@ click("#visual_lab-draw")
 wait_for_text("Registered plot:")
 
 click_tab("Topology")
+set_input_nowait("topology_results-graph_id", "obj_0009")
+set_input_nowait("topology_results-matrix_id", "obj_0001")
 click("#topology_results-calculate")
 wait_for_text("Registered topology:")
+wait_for_element("topology_results-matrix_id")
+click("#topology_results-calculate_sample_topology")
+wait_for_text("Registered sample topology:", timeout = 120000)
 click("#topology_results-calculate_zipi")
 wait_for_text("Registered zipi")
 

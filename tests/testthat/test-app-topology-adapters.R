@@ -55,3 +55,53 @@ test_that("IVI reports dependency result clearly", {
     expect_match(result$trace, "influential")
   }
 })
+
+test_that("sample topology returns sample-level topology and stats", {
+  graph <- phase2_topology_graph()
+  mat <- read_phase2_fixture("phase2_example_matrix.csv")
+
+  result <- safe_sample_topology(
+    graph,
+    mat,
+    params = list(
+      method = "cor",
+      cor.method = "pearson",
+      proc = "none",
+      r.threshold = 0.2,
+      p.threshold = 1,
+      bootstrap = 0
+    )
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_true(is.data.frame(result$value$topology))
+  expect_true(is.data.frame(result$value$Robustness))
+  expect_true(is.data.frame(result$value$sample_stat))
+  expect_true(all(c("Sample", "Node", "Edge", "Status") %in% names(result$value$sample_stat)))
+  expect_gt(nrow(result$value$sample_stat), 0)
+})
+
+test_that("sample topology can use the parallel API in sequential mode", {
+  graph <- phase2_topology_graph()
+  mat <- read_phase2_fixture("phase2_example_matrix.csv")
+
+  result <- safe_sample_topology(
+    graph,
+    mat,
+    params = list(
+      method = "cor",
+      cor.method = "pearson",
+      proc = "none",
+      r.threshold = 0.2,
+      p.threshold = 1,
+      bootstrap = 0,
+      parallel_api = TRUE,
+      parallel = FALSE,
+      n_workers = 1
+    )
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_true(is.data.frame(result$value$topology))
+  expect_true(is.data.frame(result$value$sample_stat))
+})

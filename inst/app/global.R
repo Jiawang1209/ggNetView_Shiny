@@ -55,7 +55,7 @@ invisible(lapply(c(
   "validate_graph_builder_inputs", "graph_builder_function_name", "graph_builder_call_args",
   "safe_graph_info", "graph_module_choices", "safe_module_subgraph", "safe_sample_subgraph",
   "subgraph_selected_graph", "subgraph_stat_table",
-  "safe_node_centrality", "safe_node_ivi", "safe_zipi", "node_table_from_graph", "adjacency_from_graph",
+  "safe_node_centrality", "safe_sample_topology", "safe_node_ivi", "safe_zipi", "node_table_from_graph", "adjacency_from_graph",
   "safe_multi_network_compare", "default_group_info_for_matrix", "align_group_info_for_matrix", "safe_multi_group_network",
   "interpret_multi_network_links",
   "environment_geometry_params",
