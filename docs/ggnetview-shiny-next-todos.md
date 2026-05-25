@@ -15,7 +15,7 @@ Date: 2026-05-26
 - Graph Explorer can register graph info, module subgraphs, and sample subgraphs.
 - Visual Lab exposes major manual layout families and common `ggNetView()` parameters, including outline/geometric variants plus additional circular-module petal, square, star, diamond, and heart layouts that pass real `ggNetView()` smoke checks.
 - Topology can register global topology, robustness, centrality, IVI, and Zi-Pi/keystone result tables.
-- Graph Builder, Visual Lab, and Topology now wrap real ggNetView calls with progress feedback and temporary action-button busy states.
+- Graph Builder, Visual Lab, Topology, Compare & Environment, and Gallery recipe execution now wrap real ggNetView calls with progress feedback and temporary action-button busy states.
 - Compare & Environment can register multi-network comparison plots, environment-link plots/statistics, and Mantel pairwise tables.
 - `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports.
 - `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, Export graph-node/workflow-manifest downloads, workflow manifest replay preview, and gallery recipe execution.
@@ -31,8 +31,7 @@ Date: 2026-05-26
    - Still needed: mobile-width layout checks and deeper browser coverage across all layout families.
 
 2. Long-running operation feedback.
-   - Graph build, RMT scan, plot draw, topology, centrality, IVI, and Zi-Pi paths now use shared progress feedback and temporary button busy states.
-   - Still needed: extend the same shared feedback wrapper to Compare & Environment and Gallery recipe execution.
+   - Graph build, RMT scan, plot draw, topology, centrality, IVI, Zi-Pi, comparison, grouped multi-network, environment heatmaps, Mantel, and Gallery recipe paths now use shared progress feedback and temporary button busy states.
    - Still needed: add deeper browser-level assertions for the busy-state handler on deliberately slow test actions.
 
 3. Environment and multi-omics depth.

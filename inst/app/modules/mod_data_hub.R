@@ -200,7 +200,12 @@ mod_data_hub_server <- function(id, registry) {
 
     shiny::observeEvent(input$run_gallery_recipe, {
       shiny::req(input$gallery_recipe)
-      result <- run_gallery_recipe(registry, input$gallery_recipe)
+      result <- with_task_feedback(
+        session,
+        "gallery recipe",
+        session$ns("run_gallery_recipe"),
+        run_gallery_recipe(registry, input$gallery_recipe)
+      )
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         shiny::showNotification(detail, type = "error")

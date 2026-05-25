@@ -148,7 +148,13 @@ mod_compare_environment_server <- function(id, registry) {
         scale_groups = input$scale_groups
       )
 
-      result <- safe_multi_network_compare(graphs, params = params)
+      status(task_feedback_message("network comparison", "running"))
+      result <- with_task_feedback(
+        session,
+        "network comparison",
+        session$ns("run_compare"),
+        safe_multi_network_compare(graphs, params = params)
+      )
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
@@ -212,7 +218,13 @@ mod_compare_environment_server <- function(id, registry) {
         r.threshold = 0.2,
         p.threshold = 1
       )
-      result <- safe_multi_group_network(matrix_item$data, group_info = group_info, params = params)
+      status(task_feedback_message("group multi-network plot", "running"))
+      result <- with_task_feedback(
+        session,
+        "group multi-network plot",
+        session$ns("run_multi_group"),
+        safe_multi_group_network(matrix_item$data, group_info = group_info, params = params)
+      )
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
@@ -255,7 +267,13 @@ mod_compare_environment_server <- function(id, registry) {
         cor.method = input$cor_method,
         drop_nonsig = input$drop_nonsig
       )
-      result <- safe_environment_link(env = env, spec = spec, params = params)
+      status(task_feedback_message("environment link", "running"))
+      result <- with_task_feedback(
+        session,
+        "environment link",
+        session$ns("run_environment"),
+        safe_environment_link(env = env, spec = spec, params = params)
+      )
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
@@ -301,7 +319,13 @@ mod_compare_environment_server <- function(id, registry) {
         spec_collapse = input$spec_collapse,
         drop_nonsig = input$drop_nonsig
       )
-      result <- safe_environment_heatmap(env = env, spec = spec, params = params)
+      status(task_feedback_message("manual environment heatmap", "running"))
+      result <- with_task_feedback(
+        session,
+        "manual environment heatmap",
+        session$ns("run_environment_manual"),
+        safe_environment_heatmap(env = env, spec = spec, params = params)
+      )
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
@@ -346,11 +370,17 @@ mod_compare_environment_server <- function(id, registry) {
         feature_count = input$triple_feature_count,
         r = 6
       )
-      result <- safe_environment_triple_heatmap(
-        env = env,
-        experiment = experiment,
-        graph = graph_item$data,
-        params = params
+      status(task_feedback_message("triple environment heatmap", "running"))
+      result <- with_task_feedback(
+        session,
+        "triple environment heatmap",
+        session$ns("run_environment_triple"),
+        safe_environment_triple_heatmap(
+          env = env,
+          experiment = experiment,
+          graph = graph_item$data,
+          params = params
+        )
       )
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
@@ -396,7 +426,13 @@ mod_compare_environment_server <- function(id, registry) {
       }
 
       params <- list(method = input$cor_method, permutations = 99L)
-      result <- safe_mantel_pairwise(spec, env, params = params)
+      status(task_feedback_message("Mantel table", "running"))
+      result <- with_task_feedback(
+        session,
+        "Mantel table",
+        session$ns("run_mantel"),
+        safe_mantel_pairwise(spec, env, params = params)
+      )
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
