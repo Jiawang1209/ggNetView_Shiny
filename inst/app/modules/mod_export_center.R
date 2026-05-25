@@ -232,9 +232,22 @@ mod_export_center_server <- function(id, registry) {
       manifest <- replay_manifest()
       recipes <- workflow_replay_recipes(plan, gallery_recipe_manifest()$recipe)
       builder_items <- workflow_replay_builder_items(manifest)
+      restore_result <- workflow_restore_manifest_inputs(registry, manifest)
+      if (!isTRUE(restore_result$ok)) {
+        replay_status(paste("Replay failed:", restore_result$message %||% restore_result$trace))
+        return(invisible(list(restore_result)))
+      }
+
       if (!length(recipes) && !length(builder_items)) {
-        replay_status("No supported gallery recipes or graph-builder replay steps found in the imported manifest.")
-        return(invisible(NULL))
+        if (restore_result$value$restored > 0L) {
+          replay_status(sprintf(
+            "Restored workflow inputs: %s object(s). No supported gallery recipes or graph-builder replay steps were found.",
+            restore_result$value$restored
+          ))
+          return(invisible(list(restore_result)))
+        }
+        replay_status("No restorable inputs, supported gallery recipes, or graph-builder replay steps found in the imported manifest.")
+        return(invisible(list(restore_result)))
       }
 
       recipe_results <- lapply(recipes, function(recipe) run_gallery_recipe(registry, recipe))
@@ -248,7 +261,8 @@ mod_export_center_server <- function(id, registry) {
       }
 
       replay_status(sprintf(
-        "Replayed workflow plan: %s gallery recipe(s), %s graph-builder step(s).",
+        "Replayed workflow plan: %s restored input(s), %s gallery recipe(s), %s graph-builder step(s).",
+        restore_result$value$restored,
         length(recipes),
         length(builder_items)
       ))

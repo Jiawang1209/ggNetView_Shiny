@@ -163,6 +163,7 @@ test_that("global helper bridge includes export helpers", {
     "read_workflow_manifest",
     "workflow_replay_plan",
     "workflow_replay_recipes",
+    "workflow_restore_manifest_inputs",
     "write_plot_png",
     "write_plot_pdf"
   )

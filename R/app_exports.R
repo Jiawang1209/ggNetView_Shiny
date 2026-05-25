@@ -26,6 +26,48 @@ write_registry_params <- function(params, path) {
   invisible(path)
 }
 
+workflow_snapshot_types <- function() {
+  c(
+    "matrix",
+    "adjacency",
+    "edge_table",
+    "module_table",
+    "annotation",
+    "wgcna_tom",
+    "sample_metadata",
+    "env_matrix",
+    "result"
+  )
+}
+
+workflow_item_data_snapshot <- function(item) {
+  if (!item$type %in% workflow_snapshot_types()) {
+    return(NULL)
+  }
+
+  data <- item$data
+  if (!is.matrix(data) && !is.data.frame(data)) {
+    return(NULL)
+  }
+
+  list(
+    format = "rds-base64",
+    type = item$type,
+    class = class(data),
+    value = jsonlite::base64_enc(serialize(data, NULL, version = 3))
+  )
+}
+
+workflow_decode_data_snapshot <- function(snapshot) {
+  if (is.null(snapshot) || is.null(snapshot$value)) {
+    return(NULL)
+  }
+  if (!identical(snapshot$format %||% "", "rds-base64")) {
+    stop("Unsupported workflow data snapshot format.", call. = FALSE)
+  }
+  unserialize(jsonlite::base64_dec(snapshot$value))
+}
+
 workflow_manifest <- function(registry) {
   items <- shiny::isolate(registry$items)
   item_records <- if (length(items)) {
@@ -50,6 +92,7 @@ workflow_manifest <- function(registry) {
   item_records$summary <- I(lapply(items, function(item) item$summary %||% list()))
   item_records$params <- I(lapply(items, function(item) item$params %||% list()))
   item_records$warnings <- I(lapply(items, function(item) item$warnings %||% character()))
+  item_records$data_snapshot <- I(lapply(items, workflow_item_data_snapshot))
 
   list(
     app = "ggNetView Shiny",
@@ -203,6 +246,59 @@ workflow_replay_builder_items <- function(manifest) {
     return(list())
   }
   Filter(is_workflow_replay_builder_item, items)
+}
+
+workflow_restore_manifest_inputs <- function(registry, manifest) {
+  items <- manifest$items %||% list()
+  if (!length(items)) {
+    return(app_success(list(restored = 0L, skipped = 0L), message = "No workflow items to restore."))
+  }
+
+  restored <- 0L
+  skipped <- 0L
+  restored_ids <- character()
+  for (item in items) {
+    snapshot <- item$data_snapshot
+    if (is.null(snapshot) || !item$type %in% workflow_snapshot_types()) {
+      skipped <- skipped + 1L
+      next
+    }
+
+    data <- tryCatch(
+      workflow_decode_data_snapshot(snapshot),
+      error = function(e) e
+    )
+    if (inherits(data, "error")) {
+      return(app_failure(
+        sprintf("Could not restore workflow object '%s'.", item$name %||% item$id),
+        trace = conditionMessage(data)
+      ))
+    }
+
+    params <- item$params %||% list()
+    params$restored_from_manifest_id <- item$id %||% ""
+    warnings <- c(
+      item$warnings %||% character(),
+      "Restored from workflow manifest data snapshot."
+    )
+    restored_item <- registry_add_with_id(
+      registry,
+      id = item$id %||% "",
+      name = item$name %||% item$id %||% "restored_object",
+      type = item$type,
+      data = data,
+      source = item$source %||% "workflow_manifest",
+      params = params,
+      warnings = warnings
+    )
+    restored <- restored + 1L
+    restored_ids <- c(restored_ids, restored_item$id)
+  }
+
+  app_success(
+    list(restored = restored, skipped = skipped, restored_ids = restored_ids),
+    message = sprintf("Restored %s workflow input object(s).", restored)
+  )
 }
 
 workflow_replay_recipes <- function(plan, known_recipes) {

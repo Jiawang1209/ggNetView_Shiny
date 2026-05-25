@@ -110,3 +110,48 @@ test_that("workflow replay explains missing graph builder sources", {
   expect_false(isTRUE(results[[1]]$ok))
   expect_match(results[[1]]$message, "source object is not available")
 })
+
+test_that("workflow manifest restores snapshotted inputs for graph-builder replay", {
+  registry <- registry_new()
+  mat <- utils::read.csv(
+    testthat::test_path("../../inst/extdata/phase2_example_matrix.csv"),
+    row.names = 1,
+    check.names = FALSE
+  )
+  source_item <- registry_add(registry, name = "matrix_a", type = "matrix", data = mat)
+  graph <- safe_graph_builder(
+    mode = "matrix",
+    inputs = list(matrix = mat),
+    params = list(method = "cor", cor.method = "pearson", r.threshold = 0.2, p.threshold = 1)
+  )$value
+  registry_add(
+    registry,
+    name = "matrix_graph",
+    type = "graph",
+    data = graph,
+    source = source_item$id,
+    params = list(
+      builder = "matrix",
+      source_ids = source_item$id,
+      method = "cor",
+      cor.method = "pearson",
+      r.threshold = 0.2,
+      p.threshold = 1
+    )
+  )
+
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(registry, path)
+  manifest <- read_workflow_manifest(path)
+
+  empty_registry <- registry_new()
+  restored <- workflow_restore_manifest_inputs(empty_registry, manifest)
+  replay_results <- workflow_replay_graph_builders(empty_registry, manifest)
+
+  expect_true(isTRUE(restored$ok), info = restored$message)
+  expect_equal(restored$value$restored, 1L)
+  expect_false(is.null(shiny::isolate(registry_get(empty_registry, source_item$id))))
+  expect_length(replay_results, 1L)
+  expect_true(isTRUE(replay_results[[1]]$ok), info = replay_results[[1]]$trace %||% replay_results[[1]]$message)
+  expect_equal(shiny::isolate(registry_count(empty_registry)), 2L)
+})

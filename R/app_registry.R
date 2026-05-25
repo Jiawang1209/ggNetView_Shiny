@@ -49,6 +49,43 @@ registry_add <- function(registry, name, type, data, source = NULL, params = lis
   item
 }
 
+registry_add_with_id <- function(registry, id, name, type, data, source = NULL,
+                                 params = list(), warnings = character(),
+                                 created_at = NULL) {
+  if (is.null(id) || !nzchar(as.character(id))) {
+    return(registry_add(registry, name, type, data, source, params, warnings))
+  }
+
+  items <- shiny::isolate(registry$items)
+  if (!is.null(items[[id]])) {
+    return(registry_add(registry, name, type, data, source, params, warnings))
+  }
+
+  if (is.null(created_at)) {
+    created_at <- Sys.time()
+  }
+  item <- list(
+    id = id,
+    name = name,
+    type = type,
+    data = data,
+    summary = registry_summarize(data, type),
+    created_at = created_at,
+    source = source,
+    params = params,
+    warnings = warnings
+  )
+
+  items[[id]] <- item
+  registry$items <- items
+
+  id_number <- suppressWarnings(as.integer(sub("^obj_0*", "", id)))
+  if (!is.na(id_number)) {
+    registry$counter <- max(shiny::isolate(registry$counter), id_number)
+  }
+  item
+}
+
 registry_get <- function(registry, id) {
   registry$items[[id]]
 }

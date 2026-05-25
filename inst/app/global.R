@@ -64,10 +64,12 @@ invisible(lapply(c(
   "gallery_example_paths", "load_gallery_example_tables", "gallery_workflow_manifest",
   "gallery_recipe_manifest", "run_gallery_recipe", "register_gallery_examples",
   "registry_new", "registry_next_id", "registry_summarize", "registry_add",
+  "registry_add_with_id",
   "registry_get", "registry_delete", "registry_count", "registry_list",
   "registry_choices", "registry_choices_by_type", "registry_log_error",
   "write_registry_table", "write_registry_object", "write_registry_params", "write_workflow_manifest",
   "read_workflow_manifest", "workflow_replay_plan", "workflow_replay_recipes",
+  "workflow_restore_manifest_inputs",
   "workflow_replay_builder_items", "workflow_replay_graph_builder", "workflow_replay_graph_builders",
   "export_formats_for_type", "write_graph_nodes_csv", "write_graph_edges_csv",
   "write_graph_adjacency_csv", "write_plot_png", "write_plot_pdf"

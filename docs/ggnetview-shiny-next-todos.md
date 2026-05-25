@@ -58,10 +58,10 @@ Date: 2026-05-26
 
 6. Gallery completion.
    - Manual workflow examples are now loadable as starter objects, and one-click recipes can register final plot/result outputs for layout, grouped comparison, multi-network comparison, multi-omics graph construction, double-matrix omics construction, multi-omics environment links, collapsed-core/rotated-arc environment links, graph-info/topology, environment, triple heatmap, and Mantel manual areas.
-   - Workflow JSON manifests now export registered objects with source IDs, graph-builder params, warnings, summaries, and recipe metadata.
+   - Workflow JSON manifests now export registered objects with source IDs, graph-builder params, warnings, summaries, recipe metadata, and restorable data snapshots for table-like inputs/results.
    - Exported manifests can be re-imported as a replay plan preview, with supported gallery recipes and graph-builder outputs identified for guarded reruns.
-   - Graph-builder replay is data-light: it reruns when referenced source objects are still present in the current registry, and reports missing-source failures when the manifest is imported into an empty session.
-   - Still needed: fuller project/session restore for non-gallery imported objects when source datasets are not currently loaded.
+   - Graph-builder replay now restores snapshotted non-gallery source inputs into empty sessions before rerunning supported graph-builder steps; missing-source failures remain explicit for unsupported or unsnapshotted objects.
+   - Still needed: fuller project/session restore for plot/graph objects that cannot be reconstructed from snapshotted inputs, recipes, or graph-builder metadata.
 
 7. Add regression tests for issues found during manual use.
    - Local source dependencies for `build_graph_from_mat()`.
