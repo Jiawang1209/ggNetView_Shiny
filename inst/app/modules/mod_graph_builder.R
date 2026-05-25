@@ -7,6 +7,7 @@ builder_choices_for_type <- function(type) {
     matrix = c("Matrix" = "matrix", "Matrix + RMT" = "matrix_rmt", "Double matrix" = "double_matrix", "Multi matrix" = "multi_matrix"),
     adjacency = c("Adjacency matrix" = "adjacency", "Consensus" = "consensus"),
     edge_table = c("Edge table" = "edge_table", "Node + edge table" = "node_edge"),
+    stringdb = c("STRINGDB/PPI table" = "stringdb"),
     wgcna_tom = c("WGCNA/TOM" = "wgcna_tom"),
     graph = c("Igraph object" = "igraph", "Consensus" = "consensus"),
     graph_builder_modes()
@@ -28,7 +29,9 @@ graph_builder_params <- function(
   r_threshold = 0.1,
   p_threshold = 1,
   module_method = "Fast_greedy",
-  transform_method = "none"
+  transform_method = "none",
+  string_score_col = "combined_score",
+  string_score_threshold = 0.1
 ) {
   if (identical(builder, "node_edge")) {
     return(list(
@@ -39,6 +42,20 @@ graph_builder_params <- function(
   if (identical(builder, "igraph")) {
     return(list(
       use_existing_modules = TRUE,
+      module.method = module_method
+    ))
+  }
+
+  if (identical(builder, "stringdb")) {
+    threshold <- suppressWarnings(as.numeric(string_score_threshold))
+    if (!is.finite(threshold) || threshold <= 0) {
+      threshold <- NULL
+    }
+    return(list(
+      node1_col = "node1",
+      node2_col = "node2",
+      score_col = string_score_col,
+      score_threshold = threshold,
       module.method = module_method
     ))
   }
@@ -97,6 +114,8 @@ mod_graph_builder_ui <- function(id) {
       shiny::selectInput(ns("proc"), "P-value adjustment", choices = c("none", "BH", "holm", "bonferroni")),
       shiny::numericInput(ns("r_threshold"), "r threshold", value = 0.1, min = 0, max = 1, step = 0.01),
       shiny::numericInput(ns("p_threshold"), "p threshold", value = 1, min = 0, max = 1, step = 0.01),
+      shiny::textInput(ns("string_score_col"), "STRING score column", value = "combined_score"),
+      shiny::numericInput(ns("string_score_threshold"), "STRING score threshold", value = 0.1, min = 0, step = 0.01),
       shiny::selectInput(
         ns("module_method"),
         "Module method",
@@ -117,6 +136,7 @@ mod_graph_builder_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     shiny::observe({
       choices <- registry_choices_by_type(registry, c("matrix", "adjacency", "edge_table", "wgcna_tom", "graph"))
+      choices <- c(choices, registry_choices(registry, type = "stringdb"))
       shiny::updateSelectInput(session, "source_id", choices = choices)
     })
 
@@ -216,7 +236,9 @@ mod_graph_builder_server <- function(id, registry) {
         r_threshold = input$r_threshold,
         p_threshold = input$p_threshold,
         module_method = input$module_method,
-        transform_method = input$transform_method
+        transform_method = input$transform_method,
+        string_score_col = input$string_score_col,
+        string_score_threshold = input$string_score_threshold
       )
 
       source_ids <- input$source_id
@@ -233,6 +255,7 @@ mod_graph_builder_server <- function(id, registry) {
           list(edge_table = source$data, node_table = node_item$data)
         },
         igraph = list(graph = source$data),
+        stringdb = list(stringdb = source$data),
         adjacency = list(adjacency = source$data),
         double_matrix = {
           shiny::req(input$source_id_b)

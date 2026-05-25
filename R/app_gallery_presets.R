@@ -252,6 +252,20 @@ register_gallery_examples <- function(registry, root = getOption("ggnetview.app_
   add_item("gallery_quadripartite_graph", "graph", gallery_layout_graph(4), "manual-layout-starter")
   add_item("gallery_pentapartite_graph", "graph", gallery_layout_graph(5), "manual-layout-starter")
   add_item("gallery_directed_tree_graph", "graph", gallery_layout_graph(2, directed = TRUE), "manual-layout-starter")
+  add_item(
+    "gallery_stringdb",
+    "stringdb",
+    data.frame(
+      node1 = c("P1", "P1", "P2", "P3"),
+      node2 = c("P2", "P3", "P4", "P4"),
+      combined_score = c(0.92, 0.55, 0.81, 0.73),
+      coexpression = c(0.2, 0.1, 0.3, 0.4),
+      experimentally_determined_interaction = c(0.8, 0.4, 0.7, 0.6),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    "manual-stringdb-starter"
+  )
 
   invisible(items)
 }

@@ -53,6 +53,22 @@ test_that("detect_upload_type recognizes node tables for node+edge workflows", {
   expect_equal(detect_upload_type(nodes), "node_table")
 })
 
+test_that("detect_upload_type recognizes STRINGDB/PPI tables", {
+  source(testthat::test_path("../../R/app_validation.R"))
+
+  stringdb <- data.frame(
+    node1 = c("P1", "P1", "P2"),
+    node2 = c("P2", "P3", "P4"),
+    combined_score = c(0.92, 0.55, 0.81),
+    coexpression = c(0.2, 0.1, 0.3),
+    experimentally_determined_interaction = c(0.8, 0.4, 0.7),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  expect_equal(detect_upload_type(stringdb), "stringdb")
+})
+
 test_that("read_user_table preserves edge and module schema columns", {
   source(testthat::test_path("../../R/app_validation.R"))
 
@@ -100,5 +116,22 @@ test_that("validated_upload_value honors node table override", {
   override <- validated_upload_value(table, requested_type = "node_table")
 
   expect_equal(override$type, "node_table")
+  expect_true(override$validation$ok)
+})
+
+test_that("validated_upload_value honors STRINGDB/PPI override", {
+  source(testthat::test_path("../../R/app_validation.R"))
+  source(testthat::test_path("../../inst/app/modules/mod_data_hub.R"))
+
+  table <- data.frame(
+    node1 = c("P1", "P2"),
+    node2 = c("P2", "P3"),
+    combined_score = c(0.8, 0.9),
+    stringsAsFactors = FALSE
+  )
+
+  override <- validated_upload_value(table, requested_type = "stringdb")
+
+  expect_equal(override$type, "stringdb")
   expect_true(override$validation$ok)
 })

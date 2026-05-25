@@ -44,7 +44,8 @@ read_user_table <- function(path, filename = path) {
     names_lower <- tolower(names(data))
     has_cols <- function(cols) all(cols %in% names_lower)
     if (
-      has_cols(c("source", "target")) ||
+        has_cols(c("source", "target")) ||
+        has_cols(c("node1", "node2", "combined_score")) ||
         has_cols(c("from", "to")) ||
         has_cols(c("node", "module")) ||
         has_cols(c("name", "module")) ||
@@ -87,6 +88,10 @@ detect_upload_type <- function(data) {
 
   if (has_cols(c("source", "target")) || has_cols(c("from", "to"))) {
     return("edge_table")
+  }
+
+  if (has_cols(c("node1", "node2", "combined_score"))) {
+    return("stringdb")
   }
 
   if (has_cols(c("node", "module")) || has_cols(c("name", "module"))) {

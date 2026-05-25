@@ -19,6 +19,7 @@ test_that("builder modes are discoverable", {
     "edge_table",
     "node_edge",
     "igraph",
+    "stringdb",
     "adjacency",
     "double_matrix",
     "multi_matrix",
@@ -104,6 +105,29 @@ test_that("igraph graph builder standardizes existing graph objects", {
   expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
   expect_s3_class(result$value, "igraph")
   expect_true(all(c("Modularity", "Degree", "Strength") %in% igraph::vertex_attr_names(result$value)))
+})
+
+test_that("STRINGDB graph builder preserves evidence channel attributes", {
+  stringdb <- data.frame(
+    node1 = c("P1", "P1", "P2", "P3"),
+    node2 = c("P2", "P3", "P4", "P4"),
+    combined_score = c(0.92, 0.55, 0.81, 0.73),
+    coexpression = c(0.2, 0.1, 0.3, 0.4),
+    experimentally_determined_interaction = c(0.8, 0.4, 0.7, 0.6),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  result <- safe_graph_builder(
+    mode = "stringdb",
+    inputs = list(stringdb = stringdb),
+    params = list(score_threshold = 0.7, module.method = "Walktrap")
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_s3_class(result$value, "igraph")
+  expect_equal(igraph::ecount(result$value), 3)
+  expect_true(all(c("combined_score", "coexpression", "experimentally_determined_interaction") %in% igraph::edge_attr_names(result$value)))
 })
 
 test_that("adjacency graph builder returns app_result", {
