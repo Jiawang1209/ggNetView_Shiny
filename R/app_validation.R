@@ -19,8 +19,8 @@ app_failure <- function(message, trace = NULL, warnings = character()) {
   app_result(FALSE, value = NULL, message = message, warnings = warnings, trace = trace)
 }
 
-read_user_table <- function(path) {
-  ext <- tolower(tools::file_ext(path))
+read_user_table <- function(path, filename = path) {
+  ext <- tolower(tools::file_ext(filename))
   if (!ext %in% c("csv", "tsv", "txt")) {
     stop("Unsupported file type. Please upload a CSV, TSV, or TXT file.", call. = FALSE)
   }
@@ -51,15 +51,15 @@ read_user_table <- function(path) {
 }
 
 detect_upload_type <- function(data) {
+  if (is.data.frame(data) && all(c("from", "to") %in% names(data))) {
+    return("edge_table")
+  }
+
   if (is.matrix(data) || is.data.frame(data)) {
     numeric_cols <- vapply(data, function(x) all(!is.na(suppressWarnings(as.numeric(x)))), logical(1))
     if (all(numeric_cols)) {
       return("matrix")
     }
-  }
-
-  if (is.data.frame(data) && all(c("from", "to") %in% names(data))) {
-    return("edge_table")
   }
 
   "table"
@@ -73,8 +73,8 @@ validate_matrix_like <- function(data) {
   converted <- suppressWarnings(as.matrix(data))
   suppressWarnings(storage.mode(converted) <- "double")
 
-  if (anyNA(converted)) {
-    return(app_failure("Matrix input must be numeric and cannot contain non-numeric cells."))
+  if (anyNA(converted) || any(!is.finite(converted))) {
+    return(app_failure("Matrix input must be numeric and contain only finite values."))
   }
 
   if (is.null(rownames(converted)) || anyDuplicated(rownames(converted))) {
