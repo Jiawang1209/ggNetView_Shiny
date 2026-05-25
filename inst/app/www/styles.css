@@ -9,3 +9,8 @@ body {
 .form-label {
   font-weight: 600;
 }
+
+.dataTables_wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}

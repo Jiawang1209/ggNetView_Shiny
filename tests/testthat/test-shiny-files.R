@@ -14,3 +14,14 @@ test_that("first milestone Shiny module files exist", {
 
   expect_true(all(file.exists(test_path("../../", files))))
 })
+
+test_that("mobile layout browser smoke exists and checks overflow", {
+  path <- test_path("../../tests/run_shiny_mobile_layout_smoke.R")
+  expect_true(file.exists(path))
+
+  source_text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  expect_match(source_text, "width = 390", fixed = TRUE)
+  expect_match(source_text, "assert_no_horizontal_overflow", fixed = TRUE)
+  expect_match(source_text, "Data Hub", fixed = TRUE)
+  expect_match(source_text, "Export", fixed = TRUE)
+})
