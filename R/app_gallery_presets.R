@@ -61,7 +61,8 @@ gallery_recipe_manifest <- function() {
       "environment_heatmap",
       "mantel_pairwise",
       "multi_network_compare",
-      "triple_environment_heatmap"
+      "triple_environment_heatmap",
+      "multi_omics_network"
     ),
     label = c(
       "Circle network plot",
@@ -70,7 +71,8 @@ gallery_recipe_manifest <- function() {
       "Environment heatmap",
       "Mantel pairwise table",
       "Multi-network comparison",
-      "Triple environment heatmap"
+      "Triple environment heatmap",
+      "Multi-omics network"
     ),
     output_type = c(
       "plot",
@@ -79,7 +81,8 @@ gallery_recipe_manifest <- function() {
       "plot,result",
       "result",
       "plot,result",
-      "result"
+      "result",
+      "graph,plot"
     ),
     manual_area = c(
       "Gallery network layout",
@@ -88,7 +91,8 @@ gallery_recipe_manifest <- function() {
       "Network-environment heatmap",
       "Environment Mantel helper",
       "Multi-network comparison",
-      "Network-environment triple heatmap"
+      "Network-environment triple heatmap",
+      "Multi-omics network analysis"
     ),
     stringsAsFactors = FALSE
   )
@@ -367,6 +371,42 @@ run_gallery_recipe <- function(registry, recipe) {
       list(kind = "triple_heatmap_nodes")
     )
     return(app_success(list(items = list(plot_item, nodes_item))))
+  }
+
+  if (identical(recipe, "multi_omics_network")) {
+    matrix_item <- gallery_registry_item_by_name(registry, "gallery_matrix")
+    matrix_b_item <- gallery_registry_item_by_name(registry, "gallery_matrix_b")
+    if (is.null(matrix_item) || is.null(matrix_b_item)) {
+      return(app_failure("Load gallery examples before running this recipe."))
+    }
+    graph_result <- safe_graph_builder(
+      "multi_matrix",
+      inputs = list(matrices = list(matrix_item$data, matrix_b_item$data)),
+      params = list()
+    )
+    if (!graph_result$ok) {
+      return(graph_result)
+    }
+    graph_item <- add_recipe_item(
+      "gallery_recipe_multi_omics_graph",
+      "graph",
+      graph_result$value,
+      paste(matrix_item$id, matrix_b_item$id, sep = ","),
+      list(kind = "multi_matrix_graph", blocks = c("matrix", "matrix_b"))
+    )
+
+    plot_result <- safe_plot_ggnetview(graph_result$value, params = list(layout = "circle"))
+    if (!plot_result$ok) {
+      return(plot_result)
+    }
+    plot_item <- add_recipe_item(
+      "gallery_recipe_multi_omics_plot",
+      "plot",
+      plot_result$value,
+      graph_item$id,
+      list(layout = "circle", graph = graph_item$name)
+    )
+    return(app_success(list(items = list(graph_item, plot_item))))
   }
 
   app_failure(sprintf("Gallery recipe is not implemented: %s", recipe))

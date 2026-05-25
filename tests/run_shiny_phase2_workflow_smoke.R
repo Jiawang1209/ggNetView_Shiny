@@ -158,5 +158,8 @@ wait_for_text("gallery_recipe_multi_network_compare", timeout = 120000)
 set_input("data_hub-gallery_recipe", "triple_environment_heatmap")
 click("#data_hub-run_gallery_recipe")
 wait_for_text("gallery_recipe_triple_environment_heatmap", timeout = 120000)
+set_input("data_hub-gallery_recipe", "multi_omics_network")
+click("#data_hub-run_gallery_recipe")
+wait_for_text("gallery_recipe_multi_omics_graph", timeout = 120000)
 
 cat("phase2 browser workflow smoke passed\n")
