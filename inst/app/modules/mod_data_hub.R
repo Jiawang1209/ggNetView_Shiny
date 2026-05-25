@@ -87,7 +87,8 @@ mod_data_hub_ui <- function(id) {
       shiny::selectInput(ns("upload_type"), "Object type", choices = upload_type_choices(), selected = "auto"),
       shiny::textInput(ns("object_name"), "Object name", value = "uploaded_matrix"),
       shiny::actionButton(ns("register"), "Register object"),
-      shiny::actionButton(ns("load_example"), "Load example matrix")
+      shiny::actionButton(ns("load_example"), "Load example matrix"),
+      shiny::actionButton(ns("load_gallery"), "Load manual examples")
     ),
     bslib::card(
       bslib::card_header("Preview"),
@@ -162,6 +163,25 @@ mod_data_hub_server <- function(id, registry) {
             shiny::showNotification(paste("Registered", item$name), type = "message")
           }
           item
+        },
+        error = function(e) {
+          shiny::showNotification(conditionMessage(e), type = "error")
+          NULL
+        }
+      )
+
+      invisible(result)
+    })
+
+    shiny::observeEvent(input$load_gallery, {
+      result <- tryCatch(
+        {
+          items <- register_gallery_examples(registry)
+          if (length(items)) {
+            current_table(items[[1]]$data)
+          }
+          shiny::showNotification("Registered manual example workflow objects", type = "message")
+          items
         },
         error = function(e) {
           shiny::showNotification(conditionMessage(e), type = "error")

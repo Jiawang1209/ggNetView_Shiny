@@ -16,6 +16,7 @@ app_helper_files <- file.path(app_root, "R", c(
   "app_graph_inspect.R",
   "app_topology_adapters.R",
   "app_compare_environment.R",
+  "app_gallery_presets.R",
   "app_exports.R"
 ))
 
@@ -54,6 +55,7 @@ invisible(lapply(c(
   "subgraph_selected_graph", "subgraph_stat_table",
   "safe_node_centrality", "safe_node_ivi", "safe_zipi", "node_table_from_graph", "adjacency_from_graph",
   "safe_multi_network_compare", "safe_environment_link", "safe_mantel_pairwise",
+  "gallery_example_paths", "load_gallery_example_tables", "gallery_workflow_manifest", "register_gallery_examples",
   "registry_new", "registry_next_id", "registry_summarize", "registry_add",
   "registry_get", "registry_delete", "registry_count", "registry_list",
   "registry_choices", "registry_choices_by_type", "registry_log_error",
