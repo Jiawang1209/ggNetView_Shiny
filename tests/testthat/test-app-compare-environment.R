@@ -121,6 +121,31 @@ test_that("environment link returns plot and statistics", {
   expect_true(all(c("ID", "Type", "Correlation", "Pvalue") %in% names(result$value$stats)))
 })
 
+test_that("environment block selectors parse and pass through to environment link", {
+  data <- phase2_env_spec()
+  env_blocks <- parse_table_blocks("Climate: temperature,pH\nWater: moisture", names(data$env), "Env")
+  spec_blocks <- parse_table_blocks("Early: OTU1,OTU2,OTU3\nLate: OTU4,OTU5,OTU6", names(data$spec), "Spec")
+
+  expect_equal(names(env_blocks$blocks), c("Climate", "Water"))
+  expect_equal(env_blocks$blocks$Climate, c("temperature", "pH"))
+  expect_equal(names(spec_blocks$blocks), c("Early", "Late"))
+  expect_length(env_blocks$warnings, 0L)
+  expect_length(spec_blocks$warnings, 0L)
+
+  result <- safe_environment_link(
+    env = data$env,
+    spec = data$spec,
+    env_blocks = "Climate: temperature,pH\nWater: moisture",
+    spec_blocks = "Early: OTU1,OTU2,OTU3\nLate: OTU4,OTU5,OTU6"
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_true(all(c("Climate", "Water") %in% unique(result$value$stats$env_block)))
+  expect_true(all(c("Early", "Late") %in% unique(result$value$stats$spec_block)))
+  expect_equal(names(result$value$env_select), c("Climate", "Water"))
+  expect_equal(names(result$value$spec_select), c("Early", "Late"))
+})
+
 test_that("manual environment heatmap returns plot and statistics", {
   data <- phase2_env_spec()
   result <- safe_environment_heatmap(

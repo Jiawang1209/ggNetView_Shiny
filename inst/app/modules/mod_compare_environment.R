@@ -34,6 +34,20 @@ mod_compare_environment_ui <- function(id) {
       shiny::selectInput(ns("mantel_kind"), "Mantel kind", choices = c("block_vs_col", "col_vs_col")),
       shiny::checkboxInput(ns("spec_collapse"), "Collapse species block", value = FALSE),
       shiny::checkboxInput(ns("drop_nonsig"), "Drop non-significant links", value = FALSE),
+      shiny::textAreaInput(
+        ns("env_blocks"),
+        "Environment blocks",
+        value = "",
+        placeholder = "Optional: Climate: temperature,pH\nWater: moisture",
+        rows = 3
+      ),
+      shiny::textAreaInput(
+        ns("spec_blocks"),
+        "Species blocks",
+        value = "",
+        placeholder = "Optional: Early: OTU1,OTU2,OTU3\nLate: OTU4,OTU5,OTU6",
+        rows = 3
+      ),
       shiny::selectInput(ns("triple_graph_id"), "Triple heatmap graph", choices = character()),
       shiny::numericInput(ns("triple_feature_count"), "Triple feature count", value = 3, min = 1, step = 1),
       shiny::actionButton(ns("run_environment"), "Run environment link"),
@@ -140,6 +154,28 @@ mod_compare_environment_server <- function(id, registry) {
         return(data.frame(value = stats, stringsAsFactors = FALSE))
       }
       data.frame(value = utils::capture.output(utils::str(stats)), stringsAsFactors = FALSE)
+    }
+
+    environment_block_message <- function(result) {
+      env_names <- names(result$value$env_select %||% list())
+      spec_names <- names(result$value$spec_select %||% list())
+      applied <- if (length(env_names) || length(spec_names)) {
+        paste0(
+          " Applied blocks: env = ",
+          paste(env_names, collapse = ", "),
+          "; spec = ",
+          paste(spec_names, collapse = ", "),
+          "."
+        )
+      } else {
+        ""
+      }
+      warnings <- result$value$block_warnings %||% character()
+      if (length(warnings)) {
+        paste0(applied, "\n", paste(warnings, collapse = "\n"))
+      } else {
+        applied
+      }
     }
 
     shiny::observeEvent(input$run_compare, {
@@ -294,7 +330,9 @@ mod_compare_environment_server <- function(id, registry) {
       params <- list(
         relation_method = input$relation_method,
         cor.method = input$cor_method,
-        drop_nonsig = input$drop_nonsig
+        drop_nonsig = input$drop_nonsig,
+        env_blocks = input$env_blocks,
+        spec_blocks = input$spec_blocks
       )
       status(task_feedback_message("environment link", "running"))
       result <- with_task_feedback(
@@ -326,7 +364,7 @@ mod_compare_environment_server <- function(id, registry) {
         source_ids,
         params
       )
-      status(paste("Registered environment link plot:", plot_item$name))
+      status(paste0("Registered environment link plot: ", plot_item$name, environment_block_message(result)))
       shiny::showNotification(paste("Registered environment link plot:", plot_item$name), type = "message")
     })
 
@@ -347,7 +385,9 @@ mod_compare_environment_server <- function(id, registry) {
         cor.method = input$cor_method,
         mantel_kind = input$mantel_kind,
         spec_collapse = input$spec_collapse,
-        drop_nonsig = input$drop_nonsig
+        drop_nonsig = input$drop_nonsig,
+        env_blocks = input$env_blocks,
+        spec_blocks = input$spec_blocks
       )
       status(task_feedback_message("manual environment heatmap", "running"))
       result <- with_task_feedback(
@@ -380,7 +420,7 @@ mod_compare_environment_server <- function(id, registry) {
         source_ids,
         params
       )
-      status(paste("Registered manual environment heatmap:", plot_item$name))
+      status(paste0("Registered manual environment heatmap: ", plot_item$name, environment_block_message(result)))
       shiny::showNotification(paste("Registered manual environment heatmap:", plot_item$name), type = "message")
     })
 

@@ -305,7 +305,77 @@ safe_multi_group_network <- function(mat, group_info = NULL, params = list()) {
   ))
 }
 
-safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NULL, params = list()) {
+parse_table_blocks <- function(text, available_columns, default_name = "Block") {
+  available_columns <- as.character(available_columns)
+  if (is.null(text) || length(text) == 0L || !nzchar(trimws(text[[1]]))) {
+    return(list(
+      blocks = stats::setNames(list(available_columns), default_name),
+      warnings = character()
+    ))
+  }
+
+  lines <- unlist(strsplit(as.character(text[[1]]), "\n+"))
+  lines <- trimws(lines)
+  lines <- lines[nzchar(lines)]
+
+  blocks <- list()
+  warnings <- character()
+  for (line in lines) {
+    pieces <- strsplit(line, ":", fixed = TRUE)[[1]]
+    if (length(pieces) < 2L) {
+      warnings <- c(warnings, paste0("Skipping malformed block definition: ", line))
+      next
+    }
+    block_name <- trimws(pieces[[1]])
+    raw_cols <- paste(pieces[-1], collapse = ":")
+    if (!nzchar(block_name)) {
+      block_name <- paste0(default_name, "_", length(blocks) + 1L)
+    }
+    cols <- trimws(unlist(strsplit(raw_cols, "\\s*,\\s*")))
+    cols <- cols[nzchar(cols)]
+    if (!length(cols)) {
+      warnings <- c(warnings, paste0("Skipping empty block: ", block_name))
+      next
+    }
+
+    resolved <- unlist(lapply(cols, function(col) {
+      if (col %in% available_columns) {
+        return(col)
+      }
+      numeric_index <- suppressWarnings(as.integer(col))
+      if (!is.na(numeric_index) && numeric_index >= 1L && numeric_index <= length(available_columns)) {
+        return(available_columns[[numeric_index]])
+      }
+      warnings <<- c(warnings, paste0("Skipping unavailable column '", col, "' in block ", block_name, "."))
+      character()
+    }))
+    resolved <- unique(resolved)
+    if (!length(resolved)) {
+      warnings <- c(warnings, paste0("Skipping block with no valid columns: ", block_name))
+      next
+    }
+
+    name <- make.unique(c(names(blocks), block_name), sep = "_")
+    blocks[[name[[length(name)]]]] <- resolved
+  }
+
+  if (!length(blocks)) {
+    return(list(blocks = NULL, warnings = warnings))
+  }
+  list(blocks = blocks, warnings = warnings)
+}
+
+environment_block_selectors <- function(env, spec, env_blocks = NULL, spec_blocks = NULL) {
+  env_parsed <- parse_table_blocks(env_blocks, colnames(env), "Environment")
+  spec_parsed <- parse_table_blocks(spec_blocks, colnames(spec), "Species")
+  list(
+    env_select = env_parsed$blocks,
+    spec_select = spec_parsed$blocks,
+    warnings = c(env_parsed$warnings, spec_parsed$warnings)
+  )
+}
+
+safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, params = list()) {
   fn <- resolve_ggnetview_function("gglink_heatmaps_2")
   if (is.null(fn)) {
     return(app_failure("Cannot find ggNetView function: gglink_heatmaps_2"))
@@ -313,11 +383,27 @@ safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NU
 
   env <- as.data.frame(env, check.names = FALSE)
   spec <- as.data.frame(spec, check.names = FALSE)
+  env_blocks <- env_blocks %||% params$env_blocks
+  spec_blocks <- spec_blocks %||% params$spec_blocks
+  block_selectors <- environment_block_selectors(
+    env,
+    spec,
+    env_blocks = env_blocks,
+    spec_blocks = spec_blocks
+  )
+  params$env_blocks <- NULL
+  params$spec_blocks <- NULL
   if (is.null(env_select)) {
-    env_select <- list(Environment = seq_len(ncol(env)))
+    env_select <- block_selectors$env_select
   }
   if (is.null(spec_select)) {
-    spec_select <- list(Species = seq_len(ncol(spec)))
+    spec_select <- block_selectors$spec_select
+  }
+  if (is.null(env_select) || is.null(spec_select)) {
+    return(app_failure(paste(
+      c("No valid environment/species blocks were provided.", block_selectors$warnings),
+      collapse = "\n"
+    )))
   }
 
   defaults <- list(
@@ -345,11 +431,14 @@ safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NU
     plot = value[[1]],
     curved_plot = value[[2]],
     stats = value[[3]],
+    env_select = env_select,
+    spec_select = spec_select,
+    block_warnings = block_selectors$warnings,
     raw = value
   ))
 }
 
-safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select = NULL, params = list()) {
+safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, params = list()) {
   fn <- resolve_ggnetview_function("gglink_heatmaps")
   if (is.null(fn)) {
     return(app_failure("Cannot find ggNetView function: gglink_heatmaps"))
@@ -357,11 +446,27 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
 
   env <- as.data.frame(env, check.names = FALSE)
   spec <- as.data.frame(spec, check.names = FALSE)
+  env_blocks <- env_blocks %||% params$env_blocks
+  spec_blocks <- spec_blocks %||% params$spec_blocks
+  block_selectors <- environment_block_selectors(
+    env,
+    spec,
+    env_blocks = env_blocks,
+    spec_blocks = spec_blocks
+  )
+  params$env_blocks <- NULL
+  params$spec_blocks <- NULL
   if (is.null(env_select)) {
-    env_select <- list(Environment = seq_len(ncol(env)))
+    env_select <- block_selectors$env_select
   }
   if (is.null(spec_select)) {
-    spec_select <- list(Species = seq_len(ncol(spec)))
+    spec_select <- block_selectors$spec_select
+  }
+  if (is.null(env_select) || is.null(spec_select)) {
+    return(app_failure(paste(
+      c("No valid environment/species blocks were provided.", block_selectors$warnings),
+      collapse = "\n"
+    )))
   }
 
   defaults <- list(
@@ -399,6 +504,9 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
     plot = plot,
     curved_plot = curved_plot,
     stats = stats,
+    env_select = env_select,
+    spec_select = spec_select,
+    block_warnings = block_selectors$warnings,
     raw = value
   ))
 }
