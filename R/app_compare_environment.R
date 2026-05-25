@@ -213,7 +213,93 @@ interpret_multi_network_links <- function(link_info) {
 empty_environment_link_interpretation <- function() {
   list(
     details = data.frame(),
-    summary = data.frame()
+    summary = data.frame(),
+    report = data.frame()
+  )
+}
+
+environment_report_presets <- function(summary, workflow = "environment_link") {
+  columns <- c(
+    "workflow",
+    "env_block",
+    "spec_block",
+    "method",
+    "block_pair",
+    "signal_direction",
+    "evidence_label",
+    "report_text"
+  )
+  if (is.null(summary) || !is.data.frame(summary) || !nrow(summary)) {
+    return(stats::setNames(data.frame(matrix(ncol = length(columns), nrow = 0)), columns))
+  }
+
+  summary <- as.data.frame(summary, check.names = FALSE)
+  defaults <- list(
+    env_block = "All",
+    spec_block = "All",
+    method = "unknown",
+    link_count = 0L,
+    significant_count = 0L,
+    positive_count = 0L,
+    negative_count = 0L,
+    strongest_link = "unknown",
+    strongest_correlation = NA_real_,
+    strongest_pvalue = NA_real_,
+    mean_abs_correlation = NA_real_
+  )
+  for (name in names(defaults)) {
+    if (!name %in% names(summary)) {
+      summary[[name]] <- defaults[[name]]
+    }
+  }
+
+  as_number <- function(x) suppressWarnings(as.numeric(x))
+  summary$link_count <- as_number(summary$link_count)
+  summary$significant_count <- as_number(summary$significant_count)
+  summary$positive_count <- as_number(summary$positive_count)
+  summary$negative_count <- as_number(summary$negative_count)
+  summary$strongest_correlation <- as_number(summary$strongest_correlation)
+  summary$strongest_pvalue <- as_number(summary$strongest_pvalue)
+  summary$mean_abs_correlation <- as_number(summary$mean_abs_correlation)
+
+  signal_direction <- ifelse(
+    summary$positive_count > 0 & summary$negative_count > 0,
+    "mixed",
+    ifelse(
+      summary$positive_count > 0,
+      "positive",
+      ifelse(summary$negative_count > 0, "negative", "unknown")
+    )
+  )
+  block_pair <- paste(summary$env_block, summary$spec_block, sep = " -> ")
+  evidence_label <- sprintf(
+    "%s/%s significant; mean |r|=%s",
+    ifelse(is.na(summary$significant_count), 0, summary$significant_count),
+    ifelse(is.na(summary$link_count), 0, summary$link_count),
+    ifelse(is.na(summary$mean_abs_correlation), "NA", format(round(summary$mean_abs_correlation, 3), nsmall = 3))
+  )
+  report_text <- sprintf(
+    "%s (%s, %s) shows a %s signal: %s; strongest link %s (r=%s, p=%s).",
+    block_pair,
+    summary$method,
+    workflow,
+    signal_direction,
+    evidence_label,
+    summary$strongest_link,
+    ifelse(is.na(summary$strongest_correlation), "NA", format(round(summary$strongest_correlation, 3), nsmall = 3)),
+    ifelse(is.na(summary$strongest_pvalue), "NA", format(signif(summary$strongest_pvalue, 3), scientific = FALSE))
+  )
+
+  data.frame(
+    workflow = rep(workflow, nrow(summary)),
+    env_block = as.character(summary$env_block),
+    spec_block = as.character(summary$spec_block),
+    method = as.character(summary$method),
+    block_pair = block_pair,
+    signal_direction = signal_direction,
+    evidence_label = evidence_label,
+    report_text = report_text,
+    stringsAsFactors = FALSE
   )
 }
 
@@ -291,7 +377,7 @@ interpret_environment_links <- function(stats) {
   rownames(summary) <- NULL
   summary <- summary[order(summary$env_block, summary$spec_block, summary$method), , drop = FALSE]
 
-  list(details = details, summary = summary)
+  list(details = details, summary = summary, report = environment_report_presets(summary))
 }
 
 summarize_multi_network_topology <- function(graphs, params = list()) {

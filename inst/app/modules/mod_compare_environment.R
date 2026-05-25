@@ -120,10 +120,14 @@ mod_compare_environment_ui <- function(id) {
       DT::DTOutput(ns("compare_links"))
     ),
     bslib::card(
+      bslib::card_header("Report Presets"),
+      DT::DTOutput(ns("report_presets"))
+    ),
+    bslib::card(
       bslib::card_header("Topology Comparison"),
       DT::DTOutput(ns("compare_topology"))
     ),
-    col_widths = c(4, 4, 8, 6, 6, 6)
+    col_widths = c(4, 4, 8, 6, 6, 6, 6)
   )
 }
 
@@ -132,6 +136,7 @@ mod_compare_environment_server <- function(id, registry) {
     plot_obj <- shiny::reactiveVal(NULL)
     stats_table <- shiny::reactiveVal(data.frame())
     compare_link_summary_table <- shiny::reactiveVal(data.frame())
+    report_preset_table <- shiny::reactiveVal(data.frame())
     compare_topology_table <- shiny::reactiveVal(data.frame())
     status <- shiny::reactiveVal("No comparison or environment result yet.")
 
@@ -219,6 +224,20 @@ mod_compare_environment_server <- function(id, registry) {
 
     environment_interpretation <- function(stats) {
       interpret_environment_links(normalize_stats(stats))
+    }
+
+    register_environment_report <- function(interpreted, source_ids, kind) {
+      report <- interpreted$report %||% data.frame()
+      report_preset_table(report)
+      if (!nrow(report)) {
+        return(NULL)
+      }
+      register_stats_result(
+        unique_output_name(paste0(kind, "_report")),
+        report,
+        source_ids,
+        list(kind = paste0(kind, "_report"))
+      )
     }
 
     environment_block_message <- function(result) {
@@ -468,6 +487,7 @@ mod_compare_environment_server <- function(id, registry) {
       compare_link_summary_table(interpreted$summary)
       compare_topology_table(data.frame())
       source_ids <- paste(input$spec_id, input$env_id, sep = ",")
+      register_environment_report(interpreted, source_ids, "environment_link")
       plot_item <- register_plot_result(
         unique_output_name("environment_link_plot"),
         result$value$plot,
@@ -563,6 +583,7 @@ mod_compare_environment_server <- function(id, registry) {
       compare_link_summary_table(interpreted$summary)
       compare_topology_table(data.frame())
       source_ids <- paste(input$spec_id, input$env_id, sep = ",")
+      register_environment_report(interpreted, source_ids, "manual_environment_heatmap")
       plot_item <- register_plot_result(
         unique_output_name("manual_environment_heatmap_plot"),
         result$value$plot,
@@ -673,6 +694,7 @@ mod_compare_environment_server <- function(id, registry) {
       compare_link_summary_table(interpreted$summary)
       compare_topology_table(data.frame())
       source_ids <- paste(input$spec_id, input$env_id, input$module_graph_id, sep = ",")
+      register_environment_report(interpreted, source_ids, "module_environment_heatmap")
       plot_item <- register_plot_result(
         unique_output_name("module_environment_heatmap_plot"),
         result$value$plot,
@@ -752,6 +774,7 @@ mod_compare_environment_server <- function(id, registry) {
       )
       stats_table(stats)
       compare_link_summary_table(data.frame())
+      report_preset_table(data.frame())
       compare_topology_table(data.frame())
       source_ids <- paste(input$spec_id, input$env_id, input$triple_graph_id, sep = ",")
       plot_item <- register_plot_result(
@@ -808,6 +831,11 @@ mod_compare_environment_server <- function(id, registry) {
       stats_table(interpreted$details)
       compare_link_summary_table(interpreted$summary)
       compare_topology_table(data.frame())
+      register_environment_report(
+        interpreted,
+        paste(input$spec_id, input$env_id, sep = ","),
+        "mantel_pairwise"
+      )
       item <- register_stats_result(
         unique_output_name("mantel_pairwise_stats"),
         interpreted$details,
@@ -833,6 +861,7 @@ mod_compare_environment_server <- function(id, registry) {
 
     output$stats <- DT::renderDT(stats_table(), rownames = FALSE)
     output$compare_links <- DT::renderDT(compare_link_summary_table(), rownames = FALSE)
+    output$report_presets <- DT::renderDT(report_preset_table(), rownames = FALSE)
     output$compare_topology <- DT::renderDT(compare_topology_table(), rownames = FALSE)
     output$status <- shiny::renderText(status())
   })

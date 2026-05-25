@@ -197,6 +197,30 @@ test_that("environment link interpretation summarizes strongest and significant 
   expect_equal(water$strongest_correlation, -0.91)
 })
 
+test_that("environment report presets convert block summaries into report rows", {
+  stats <- data.frame(
+    ID = c("OTU1", "OTU2", "Gene3", "Gene4"),
+    Type = c("pH", "pH", "moisture", "moisture"),
+    Correlation = c(0.82, -0.61, -0.91, 0.2),
+    Pvalue = c(0.01, 0.04, 0.03, 0.7),
+    spec_block = c("Microbiome", "Microbiome", "Transcriptome", "Transcriptome"),
+    env_block = c("Nutrients", "Nutrients", "Water", "Water"),
+    method = c("correlation", "correlation", "mantel", "mantel"),
+    stringsAsFactors = FALSE
+  )
+
+  interpreted <- interpret_environment_links(stats)
+
+  expect_true(is.data.frame(interpreted$report))
+  expect_true(all(c(
+    "workflow", "block_pair", "signal_direction", "evidence_label", "report_text"
+  ) %in% names(interpreted$report)))
+  expect_equal(nrow(interpreted$report), nrow(interpreted$summary))
+  expect_true(any(grepl("Nutrients -> Microbiome", interpreted$report$block_pair, fixed = TRUE)))
+  expect_true(any(grepl("strongest link", interpreted$report$report_text, fixed = TRUE)))
+  expect_true(any(interpreted$report$signal_direction == "mixed"))
+})
+
 test_that("environment block selectors parse and pass through to environment link", {
   data <- phase2_env_spec()
   env_blocks <- parse_table_blocks("Climate: temperature,pH\nWater: moisture", names(data$env), "Env")

@@ -42,7 +42,8 @@ Date: 2026-05-26
    - Gallery recipes now include multi-omics starter paths that build multi-matrix and double-matrix graphs, plus a block-restricted multi-omics environment heatmap from two omics-like matrices.
    - Environment/spec block selectors, block-pair restrictions, multi-core geometry controls, direct heatmap style controls, inward heatmap distance, arc/rotation controls, and collapsed-core Gallery recipes are now exposed for heatmap workflows.
    - Browser smoke now covers the representative geometry matrix for default heatmap, multi-omics block heatmap, collapsed-core heatmap, and rotated-arc/inward-distance collapsed-core heatmap.
-   - Still needed: richer multi-omics-specific narrative/report presets after longer real-use sessions.
+   - Environment and multi-omics environment outputs now register report-ready preset tables with block-pair evidence labels and draft result text for export.
+   - Still needed: deeper biological/statistical narrative after longer real-use sessions and domain-specific report templates.
 
 4. Multi-network comparison depth.
    - The comparison workflow now uses `ggNetView_multi_link()` with graph objects and `ggNetView_multi()` from a matrix plus generated or uploaded/custom group metadata.

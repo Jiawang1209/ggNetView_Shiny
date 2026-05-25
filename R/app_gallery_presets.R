@@ -580,6 +580,11 @@ run_gallery_recipe <- function(registry, recipe) {
       return(result)
     }
     source_ids <- paste(matrix_item$id, matrix_b_item$id, sep = ",")
+    interpreted <- interpret_environment_links(result$value$stats)
+    report <- environment_report_presets(
+      interpreted$summary,
+      workflow = "multi_omics_environment"
+    )
     plot_item <- add_recipe_item(
       "gallery_recipe_multi_omics_environment_heatmap",
       "plot",
@@ -590,7 +595,7 @@ run_gallery_recipe <- function(registry, recipe) {
     stats_item <- add_recipe_item(
       "gallery_recipe_multi_omics_environment_stats",
       "result",
-      result$value$stats,
+      interpreted$details,
       source_ids,
       list(
         kind = "multi_omics_environment_stats",
@@ -598,7 +603,18 @@ run_gallery_recipe <- function(registry, recipe) {
         spec_blocks = names(fixture$spec_select)
       )
     )
-    return(app_success(list(items = list(plot_item, stats_item))))
+    report_item <- add_recipe_item(
+      "gallery_recipe_multi_omics_environment_report",
+      "result",
+      report,
+      source_ids,
+      list(
+        kind = "multi_omics_environment_report",
+        env_blocks = names(fixture$env_select),
+        spec_blocks = names(fixture$spec_select)
+      )
+    )
+    return(app_success(list(items = list(plot_item, stats_item, report_item))))
   }
 
   if (identical(recipe, "environment_collapsed_core")) {

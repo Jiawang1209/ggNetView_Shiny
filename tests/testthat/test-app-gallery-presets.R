@@ -130,6 +130,7 @@ test_that("gallery recipes register reproducible outputs", {
   expect_true(any(listed$name == "gallery_recipe_multi_omics_double_plot"))
   expect_true(any(listed$name == "gallery_recipe_multi_omics_environment_heatmap"))
   expect_true(any(listed$name == "gallery_recipe_multi_omics_environment_stats"))
+  expect_true(any(listed$name == "gallery_recipe_multi_omics_environment_report"))
   expect_true(any(listed$name == "gallery_recipe_environment_collapsed_core_heatmap"))
   expect_true(any(listed$name == "gallery_recipe_environment_collapsed_core_stats"))
   expect_true(any(listed$name == "gallery_recipe_environment_arc_collapsed_core_heatmap"))
