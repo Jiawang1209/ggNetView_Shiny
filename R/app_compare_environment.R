@@ -80,6 +80,7 @@ safe_multi_network_compare <- function(graphs, params = list()) {
     k_nn = 2
   )
   call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
+  call_args <- filter_function_call_args(fn, call_args)
 
   result <- safe_call(
     do.call(fn, call_args),
@@ -600,6 +601,7 @@ safe_multi_group_network <- function(mat, group_info = NULL, params = list()) {
     layout.module = "adjacent"
   )
   call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
+  call_args <- filter_function_call_args(fn, call_args)
 
   result <- safe_call(
     do.call(fn, call_args),

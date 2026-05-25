@@ -17,6 +17,7 @@ Date: 2026-05-26
 - Topology can register global topology, direct parallel topology, robustness, sample-level topology/statistics, centrality, IVI, and Zi-Pi/keystone result tables.
 - Graph Builder, Visual Lab, Topology, Compare & Environment, and Gallery recipe execution now wrap real ggNetView calls with progress feedback and temporary action-button busy states.
 - Compare & Environment can register multi-network comparison plots with optional pair restrictions, normalized link detail tables, pair-level link summaries, topology comparison summaries, environment-link plots/statistics with environment/spec block selectors, env/spec pair restrictions, multi-core geometry controls, module-level environment heatmaps, Mantel pairwise tables, and report-oriented environment interpretation summaries.
+- Compare Networks now exposes the broader manual-backed multi-network group layouts, including row/column/geometric/snake/sine/cosine/center-pairs arrangements plus advanced rotation, anchor, row/column, sine-period, and label controls for real `ggNetView_multi_link()` and compatible grouped `ggNetView_multi()` paths.
 - `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports.
 - `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, Export graph-node/workflow-manifest downloads, workflow manifest replay preview, and gallery recipe execution.
 - `tests/run_shiny_graph_builder_modes_smoke.R` now runs real browser builds for RMT, matrix, edge+module, node+edge, STRINGDB/PPI, igraph object, adjacency+module, double matrix, multi-matrix, WGCNA/TOM, and consensus builder paths.
@@ -48,6 +49,7 @@ Date: 2026-05-26
 4. Multi-network comparison depth.
    - The comparison workflow now uses `ggNetView_multi_link()` with graph objects and `ggNetView_multi()` from a matrix plus generated or uploaded/custom group metadata.
    - Users can restrict comparisons to selected group pairs, which are passed to the real `comparisons_groups` argument.
+   - Group layouts now include the manual's broader row/column/geometric/snake/sine/cosine/center-pairs arrangements with advanced layout controls.
    - Link information is normalized into detail and pair-level summary result tables, and graph-level topology comparison summaries are displayed and registered for export.
    - Multi-network comparison outputs now register report-ready presets that summarize shared node/module connections by comparison pair, link level, source/target diversity, and layout distance.
    - Still needed: deeper biological/statistical interpretation after longer real-use sessions and domain-specific labels for shared modules/nodes.

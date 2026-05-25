@@ -2,6 +2,7 @@ source(testthat::test_path("../../R/app_validation.R"))
 source(testthat::test_path("../../R/app_adapters.R"))
 source(testthat::test_path("../../R/app_graph_builders.R"))
 source(testthat::test_path("../../R/app_compare_environment.R"))
+source(testthat::test_path("../../inst/app/modules/mod_compare_environment.R"))
 source(testthat::test_path("../../R/app_exports.R"))
 
 read_phase2_fixture <- function(name, row_names = TRUE) {
@@ -49,6 +50,81 @@ test_that("multi-network comparison returns a plot payload", {
   expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
   expect_s3_class(result$value$plot, "ggplot")
   expect_true(is.null(result$value$link_info) || is.data.frame(result$value$link_info) || is.list(result$value$link_info))
+})
+
+test_that("comparison layout controls expose manual group layouts", {
+  choices <- comparison_group_layout_choices()
+
+  expect_true(all(c(
+    "circle",
+    "row",
+    "column",
+    "snake",
+    "snake_vertical",
+    "snake_vertical_sin",
+    "snake_vertical_cos",
+    "snake_vertical_neg_sin",
+    "snake_vertical_neg_cos",
+    "sin",
+    "cos",
+    "-sin",
+    "-cos",
+    "center_pairs"
+  ) %in% unname(choices)))
+})
+
+test_that("comparison layout params normalize advanced group layout controls", {
+  params <- comparison_layout_params(
+    group_layout = "center_pairs",
+    scale_groups = TRUE,
+    orientation = "left",
+    angle = 45,
+    anchor_dist = 8,
+    layout_anchor_dist = 5,
+    nrow = 2,
+    ncol = 3,
+    sine_period = 6,
+    label_offset = 0.35,
+    label_size = 5.5
+  )
+
+  expect_equal(params$group_layout, "center_pairs")
+  expect_true(params$scale_groups)
+  expect_equal(params$orientation, "left")
+  expect_equal(params$angle, 45)
+  expect_equal(params$anchor_dist, 8)
+  expect_equal(params$layout_anchor_dist, 5)
+  expect_equal(params$nrow, 2L)
+  expect_equal(params$ncol, 3L)
+  expect_equal(params$sine_period, 6)
+  expect_equal(params$label_offset, 0.35)
+  expect_equal(params$label_size, 5.5)
+
+  clamped <- comparison_layout_params(
+    group_layout = "not-a-layout",
+    scale_groups = FALSE,
+    orientation = "bad",
+    angle = NA,
+    anchor_dist = -1,
+    layout_anchor_dist = -1,
+    nrow = -1,
+    ncol = -1,
+    sine_period = -1,
+    label_offset = -1,
+    label_size = -1
+  )
+
+  expect_equal(clamped$group_layout, "circle")
+  expect_false(clamped$scale_groups)
+  expect_equal(clamped$orientation, "up")
+  expect_equal(clamped$angle, 0)
+  expect_equal(clamped$anchor_dist, 6)
+  expect_null(clamped$layout_anchor_dist)
+  expect_null(clamped$nrow)
+  expect_null(clamped$ncol)
+  expect_equal(clamped$sine_period, 4)
+  expect_equal(clamped$label_offset, 0.2)
+  expect_equal(clamped$label_size, 4)
 })
 
 test_that("multi-network comparison exposes link and topology tables", {

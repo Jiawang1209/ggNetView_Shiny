@@ -1,3 +1,102 @@
+comparison_group_layout_choices <- function() {
+  c(
+    "Circle" = "circle",
+    "Row" = "row",
+    "Column" = "column",
+    "Square" = "square",
+    "Diamond" = "diamond",
+    "Triangle" = "triangle",
+    "Triangle down" = "triangle_down",
+    "Snake" = "snake",
+    "Snake vertical" = "snake_vertical",
+    "Snake vertical sin" = "snake_vertical_sin",
+    "Snake vertical cos" = "snake_vertical_cos",
+    "Snake vertical -sin" = "snake_vertical_neg_sin",
+    "Snake vertical -cos" = "snake_vertical_neg_cos",
+    "Sin" = "sin",
+    "Cos" = "cos",
+    "-Sin" = "-sin",
+    "-Cos" = "-cos",
+    "Center pairs" = "center_pairs"
+  )
+}
+
+comparison_layout_params <- function(
+  group_layout = "circle",
+  scale_groups = TRUE,
+  orientation = "up",
+  angle = 0,
+  anchor_dist = 6,
+  layout_anchor_dist = NULL,
+  nrow = NULL,
+  ncol = NULL,
+  sine_period = 4,
+  label_offset = 0.2,
+  label_size = 4
+) {
+  normalize_number <- function(value, default, min = NULL, max = NULL) {
+    value <- suppressWarnings(as.numeric(value))
+    if (length(value) != 1L || is.na(value) || !is.finite(value)) {
+      value <- default
+    }
+    if (!is.null(min) && value < min) {
+      value <- default
+    }
+    if (!is.null(max)) {
+      value <- min(value, max)
+    }
+    value
+  }
+  normalize_optional_positive_number <- function(value) {
+    value <- suppressWarnings(as.numeric(value))
+    if (length(value) != 1L || is.na(value) || !is.finite(value) || value <= 0) {
+      return(NULL)
+    }
+    value
+  }
+  normalize_optional_positive_integer <- function(value) {
+    value <- normalize_optional_positive_number(value)
+    if (is.null(value)) {
+      return(NULL)
+    }
+    as.integer(round(value))
+  }
+
+  layouts <- unname(comparison_group_layout_choices())
+  if (is.null(group_layout) || length(group_layout) != 1L || !group_layout %in% layouts) {
+    group_layout <- "circle"
+  }
+  orientations <- c("up", "down", "left", "right")
+  if (is.null(orientation) || length(orientation) != 1L || !orientation %in% orientations) {
+    orientation <- "up"
+  }
+
+  list(
+    group_layout = group_layout,
+    scale_groups = isTRUE(scale_groups),
+    orientation = orientation,
+    angle = normalize_number(angle, default = 0),
+    anchor_dist = normalize_number(anchor_dist, default = 6, min = 0.01),
+    layout_anchor_dist = normalize_optional_positive_number(layout_anchor_dist),
+    nrow = normalize_optional_positive_integer(nrow),
+    ncol = normalize_optional_positive_integer(ncol),
+    sine_period = normalize_number(sine_period, default = 4, min = 0.01),
+    label_offset = normalize_number(label_offset, default = 0.2, min = 0),
+    label_size = normalize_number(label_size, default = 4, min = 0.1)
+  )
+}
+
+comparison_layout_params_for_multi_group <- function(params) {
+  params <- params %||% list()
+  params$scale <- params$scale_groups
+  params$scale_groups <- NULL
+  params$group_layout <- NULL
+  params$sine_period <- NULL
+  params$layout_nrow <- params$nrow
+  params$layout_ncol <- params$ncol
+  params
+}
+
 mod_compare_environment_ui <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_columns(
@@ -7,10 +106,25 @@ mod_compare_environment_ui <- function(id) {
       shiny::selectInput(
         ns("compare_layout"),
         "Group layout",
-        choices = c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake")
+        choices = comparison_group_layout_choices()
       ),
       shiny::selectInput(ns("link_level"), "Link level", choices = c("Module", "Node")),
       shiny::checkboxInput(ns("scale_groups"), "Scale groups", value = TRUE),
+      bslib::accordion(
+        open = FALSE,
+        bslib::accordion_panel(
+          "Advanced layout",
+          shiny::selectInput(ns("compare_orientation"), "Orientation", choices = c("up", "down", "left", "right")),
+          shiny::numericInput(ns("compare_angle"), "Group rotation", value = 0, step = 15),
+          shiny::numericInput(ns("compare_anchor_dist"), "Group anchor distance", value = 6, min = 0.01, step = 0.5),
+          shiny::numericInput(ns("compare_layout_anchor_dist"), "Single-network anchor distance", value = NA, min = 0.01, step = 0.5),
+          shiny::numericInput(ns("compare_nrow"), "Group rows", value = NA, min = 1, step = 1),
+          shiny::numericInput(ns("compare_ncol"), "Group columns", value = NA, min = 1, step = 1),
+          shiny::numericInput(ns("compare_sine_period"), "Sine period", value = 4, min = 0.01, step = 0.5),
+          shiny::numericInput(ns("compare_label_offset"), "Group label offset", value = 0.2, min = 0, step = 0.05),
+          shiny::numericInput(ns("compare_label_size"), "Group label size", value = 4, min = 0.1, step = 0.5)
+        )
+      ),
       shiny::textAreaInput(
         ns("comparison_pairs"),
         "Comparison pairs",
@@ -285,11 +399,25 @@ mod_compare_environment_server <- function(id, registry) {
       graphs <- lapply(items, `[[`, "data")
       names(graphs) <- vapply(items, function(item) item$name, character(1))
       params <- list(
-        group_layout = input$compare_layout,
         link_level = input$link_level,
-        scale_groups = input$scale_groups,
         comparison_pairs = input$comparison_pairs,
         include_topology_summary = TRUE
+      )
+      params <- c(
+        params,
+        comparison_layout_params(
+          group_layout = input$compare_layout,
+          scale_groups = input$scale_groups,
+          orientation = input$compare_orientation,
+          angle = input$compare_angle,
+          anchor_dist = input$compare_anchor_dist,
+          layout_anchor_dist = input$compare_layout_anchor_dist,
+          nrow = input$compare_nrow,
+          ncol = input$compare_ncol,
+          sine_period = input$compare_sine_period,
+          label_offset = input$compare_label_offset,
+          label_size = input$compare_label_size
+        )
       )
 
       status(task_feedback_message("network comparison", "running"))
@@ -388,12 +516,24 @@ mod_compare_environment_server <- function(id, registry) {
         return()
       }
 
-      params <- list(
+      params <- c(list(
         layout = "circle",
         layout.module = "adjacent",
         r.threshold = 0.2,
         p.threshold = 1
-      )
+      ), comparison_layout_params_for_multi_group(comparison_layout_params(
+        group_layout = input$compare_layout,
+        scale_groups = input$scale_groups,
+        orientation = input$compare_orientation,
+        angle = input$compare_angle,
+        anchor_dist = input$compare_anchor_dist,
+        layout_anchor_dist = input$compare_layout_anchor_dist,
+        nrow = input$compare_nrow,
+        ncol = input$compare_ncol,
+        sine_period = input$compare_sine_period,
+        label_offset = input$compare_label_offset,
+        label_size = input$compare_label_size
+      )))
       status(task_feedback_message("group multi-network plot", "running"))
       result <- with_task_feedback(
         session,
