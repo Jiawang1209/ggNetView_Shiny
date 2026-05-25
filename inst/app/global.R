@@ -7,7 +7,7 @@ library(igraph)
 app_root <- normalizePath(file.path("..", ".."), mustWork = FALSE)
 
 app_helper_env <- new.env(parent = .GlobalEnv)
-app_helper_files <- file.path(app_root, "R", c("app_validation.R", "app_registry.R", "app_adapters.R"))
+app_helper_files <- file.path(app_root, "R", c("app_validation.R", "app_registry.R", "app_adapters.R", "app_exports.R"))
 
 load_app_helper <- function(name) {
   if (exists(name, envir = .GlobalEnv, inherits = FALSE)) {
@@ -40,5 +40,7 @@ invisible(lapply(c(
   "safe_call", "safe_build_graph", "safe_plot_ggnetview", "safe_topology",
   "registry_new", "registry_next_id", "registry_summarize", "registry_add",
   "registry_get", "registry_delete", "registry_count", "registry_list",
-  "registry_log_error"
+  "registry_log_error",
+  "write_registry_table", "write_registry_object", "write_registry_params",
+  "write_plot_png", "write_plot_pdf"
 ), load_app_helper))
