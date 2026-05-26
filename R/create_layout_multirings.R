@@ -35,14 +35,37 @@ create_layout_multirings <- function(graph_obj,
   n_mod <- length(n_vec)
 
 
-  node_df_stat <- graph_obj %>%
-    tidygraph::activate(nodes) %>%
-    tidygraph::as_tibble() %>%
-    dplyr::group_by(Modularity) %>%
-    dplyr::summarise(n = n()) %>%
-    dplyr::arrange(n) %>%
-    dplyr::mutate(Modularity = droplevels(Modularity)) %>%
-    dplyr::mutate(Modularity = as.character(Modularity))
+  # ---- Determine ring order (inner -> outer) ----
+  # Default behaviour: order modules by size ascending (smallest module in the
+  # innermost ring).
+  # If the caller has explicitly customised module order via
+  # `update_graph_modules*(levels = ...)`, the graph carries a marker attribute
+  # `.modularity_user_ordered = TRUE`; in that case we respect the existing
+  # `Modularity` factor levels (first level -> innermost, last -> outermost).
+  user_ordered <- isTRUE(igraph::graph_attr(graph_obj, ".modularity_user_ordered"))
+
+  if (user_ordered && is.factor(node_df$Modularity)) {
+    ring_levels <- levels(droplevels(node_df$Modularity))
+    node_df_stat <- graph_obj %>%
+      tidygraph::activate(nodes) %>%
+      tidygraph::as_tibble() %>%
+      dplyr::group_by(Modularity) %>%
+      dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+      dplyr::mutate(Modularity = factor(Modularity,
+                                        levels = ring_levels,
+                                        ordered = TRUE)) %>%
+      dplyr::arrange(Modularity) %>%
+      dplyr::mutate(Modularity = as.character(Modularity))
+  } else {
+    node_df_stat <- graph_obj %>%
+      tidygraph::activate(nodes) %>%
+      tidygraph::as_tibble() %>%
+      dplyr::group_by(Modularity) %>%
+      dplyr::summarise(n = n()) %>%
+      dplyr::arrange(n) %>%
+      dplyr::mutate(Modularity = droplevels(Modularity)) %>%
+      dplyr::mutate(Modularity = as.character(Modularity))
+  }
 
   graph_obj <- graph_obj %>%
     tidygraph::mutate(Modularity = factor(Modularity, levels = node_df_stat$Modularity, ordered = T)) %>%
@@ -52,7 +75,7 @@ create_layout_multirings <- function(graph_obj,
 
   r = r
 
-  for (i in 1:dim(node_df_stat)[1]) {
+  for (i in seq_len(dim(node_df_stat)[1])) {
 
     n_points <- node_df_stat$n[i]
     radius <- r

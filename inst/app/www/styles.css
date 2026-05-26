@@ -1,0 +1,105 @@
+body {
+  font-size: 15px;
+}
+
+.card {
+  border-radius: 8px;
+}
+
+.form-label {
+  font-weight: 600;
+}
+
+.dataTables_wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+#data_hub-preview .dataTables_wrapper {
+  overflow-x: hidden;
+}
+
+#data_hub-preview table.dataTable {
+  width: 100% !important;
+}
+
+.ggnv-export-section {
+  margin: 0.75rem 0 1rem;
+}
+
+.ggnv-export-section h5 {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.ggnv-export-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ggnv-introduction {
+  max-width: 1040px;
+  width: min(1040px, calc(100vw - 2rem));
+  margin: 1rem auto;
+  overflow-x: auto;
+}
+
+.ggnv-introduction img {
+  max-width: 100%;
+  height: auto;
+}
+
+.ggnv-introduction pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.ggnv-introduction :not(pre) > code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.ggnv-manual-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem 0;
+}
+
+.ggnv-manual-frame {
+  display: block;
+  width: 100%;
+  min-height: calc(100vh - 150px);
+  border: 0;
+}
+
+.visual-lab-preview-card .card-body {
+  min-height: 720px;
+}
+
+.visual-lab-plot-frame {
+  min-height: 620px;
+}
+
+.visual-lab-status pre {
+  margin-bottom: 0.75rem;
+  white-space: pre-wrap;
+}
+
+.bslib-sidebar-layout > .sidebar {
+  z-index: 1;
+}
+
+.navbar {
+  z-index: 20;
+}
+
+.shiny-notification {
+  max-width: min(420px, calc(100vw - 2rem));
+}
+
+#shiny-notification-panel {
+  bottom: 1rem;
+  right: 1rem;
+}

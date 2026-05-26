@@ -3,7 +3,7 @@ get_location <- function(graph_ly_final, graph_obj_sort){
 
   ggplot_node_df <- graph_ly_final %>%
     dplyr::select(name, x, y, dplyr::everything()) %>%
-    dplyr::mutate(id = 1:nrow(.))
+    dplyr::mutate(id = seq_len(nrow(.)))
 
   ggplot_edge_df <- graph_obj_sort %>%
     tidygraph::activate(edges) %>%

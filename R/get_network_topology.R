@@ -252,7 +252,7 @@ get_network_topology <- function(graph_obj = NULL,
 
 
   .rand.remov.once<-function(netRaw, rm.percent, sp.ra, abundance.weighted=T){
-    id.rm<-sample(1:nrow(netRaw), round(nrow(netRaw)*rm.percent))
+    id.rm<-sample(seq_len(nrow(netRaw)), round(nrow(netRaw)*rm.percent))
     net.Raw=netRaw
     net.Raw[id.rm,]=0;  net.Raw[,id.rm]=0;
     if (abundance.weighted){
@@ -318,9 +318,12 @@ get_network_topology <- function(graph_obj = NULL,
                     total_cohension = t_total * mean_relative_abundance
                     )
 
+    # guard against `mean(numeric(0))` (which returns NaN with a warning)
+    # when every per-ASV cohesion is exactly 0.
+    .safe_mean <- function(x) if (length(x) == 0L) NA_real_ else mean(x)
     cohension_list <- list(
-      cohension_position = mean(ASV_cohensition$positive_cohension[ASV_cohensition$positive_cohension != 0]),
-      cohension_negative = mean(ASV_cohensition$negative_cohension[ASV_cohensition$negative_cohension != 0])
+      cohension_position = .safe_mean(ASV_cohensition$positive_cohension[ASV_cohensition$positive_cohension != 0]),
+      cohension_negative = .safe_mean(ASV_cohensition$negative_cohension[ASV_cohensition$negative_cohension != 0])
     )
 
 
@@ -344,7 +347,7 @@ get_network_topology <- function(graph_obj = NULL,
       net <- .network.efficiency(ig)
     }
     count <- c()
-    for(i in 1:length(igraph::V(ig))){
+    for(i in seq_along(igraph::V(ig))){
       count <- c(count, (net - .network.efficiency(igraph::delete_vertices(ig, i)))/net)
       if(verbose){
         print(paste("node",i,"current\ info\ score", count[i], collapse="\t"))
@@ -531,7 +534,7 @@ get_network_topology <- function(graph_obj = NULL,
   # random topology
   random_topology <- list()
   # random network and topology
-  for (i in 1:bootstrap) {
+  for (i in seq_len(bootstrap)) {
 
     random_graph <- igraph::sample_gnm(n = igraph::vcount(ig),
                                        m = igraph::ecount(ig),
@@ -551,10 +554,21 @@ get_network_topology <- function(graph_obj = NULL,
   random_topology_df <- do.call(rbind, random_topology)
 
   # output
-  random_topology_df_mean <- colMeans(random_topology_df) %>%
-    as.data.frame() %>%
-    tibble::rownames_to_column(var = "Kind") %>%
-    purrr::set_names(c("Topology", "Random_nerwork"))
+  # when bootstrap == 0 the loop above never ran, so random_topology_df is NULL
+  # and colMeans() crashes. Emit a single all-NA row keyed to the target network
+  # topology so the downstream left_join still produces the expected schema.
+  if (is.null(random_topology_df) || nrow(random_topology_df) == 0L) {
+    random_topology_df_mean <- data.frame(
+      Topology       = network_topology$Topology,
+      Random_nerwork = NA_real_,
+      stringsAsFactors = FALSE
+    )
+  } else {
+    random_topology_df_mean <- colMeans(random_topology_df) %>%
+      as.data.frame() %>%
+      tibble::rownames_to_column(var = "Kind") %>%
+      purrr::set_names(c("Topology", "Random_nerwork"))
+  }
 
 
 

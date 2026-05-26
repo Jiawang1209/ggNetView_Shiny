@@ -1,0 +1,195 @@
+source(testthat::test_path("../../R/app_validation.R"))
+source(testthat::test_path("../../R/app_adapters.R"))
+
+test_that("safe_build_graph returns failure for unknown builder", {
+  result <- safe_build_graph(
+    data = matrix(1:4, nrow = 2, dimnames = list(c("A", "B"), c("S1", "S2"))),
+    builder = "missing_builder",
+    params = list()
+  )
+
+  expect_false(result$ok)
+  expect_match(result$message, "Unsupported graph builder")
+})
+
+test_that("safe_build_graph rejects invalid builder shape", {
+  mat <- matrix(1:4, nrow = 2, dimnames = list(c("A", "B"), c("S1", "S2")))
+
+  for (builder in list(NULL, character(0), c("matrix", "adjacency"))) {
+    result <- safe_build_graph(data = mat, builder = builder, params = list())
+    expect_false(result$ok)
+    expect_match(result$message, "Unsupported graph builder")
+  }
+})
+
+test_that("safe_call catches delayed-expression errors", {
+  result <- safe_call(stop("boom", call. = FALSE), "User safe message")
+
+  expect_false(result$ok)
+  expect_equal(result$message, "User safe message")
+  expect_match(result$trace, "boom")
+})
+
+test_that("resolve_ggnetview_function resolves source fallback functions", {
+  tmp <- tempfile("ggnetview-adapter-")
+  dir.create(file.path(tmp, "R"), recursive = TRUE)
+  writeLines(
+    "temporary_adapter_fn <- function() 'resolved'",
+    file.path(tmp, "R", "temporary_adapter_fn.R")
+  )
+
+  if (requireNamespace("withr", quietly = TRUE)) {
+    withr::local_dir(tmp)
+  } else {
+    old <- setwd(tmp)
+    on.exit(setwd(old), add = TRUE)
+  }
+
+  fn <- resolve_ggnetview_function("temporary_adapter_fn")
+
+  expect_true(is.function(fn))
+  expect_equal(fn(), "resolved")
+})
+
+test_that("safe_build_graph uses source fallback for valid builder", {
+  tmp <- tempfile("ggnetview-builder-")
+  dir.create(file.path(tmp, "R"), recursive = TRUE)
+  writeLines(
+    "build_graph_from_mat <- function(data, marker = NULL) list(data = data, marker = marker)",
+    file.path(tmp, "R", "build_graph_from_mat.R")
+  )
+
+  if (requireNamespace("withr", quietly = TRUE)) {
+    withr::local_dir(tmp)
+  } else {
+    old <- setwd(tmp)
+    on.exit(setwd(old), add = TRUE)
+  }
+
+  mat <- matrix(1:4, nrow = 2, dimnames = list(c("A", "B"), c("S1", "S2")))
+  result <- safe_build_graph(mat, "matrix", params = list(marker = "ok"))
+
+  expect_true(result$ok)
+  expect_equal(result$value$marker, "ok")
+  expect_equal(result$value$data, mat)
+})
+
+test_that("source fallback keeps same-root helper dependencies available", {
+  tmp <- tempfile("ggnetview-builder-deps-")
+  dir.create(file.path(tmp, "R"), recursive = TRUE)
+  writeLines(
+    "apply_transform_method <- function(data, method = 'none') data + 1",
+    file.path(tmp, "R", "apply_transform_method.R")
+  )
+  writeLines(
+    paste(
+      "build_graph_from_mat <- function(data, marker = NULL) {",
+      "  list(data = apply_transform_method(data), marker = marker)",
+      "}",
+      sep = "\n"
+    ),
+    file.path(tmp, "R", "build_graph_from_mat.R")
+  )
+
+  if (requireNamespace("withr", quietly = TRUE)) {
+    withr::local_dir(tmp)
+  } else {
+    old <- setwd(tmp)
+    on.exit(setwd(old), add = TRUE)
+  }
+
+  mat <- matrix(1:4, nrow = 2, dimnames = list(c("A", "B"), c("S1", "S2")))
+  result <- safe_build_graph(mat, "matrix", params = list(marker = "ok"))
+
+  expect_true(result$ok)
+  expect_equal(result$value$marker, "ok")
+  expect_equal(result$value$data, mat + 1)
+})
+
+test_that("safe_build_graph resolves source fallback from Shiny app cwd", {
+  tmp <- tempfile("ggnetview-shiny-root-")
+  dir.create(file.path(tmp, "R"), recursive = TRUE)
+  dir.create(file.path(tmp, "inst", "app"), recursive = TRUE)
+  writeLines(
+    "build_graph_from_mat <- function(data, marker = NULL) list(data = data, marker = marker)",
+    file.path(tmp, "R", "build_graph_from_mat.R")
+  )
+
+  app_dir <- file.path(tmp, "inst", "app")
+  if (requireNamespace("withr", quietly = TRUE)) {
+    withr::local_dir(app_dir)
+  } else {
+    old <- setwd(app_dir)
+    on.exit(setwd(old), add = TRUE)
+  }
+
+  mat <- matrix(1:4, nrow = 2, dimnames = list(c("A", "B"), c("S1", "S2")))
+  result <- safe_build_graph(mat, "matrix", params = list(marker = "ok"))
+
+  expect_true(result$ok)
+  expect_equal(result$value$marker, "ok")
+  expect_equal(result$value$data, mat)
+})
+
+test_that("source fallback wins over visible session functions", {
+  tmp <- tempfile("ggnetview-visible-conflict-")
+  dir.create(file.path(tmp, "R"), recursive = TRUE)
+  writeLines(
+    "temporary_adapter_fn <- function() 'source'",
+    file.path(tmp, "R", "temporary_adapter_fn.R")
+  )
+  temporary_adapter_fn <- function() "visible"
+
+  if (requireNamespace("withr", quietly = TRUE)) {
+    withr::local_dir(tmp)
+  } else {
+    old <- setwd(tmp)
+    on.exit(setwd(old), add = TRUE)
+  }
+
+  fn <- resolve_ggnetview_function("temporary_adapter_fn")
+
+  expect_true(is.function(fn))
+  expect_equal(fn(), "source")
+})
+
+test_that("safe_plot_ggnetview rejects non-graph input", {
+  result <- safe_plot_ggnetview(graph = data.frame(x = 1), params = list())
+
+  expect_false(result$ok)
+  expect_match(result$message, "graph")
+})
+
+test_that("safe_topology rejects non-graph input", {
+  result <- safe_topology(graph = data.frame(x = 1))
+
+  expect_false(result$ok)
+  expect_match(result$message, "graph")
+})
+
+test_that("safe_topology can use the parallel topology API in sequential mode", {
+  source(testthat::test_path("../../R/app_graph_builders.R"))
+
+  edges <- utils::read.csv(testthat::test_path("../../inst/extdata/phase2_example_edges.csv"), check.names = FALSE)
+  modules <- utils::read.csv(testthat::test_path("../../inst/extdata/phase2_example_modules.csv"), check.names = FALSE)
+  graph_result <- safe_graph_builder(
+    mode = "edge_table",
+    inputs = list(edge_table = edges, module_table = modules),
+    params = list()
+  )
+  expect_true(isTRUE(graph_result$ok), info = graph_result$trace %||% graph_result$message)
+
+  result <- safe_topology(
+    graph_result$value,
+    params = list(
+      parallel_api = TRUE,
+      bootstrap = 0,
+      parallel = FALSE,
+      n_workers = 1L
+    )
+  )
+
+  expect_true(isTRUE(result$ok), info = result$trace %||% result$message)
+  expect_true(is.data.frame(result$value$topology))
+  expect_true(is.data.frame(result$value$Robustness))
+})

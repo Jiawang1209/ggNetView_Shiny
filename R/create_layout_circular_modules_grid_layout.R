@@ -40,7 +40,9 @@ create_layout_circular_modules_grid_layout <- function(
       as.data.frame() %>%
       purrr::set_names(c("x", "y"))
     if (nrow(coords_raw) == 0) {
-      ly_i <- data.frame(x = cx, y = cy)
+      # An empty module contributes no nodes; emit a zero-row frame instead of
+      # a single phantom row that would not correspond to any graph vertex.
+      ly_i <- data.frame(x = numeric(0), y = numeric(0))
     } else {
       cx_raw <- mean(coords_raw$x)
       cy_raw <- mean(coords_raw$y)

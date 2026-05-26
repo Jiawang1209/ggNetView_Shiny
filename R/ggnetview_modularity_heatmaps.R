@@ -146,80 +146,299 @@ get_module_abundance <- function(otu_mat,
 }
 
 
-#' Visualize network with module-environment heatmaps
+#' Network + module-environment heatmaps with shared Mantel API
 #'
-#' Combines ggNetView network visualization with four environmental correlation
-#' heatmaps. Module-environment relationships are computed using module
-#' eigengenes (recommended) or module relative abundance, then correlated
-#' with environmental factors. Links connect module centroids to heatmap
-#' diagonals.
+#' @description
+#' Render a \code{ggNetView} network in the centre, surrounded by up to four
+#' environmental-correlation heatmap quadrants, with link segments
+#' connecting each module's anchor to the corresponding env-variable points
+#' on the diagonals. Each module is represented by a single per-sample
+#' summary (eigengene or abundance) for downstream statistics. Supports
+#' both Pearson/Spearman/Kendall correlation and \code{vegan::mantel}
+#' tests, and exposes the same Mantel API as
+#' \code{\link{gglink_heatmaps}}.
 #'
-#' @param graph_obj A graph object from \code{build_graph_from_mat} or
-#'   \code{build_graph_from_df}.
-#' @param env Data frame or matrix of environmental variables (samples as rows).
-#' @param otu_mat Numeric matrix. Rows = OTUs/ASVs, columns = samples.
-#'   Used to compute module eigengenes or module abundance. Must align with
-#'   \code{graph_obj} node names (rownames) and \code{env} sample IDs.
-#' @param env_select Named list. Column indices or names for each env block.
-#'   Each block corresponds to one heatmap quadrant. E.g.
+#' @details
+#' \strong{Pipeline.}
+#' \enumerate{
+#'   \item Read module membership from \code{graph_obj} (the node attribute
+#'     selected by the package's module column, e.g. \code{"Modularity"}).
+#'   \item Build a per-sample module summary matrix \code{spec_df} of shape
+#'     (samples x modules) using either \code{module_eigengene} (PC1 of the
+#'     module's OTU sub-matrix; recommended) or \code{module_abundance}
+#'     (sum / mean of OTU abundances inside the module).
+#'   \item For each \code{(env_block, modules)} pair, compute either a
+#'     correlation or a Mantel test (see \strong{Mantel API} below).
+#'   \item Render the network via \code{\link{ggNetView}} (parameters
+#'     forwarded through \code{...}), draw four heatmap quadrants for env-env
+#'     correlations, and overlay link segments from module anchors to env
+#'     diagonals.
+#' }
+#'
+#' \strong{Mantel API (shared with \code{\link{gglink_heatmaps}}).} Two
+#' algorithms exposed via \code{mantel_kind}; both go through the helpers
+#' in \code{\link{mantel_block_vs_col}} / \code{\link{mantel_pairwise}} so
+#' the two top-level functions stay numerically identical:
+#' \itemize{
+#'   \item \code{"block_vs_col"} (default, ecological standard): for each
+#'     module, the OTUs that belong to it are pulled out of \code{otu_mat}
+#'     (transposed to samples x OTUs) and turned into ONE community
+#'     distance matrix with \code{spec_dist_method}; each env column is
+#'     turned into its own distance matrix with \code{env_dist_method};
+#'     one Mantel test per (module, env_col).
+#'   \item \code{"col_vs_col"} (legacy): the module's representative vector
+#'     (eigengene or abundance) is treated as a single variable; its
+#'     single-column distance matrix is tested against each env column's
+#'     single-column distance matrix. Mathematically close to a rank
+#'     correlation. Kept for backwards compatibility / sensitivity
+#'     comparisons.
+#' }
+#' Prior versions of this function used the equivalent of
+#' \code{"col_vs_col"} implicitly. The default has been switched to
+#' \code{"block_vs_col"} (with a one-time \code{message()} on the first
+#' Mantel call) to match the standard ecological interpretation; pass
+#' \code{mantel_kind = "col_vs_col"} to reproduce the old numbers.
+#'
+#' \strong{Output schema is stable across modes.} The returned stats data
+#' frame always has columns \code{ID, Type, Correlation, Pvalue, p_signif,
+#' spec_block, env_block, method}. \code{ID} is the module name in all
+#' cases (\code{"M1"}, \code{"M2"}, ...), \code{Type} is the env column
+#' name. This makes \code{drop_nonsig} and \code{comparisons_groups} work
+#' identically across \code{relation_method} / \code{mantel_kind}
+#' combinations.
+#'
+#' @section Data inputs:
+#' The graph carrying module assignments, the env data table that defines
+#' the heatmap quadrants, the OTU abundance matrix used to summarise each
+#' module, and the named list that partitions env into blocks.
+#'
+#' @param graph_obj A \code{tbl_graph} (e.g. from \code{build_graph_from_mat}
+#'   or \code{build_graph_from_df}). Must have a node \code{name} attribute
+#'   and a module column (one of \code{"Modularity"}, \code{"modularity3"},
+#'   \code{"modularity2"}; auto-detected).
+#' @param env Data frame or matrix of environmental variables. Rows are
+#'   samples (rownames matched against \code{otu_mat} columns), columns
+#'   are env factors.
+#' @param otu_mat Numeric matrix. Rows = OTUs/ASVs (rownames matched
+#'   against \code{graph_obj} node names), columns = samples (colnames
+#'   matched against \code{env} rownames). Used to compute module
+#'   eigengenes / abundances and, in block-vs-col Mantel mode, to assemble
+#'   per-module community distance matrices.
+#' @param env_select Named list (required). Column indices or names of
+#'   \code{env} that form each env block, one block per heatmap quadrant.
+#'   \code{length(env_select)} must equal \code{length(orientation)}. The
+#'   list names (\code{names(env_select)}) are used by
+#'   \code{comparisons_groups} and in the returned stats. Example:
 #'   \code{list(Env01 = 1:5, Env02 = 6:10, Env03 = 11:15, Env04 = 16:20)}.
-#' @param module_index Character. How to represent each module for env correlation:
-#'   \code{"eigengene"} (default, PC1 of module OTUs) or \code{"abundance"}
-#'   (sum/mean of module OTU abundances).
-#' @param abundance_type Character. When \code{module_index = "abundance"},
-#'   use \code{"sum"} or \code{"mean"}.
-#' @param relation_method \code{"correlation"} or \code{"mantel"}.
-#' @param cor.method Correlation method: \code{"pearson"}, \code{"kendall"}, \code{"spearman"}.
-#' @param cor.use Handling of missing values in correlation.
-#' @param mantel.method2 Correlation for Mantel test.
-#' @param drop_nonsig Logical. Drop non-significant links from plot.
-#' @param layout Character. Layout for ggNetView (e.g. \code{"gephi"}, \code{"square"}).
-#' @param layout.module Character. Module ordering strategy passed through to
-#'   the underlying ggNetView call. One of \code{"random"} (default),
-#'   \code{"adjacent"} or \code{"order"}.
-#' @param orientation Character vector. Heatmap quadrants:
-#'   \code{"top_right"}, \code{"bottom_right"}, \code{"top_left"}, \code{"bottom_left"}.
-#' @param distance Numeric. Gap between the scaled network boundary and the
-#'   environmental heatmaps.
-#' @param r Numeric. Effective radius for scaling the central network.
-#' @param HeatmapScale Numeric (default = 1). Global scale factor for the overall
-#'   heatmap size. Values > 1 enlarge the whole heatmap layout.
-#' @param HeatmapLabelSize Numeric (default = 5). Text size for the heatmap
-#'   row/column labels.
-#' @param HeatmapSigSize Numeric (default = 5). Text size for the significance
-#'   marks rendered on the heatmap tiles.
-#' @param HeatmapColorBar A list of length-2 character vectors giving
-#'   (low, high) hex colours, one per heatmap quadrant. \code{NULL} (default)
-#'   uses the package colour palette.
-#' @param HeatmapLabelOrient Numeric (default = 0). Rotation in degrees applied
-#'   to the heatmap labels.
-#' @param HeatmapPointSize Numeric (default = 5). Point size for the central
-#'   module anchor used to attach the heatmap.
-#' @param HeatmapPointFill Character (default = \code{"#de77ae"}). Fill colour
-#'   for the central module anchor point.
-#' @param HeatmapTileColor Border colour for the heatmap tiles. Default
-#'   \code{NA} (no border).
-#' @param HeatmapTileSize Numeric (default = 0). Border size for the heatmap
-#'   tiles.
-#' @param SigLineAlpha Numeric (default = 0.5). Transparency for module-heatmap
-#'   link lines. Must be between 0 and 1.
-#' @param SigLineWidth Numeric vector of length 2 (default = c(0.5, 2)).
-#'   Min and max line width for module-heatmap links. Line width is mapped from
-#'   \code{-log10(p-value)}: smaller p (more significant) -> thicker line.
-#'   E.g. p=0.05->1.3, p=0.01->2, p=0.001->3; values are scaled to this range.
-#' @param SigLineColor Character vector of length 2. Colors for link gradient
-#'   (low and high correlation).
-#' @param ... Additional arguments passed to layout and network rendering,
-#'   including: \code{layout}, \code{layout.module}, \code{shrink},
-#'   \code{inner_shrink} (intra-module compactness, only used when
-#'   \code{layout = "WGCNA"}; see \code{\link{ggNetView}}), \code{jitter},
-#'   \code{add_outer}, \code{add_group_outer}, \code{label} (logical or character:
-#'   module labels in ggNetView style), \code{labelsize}, \code{labelsegmentsize},
-#'   \code{labelsegmentalpha}, \code{fill}, \code{color}, \code{pointsize}.
 #'
-#' @return A list: \code{[[1]]} ggplot with straight links, \code{[[2]]} ggplot
-#'   with curved links, \code{[[3]]} data frame of module-env correlation stats.
+#' @section Module representation:
+#' How each module's per-sample value is computed before being correlated
+#' with env: either as the eigengene (PC1 of the OTU sub-matrix) or as a
+#' summary (sum / mean) of within-module abundances.
+#'
+#' @param module_index Character (default \code{"eigengene"}). How each
+#'   module is summarised into one per-sample value used downstream.
+#'   \code{"eigengene"} = PC1 of the module's OTU sub-matrix
+#'   (recommended); \code{"abundance"} = sum or mean of OTU abundances
+#'   within the module (controlled by \code{abundance_type}).
+#' @param abundance_type Character (default \code{"sum"}). Only used when
+#'   \code{module_index = "abundance"}. Either \code{"sum"} or
+#'   \code{"mean"}.
+#'
+#' @section Statistics -- correlation:
+#' Parameters that govern the env-env tile correlations and (when
+#' \code{relation_method = "correlation"}) the module-env link
+#' correlations: the correlation method and missing-value handling.
+#'
+#' @param relation_method Character (default \code{"correlation"}). One of
+#'   \code{"correlation"} or \code{"mantel"}.
+#' @param cor.method Character (default \code{"pearson"}). Correlation
+#'   method used by \code{psych::corr.test} for env-env (heatmap tiles)
+#'   and, when \code{relation_method = "correlation"}, for module-env
+#'   links. One of \code{"pearson"}, \code{"kendall"}, \code{"spearman"}.
+#' @param cor.use Character (default \code{"everything"}). Missing-value
+#'   handling for \code{psych::corr.test}. One of \code{"everything"},
+#'   \code{"all"}, \code{"complete"}, \code{"pairwise"}, \code{"na"}.
+#'
+#' @section Statistics -- Mantel:
+#' Parameters used only when \code{relation_method = "mantel"}: the
+#' Mantel variant, the dissimilarity / distance metrics, the Mantel
+#' correlation method, and the permutation count.
+#'
+#' @param mantel_kind Character (default \code{"block_vs_col"}). Which
+#'   Mantel algorithm to use; see \strong{Details}. The same parameter is
+#'   exposed in \code{\link{gglink_heatmaps}}.
+#' @param mantel.method2 Character (default \code{"pearson"}). Correlation
+#'   coefficient passed to \code{vegan::mantel} as its \code{method}
+#'   argument. One of \code{"pearson"}, \code{"kendall"},
+#'   \code{"spearman"}.
+#' @param spec_dist_method Character (default \code{"bray"}). Dissimilarity
+#'   method (\code{vegan::vegdist}) used to convert a module's OTU
+#'   sub-matrix into ONE community distance matrix when
+#'   \code{mantel_kind = "block_vs_col"}.
+#' @param env_dist_method Character (default \code{"euclidean"}). Distance
+#'   method (\code{vegan::vegdist}) used to convert each env column into
+#'   its own distance matrix when \code{relation_method = "mantel"}.
+#' @param permutations Integer (default \code{999L}). Number of
+#'   permutations passed to \code{vegan::mantel}.
+#'
+#' @section What gets analysed / drawn:
+#' Filters and selectors that decide what ends up on the plot: dropping
+#' non-significant links, and which heatmap quadrants are rendered.
+#'
+#' @param drop_nonsig Logical (default \code{FALSE}). If \code{TRUE},
+#'   non-significant links (p > 0.05) are removed from the plots; the
+#'   returned stats data frame is unaffected.
+#' @param orientation Character vector (default
+#'   \code{c("top_right","bottom_right","top_left","bottom_left")}). Which
+#'   heatmap quadrants to draw, in the same order as \code{env_select}.
+#'
+#' @section Geometry:
+#' Spatial parameters that position the env heatmaps relative to the
+#' central network and select the network's own layout: heatmap offset,
+#' network radius, overall heatmap scale, and the layout/module-ordering
+#' choices forwarded to \code{ggNetView()}.
+#'
+#' @param distance Numeric (default \code{3}). Offset between the central
+#'   network's outer boundary and the env heatmaps. Positive pushes
+#'   heatmaps outward; \code{0} places them flush; negative values pull
+#'   them inward and may overlap the network.
+#' @param r Numeric (default \code{6}). Effective radius for scaling the
+#'   central network.
+#' @param HeatmapScale Numeric (default \code{1}). Global scale for the
+#'   overall heatmap layout. \code{>1} enlarges, \code{<1} shrinks.
+#' @param layout Character (default \code{"gephi"}). Layout passed to the
+#'   underlying \code{\link{ggNetView}} call (e.g. \code{"gephi"},
+#'   \code{"square"}, \code{"WGCNA"}).
+#' @param layout.module Character (default \code{"random"}). Module
+#'   ordering strategy passed through to \code{\link{ggNetView}}. One of
+#'   \code{"random"}, \code{"adjacent"}, \code{"order"}.
+#'
+#' @section Heatmap aesthetics:
+#' Visual styling of the env-env heatmap tiles: per-quadrant colour
+#' palettes, label and significance-mark sizes, label rotation, the
+#' central anchor point on each heatmap, and tile border styling.
+#'
+#' @param HeatmapColorBar \code{NULL} or list (default \code{NULL}).
+#'   Per-quadrant colour palettes. Three accepted forms:
+#'   \itemize{
+#'     \item \code{NULL}: built-in defaults.
+#'     \item Length-2 named list \code{list(low = ..., high = ...)}:
+#'       applied to all quadrants.
+#'     \item List of length \code{length(orientation)}: each element is
+#'       either \code{c(low, high)} or \code{list(low = ..., high = ...)}.
+#'       Example:
+#'       \code{list(c("#2166ac","#b2182b"), c("#1b7837","#762a83"),
+#'                  c("#4393c3","#d6604d"), c("#92c5de","#f4a582"))}.
+#'   }
+#' @param HeatmapLabelSize Numeric (default \code{5}). Text size for the
+#'   heatmap row/column labels.
+#' @param HeatmapSigSize Numeric (default \code{5}). Text size for the
+#'   significance marks (\code{*}, \code{**}, \code{***}) inside heatmap
+#'   tiles.
+#' @param HeatmapLabelOrient Numeric (default \code{0}). Rotation angle (in
+#'   degrees) for heatmap row/column labels. Try 45 or 90 to avoid label
+#'   overlap.
+#' @param HeatmapPointSize Numeric (default \code{5}). Point size for the
+#'   central module anchor where the heatmap link lands.
+#' @param HeatmapPointFill Character (default \code{"#de77ae"}). Fill
+#'   colour for the central module anchor point.
+#' @param HeatmapTileColor Character or \code{NA} (default \code{NA}).
+#'   Border colour for heatmap tiles.
+#' @param HeatmapTileSize Numeric (default \code{0}). Border line width
+#'   for heatmap tiles.
+#'
+#' @section Link line aesthetics:
+#' Visual styling of the module-env link segments: line-width range
+#' (mapped from p-value), colour gradient (mapped from correlation /
+#' Mantel r), and overall transparency.
+#'
+#' @param SigLineWidth Numeric vector of length 2 (default
+#'   \code{c(0.5, 2)}). Min / max line width for module-env links; mapped
+#'   from \code{-log10(p-value)} so smaller p -> thicker line.
+#' @param SigLineColor Character vector of length 2 (default
+#'   \code{c("#fdbb84", "#d7301f")}). Colour gradient for module-env
+#'   links, mapped from low / high correlation (or Mantel r).
+#' @param SigLineAlpha Numeric in \code{[0, 1]} (default \code{0.5}).
+#'   Transparency for module-env link segments.
+#'
+#' @section Forwarded to ggNetView:
+#' Extra arguments captured via \code{...} and forwarded verbatim to the
+#' underlying \code{\link{ggNetView}} call. Use them to customise the
+#' central network's appearance (labels, fills, jitter, outer rings,
+#' point sizes) without leaving this wrapper.
+#'
+#' @param ... Additional arguments forwarded to the underlying
+#'   \code{\link{ggNetView}} network call. Commonly used:
+#'   \code{shrink}, \code{inner_shrink} (intra-module compactness, only
+#'   for \code{layout = "WGCNA"}), \code{jitter}, \code{add_outer},
+#'   \code{add_group_outer}, \code{label} (logical or character -- module
+#'   labels in ggNetView style), \code{labelsize},
+#'   \code{labelsegmentsize}, \code{labelsegmentalpha}, \code{fill},
+#'   \code{color}, \code{pointsize}.
+#'
+#' @return A list of length 3:
+#' \describe{
+#'   \item{\code{[[1]]}}{ggplot object with straight link segments
+#'     (\code{geom_segment}).}
+#'   \item{\code{[[2]]}}{ggplot object with curved link segments
+#'     (\code{geom_curve}).}
+#'   \item{\code{[[3]]}}{Data frame of module-env stats (unfiltered, not
+#'     affected by \code{drop_nonsig}). Columns: \code{ID} (module name),
+#'     \code{Type} (env column name), \code{Correlation}, \code{Pvalue},
+#'     \code{p_signif}, \code{spec_block}, \code{env_block}, \code{method}
+#'     (\code{"correlation"} or \code{"mantel"}). Schema is identical
+#'     across all \code{relation_method} / \code{mantel_kind} combinations.}
+#' }
+#'
+#' @seealso
+#' \code{\link{gglink_heatmaps}} for the spec-select counterpart that
+#' shares the same Mantel API;
+#' \code{\link{mantel_block_vs_col}}, \code{\link{mantel_pairwise}} for
+#' the underlying Mantel implementations;
+#' \code{\link{ggNetView}} for the central network rendering and the
+#' parameters forwarded via \code{...}.
+#'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Default: correlation, eigengene as module summary, four quadrants.
+#' p <- ggnetview_modularity_heatmaps(
+#'   graph_obj  = g,
+#'   env        = env,
+#'   otu_mat    = otu_mat,
+#'   env_select = list(Env01 = 1:5, Env02 = 6:10,
+#'                     Env03 = 11:15, Env04 = 16:20)
+#' )
+#' p[[1]]            # straight links
+#' head(p[[3]])      # stats data frame
+#'
+#' # Ecologically standard Mantel: one test per (module, env_col).
+#' p2 <- ggnetview_modularity_heatmaps(
+#'   graph_obj        = g,
+#'   env              = env,
+#'   otu_mat          = otu_mat,
+#'   env_select       = list(Env01 = 1:5, Env02 = 6:10,
+#'                           Env03 = 11:15, Env04 = 16:20),
+#'   relation_method  = "mantel",
+#'   mantel_kind      = "block_vs_col",
+#'   spec_dist_method = "bray",
+#'   env_dist_method  = "euclidean",
+#'   permutations     = 999
+#' )
+#'
+#' # Reproduce legacy column-vs-column Mantel results.
+#' p3 <- ggnetview_modularity_heatmaps(
+#'   graph_obj       = g,
+#'   env             = env,
+#'   otu_mat         = otu_mat,
+#'   env_select      = list(Env01 = 1:5, Env02 = 6:10,
+#'                          Env03 = 11:15, Env04 = 16:20),
+#'   relation_method = "mantel",
+#'   mantel_kind     = "col_vs_col"
+#' )
+#' }
 ggnetview_modularity_heatmaps <- function(
     graph_obj,
     env,
@@ -231,6 +450,10 @@ ggnetview_modularity_heatmaps <- function(
     cor.method = c("pearson", "kendall", "spearman"),
     cor.use = c("everything", "all", "complete", "pairwise", "na"),
     mantel.method2 = c("pearson", "kendall", "spearman"),
+    mantel_kind = c("block_vs_col", "col_vs_col"),
+    spec_dist_method = "bray",
+    env_dist_method = "euclidean",
+    permutations = 999L,
     drop_nonsig = FALSE,
     layout = "gephi",
     layout.module = c("random", "adjacent", "order"),
@@ -257,6 +480,24 @@ ggnetview_modularity_heatmaps <- function(
   cor.method <- match.arg(cor.method)
   cor.use <- match.arg(cor.use)
   mantel.method2 <- match.arg(mantel.method2)
+  mantel_kind <- match.arg(mantel_kind)
+  if (!is.character(spec_dist_method) || length(spec_dist_method) != 1L || !nzchar(spec_dist_method)) {
+    stop("`spec_dist_method` must be a single non-empty character string (passed to `vegan::vegdist`).", call. = FALSE)
+  }
+  if (!is.character(env_dist_method) || length(env_dist_method) != 1L || !nzchar(env_dist_method)) {
+    stop("`env_dist_method` must be a single non-empty character string (passed to `vegan::vegdist`).", call. = FALSE)
+  }
+  permutations <- as.integer(permutations)
+  if (length(permutations) != 1L || is.na(permutations) || permutations < 1L) {
+    stop("`permutations` must be a single positive integer.", call. = FALSE)
+  }
+  if (relation_method == "mantel") {
+    message("Using `mantel_kind = \"", mantel_kind, "\"`. ",
+            "Note: prior versions ran the equivalent of `\"col_vs_col\"` when ",
+            "`relation_method = \"mantel\"`. The new default is the ecologically ",
+            "standard `\"block_vs_col\"` (community matrix vs each env column). ",
+            "Pass `mantel_kind = \"col_vs_col\"` to reproduce old results.")
+  }
   orientation <- match.arg(orientation, several.ok = TRUE)
 
   distance <- as.numeric(distance)
@@ -365,32 +606,93 @@ ggnetview_modularity_heatmaps <- function(
                     spec_block = character(), env_block = character(), method = "correlation")
     }
   } else {
+    # Mantel test. Two algorithms exposed via `mantel_kind`, both shared with
+    # gglink_heatmaps() through helpers in mantel_utils.R:
+    #   - "block_vs_col": for each module, pull out that module's OTUs from
+    #     otu_mat, transpose to (samples x OTUs), and let mantel_block_vs_col()
+    #     build ONE community-distance matrix per module that is tested
+    #     against each env column. ID = module name (e.g. "M1").
+    #   - "col_vs_col": treat each module's representative vector
+    #     (eigengene/abundance, already in spec_df) as a single variable and
+    #     run column-vs-column mantel via mantel_pairwise(). ID = module name
+    #     (column name in spec_df).
     cor_parts <- list()
+
+    if (mantel_kind == "block_vs_col") {
+      module_members <- get_module_members(graph_obj, exclude_others = TRUE)
+      module_names <- names(module_members)
+      # Restrict to modules that appear in spec_df (e.g. those with >= 2 OTUs
+      # actually computed for eigengene); preserves alignment with the plot.
+      module_names <- intersect(module_names, colnames(spec_df))
+    }
+
     for (col in seq_len(nrow(pairs_to_compute))) {
       env_blk <- pairs_to_compute[col, 1]
       spec_blk <- pairs_to_compute[col, 2]
       j <- which(spec_block_names == spec_blk)
       p <- which(env_block_names == env_blk)
       if (length(j) != 1 || length(p) != 1) next
-      mout <- mantel_pairwise(
-        spec_df = spec_list[[j]],
-        env_df = env_list[[p]],
-        method = mantel.method2,
-        permutations = 999L,
-        na_omit = TRUE
-      ) %>%
-        dplyr::mutate(
-          spec_block = spec_blk,
-          env_block = env_blk,
-          p_signif = dplyr::case_when(
-            Pvalue > 0.05 ~ "",
-            Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-            Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
-            Pvalue < 0.001 ~ "***",
-            TRUE ~ ""
+
+      env_block_df <- env_list[[p]]
+
+      if (mantel_kind == "block_vs_col") {
+        # One Mantel test per (module, env_col) pair
+        for (mod in module_names) {
+          otu_in_mod <- intersect(module_members[[mod]], rownames(otu_mat))
+          if (length(otu_in_mod) < 2L) next
+          # samples x OTUs community submatrix
+          comm_sub <- t(otu_mat[otu_in_mod, , drop = FALSE])
+          mout <- mantel_block_vs_col(
+            spec_df          = comm_sub,
+            env_df           = env_block_df,
+            block_name       = mod,
+            method           = mantel.method2,
+            spec_dist_method = spec_dist_method,
+            env_dist_method  = env_dist_method,
+            permutations     = permutations,
+            na_omit          = TRUE
           )
+          if (base::nrow(mout) == 0L) next
+          mout <- mout %>%
+            dplyr::mutate(
+              spec_block = spec_blk,
+              env_block  = env_blk,
+              p_signif = dplyr::case_when(
+                is.na(Pvalue) ~ "",
+                Pvalue > 0.05 ~ "",
+                Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
+                Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+                Pvalue < 0.001 ~ "***",
+                TRUE ~ ""
+              )
+            )
+          cor_parts[[length(cor_parts) + 1L]] <- mout
+        }
+      } else {
+        # col_vs_col: legacy; ID = module column name in spec_df
+        mout <- mantel_pairwise(
+          spec_df      = spec_list[[j]],
+          env_df       = env_block_df,
+          method       = mantel.method2,
+          permutations = permutations,
+          na_omit      = TRUE
         )
-      cor_parts[[length(cor_parts) + 1L]] <- mout
+        if (base::nrow(mout) == 0L) next
+        mout <- mout %>%
+          dplyr::mutate(
+            spec_block = spec_blk,
+            env_block  = env_blk,
+            p_signif = dplyr::case_when(
+              is.na(Pvalue) ~ "",
+              Pvalue > 0.05 ~ "",
+              Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
+              Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+              Pvalue < 0.001 ~ "***",
+              TRUE ~ ""
+            )
+          )
+        cor_parts[[length(cor_parts) + 1L]] <- mout
+      }
     }
     cor_spec_env_list_out <- if (length(cor_parts) > 0) {
       do.call(rbind, cor_parts) %>% dplyr::mutate(method = "mantel")
@@ -404,7 +706,20 @@ ggnetview_modularity_heatmaps <- function(
   env_cor_self_list <- list()
   for (i in seq_along(orientation)) {
     ori <- orientation[i]
-    cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
+    if (base::ncol(env_list[[i]]) == 1L) {
+      env_col <- base::colnames(env_list[[i]])
+      if (is.null(env_col) || !nzchar(env_col[[1]])) {
+        env_col <- "env_1"
+      }
+      cor_out_self <- list(
+        r = stats::setNames(data.frame(1), env_col),
+        p = stats::setNames(data.frame(0), env_col)
+      )
+      rownames(cor_out_self$r) <- env_col
+      rownames(cor_out_self$p) <- env_col
+    } else {
+      cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
+    }
     cor_self_r <- cor_out_self$r %>% as.data.frame()
     cor_self_p <- cor_out_self$p %>% as.data.frame()
 
@@ -808,6 +1123,7 @@ ggnetview_modularity_heatmaps <- function(
   module_label_fun <- function(x) paste0(module_label_prefix, " ", x)
   q_outer <- if (!is.null(ggnetview_args$q_outer)) as.numeric(ggnetview_args$q_outer) else 0.88
   expand_outer <- if (!is.null(ggnetview_args$expand_outer)) as.numeric(ggnetview_args$expand_outer) else 1.02
+  bandwidth_scale <- if (!is.null(ggnetview_args$bandwidth_scale)) as.numeric(ggnetview_args$bandwidth_scale) else 1.0
   outerwidth <- if (!is.null(ggnetview_args$outerwidth)) as.numeric(ggnetview_args$outerwidth) else 1.25
   outerlinetype <- if (!is.null(ggnetview_args$outerlinetype)) ggnetview_args$outerlinetype else 2
   outeralpha <- if (!is.null(ggnetview_args$outeralpha)) as.numeric(ggnetview_args$outeralpha) else 0.5
@@ -849,7 +1165,8 @@ ggnetview_modularity_heatmaps <- function(
       dims = graph_ly_scaled[, c("x", "y")],
       clusters = graph_ly_scaled$Modularity,
       q = q_outer,
-      expand = expand_outer
+      expand = expand_outer,
+      bandwidth_scale = bandwidth_scale
     )
     if (nrow(maskTable) > 0L) {
       maskTable <- maskTable %>%
@@ -870,7 +1187,9 @@ ggnetview_modularity_heatmaps <- function(
         ggnewscale::new_scale_color() +
         ggplot2::geom_polygon(
           data = maskTable %>% dplyr::filter(cluster != "Others"),
-          mapping = ggplot2::aes(x = x, y = y, group = cluster, fill = cluster, color = cluster),
+          mapping = ggplot2::aes(x = x, y = y,
+                                 group = interaction(cluster, polygon_id),
+                                 fill = cluster, color = cluster),
           linewidth = outerwidth,
           linetype = outerlinetype,
           alpha = outeralpha,

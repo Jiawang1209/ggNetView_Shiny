@@ -131,11 +131,16 @@
 #' @param add_group_outer_linewidth Numeric (default = 0.5).
 #' Line width of the group outer circle.
 #' @param add_outer Logical (default = FALSE).
-#' Whether to add an outer circle/border around each module.
+#' Whether to draw a smooth outer boundary around each module (KDE + HDR
+#' contour). See \code{\link{ggNetView}} for full details.
 #' @param q_outer Numeric (default = 0.88).
-#' Quantile of radial distance used to construct the smooth outer boundary for each module.
+#' HDR coverage of the outer boundary (fraction of the module's empirical
+#' probability mass enclosed by the contour).
 #' @param expand_outer Numeric (default = 1.02).
-#' Global scaling factor applied to the smoothed radial distances when drawing the outer boundary.
+#' Multiplicative scaling applied to each polygon from its own centroid.
+#' @param bandwidth_scale Numeric (default = 1.0).
+#' Multiplier on the robust normal-reference 2D KDE bandwidth used to build
+#' the outer boundary.
 #' @param outerwidth Integer  (default = 1.25).
 #' Change  outer linewidth.
 #' @param outerlinetype Integer  (default = 2).
@@ -239,6 +244,7 @@ ggNetView_multi <- function(mat,
                             add_outer = FALSE,
                             q_outer = 0.88,
                             expand_outer = 1.02,
+                            bandwidth_scale = 1.0,
                             outerwidth = 1.25,
                             outerlinetype = 2,
                             outeralpha = 0.5,
@@ -336,6 +342,7 @@ ggNetView_multi <- function(mat,
       add_outer = add_outer,
       q_outer = q_outer,
       expand_outer = expand_outer,
+      bandwidth_scale = bandwidth_scale,
       outerwidth = outerwidth,
       outerlinetype = outerlinetype,
       outeralpha = outeralpha,

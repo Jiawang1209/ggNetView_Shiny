@@ -5,3 +5,8 @@
 .httr-oauth
 .DS_Store
 .quarto
+..Rcheck/
+ggNetView.Rcheck/
+ggNetView_*.tar.gz
+package/
+tests/_smoke_coverage/

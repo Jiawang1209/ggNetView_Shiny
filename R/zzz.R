@@ -13,7 +13,6 @@
  ░███████   ░███████
 
 
-
 ggNetView: Reproducible and Deterministic Network Analysis and Visualization
 Version: ", ver, "
 

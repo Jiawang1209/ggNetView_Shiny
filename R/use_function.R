@@ -35,10 +35,10 @@ cor_test2 <- function(Environment, Experiment){
   cor_out_stat <- cor_out_r %>%
     dplyr::left_join(cor_out_p, by = c("Sample", "Experiment")) %>%
     dplyr::mutate(p_value = dplyr::case_when(
-      Pvalue > 0.05 ~ "P > 0.05",
-      Pvalue > 0.01 & Pvalue < 0.05 ~ "0.01 < P < 0.05",
-      Pvalue < 0.01 & Pvalue > 0.001 ~ "0.001 < P < 0.01",
-      Pvalue < 0.001 ~ "P < 0.001"
+      Pvalue > 0.05                    ~ "P > 0.05",
+      Pvalue > 0.01  & Pvalue <= 0.05  ~ "0.01 < P <= 0.05",
+      Pvalue <= 0.01 & Pvalue >= 0.001 ~ "0.001 <= P <= 0.01",
+      Pvalue < 0.001                   ~ "P < 0.001"
     )) %>%
     dplyr::mutate(
       p_start1 = rep(1:Sample_n, each = Sample_n_2),
@@ -76,13 +76,22 @@ cor_test2 <- function(Environment, Experiment){
                   Type2 = as.numeric(Type)) %>%
     stats::na.omit() %>%
     dplyr::mutate(p_value = dplyr::case_when(
-      Pvalue > 0.05 ~ "",
-      Pvalue > 0.01 & Pvalue < 0.05 ~ "*",
-      Pvalue < 0.01 & Pvalue > 0.001 ~ "**",
-      Pvalue < 0.001 ~ "***"
+      Pvalue > 0.05                    ~ "",
+      Pvalue > 0.01  & Pvalue <= 0.05  ~ "*",
+      Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
+      Pvalue < 0.001                   ~ "***"
     ))
 
   return(list(cor_self, cor_self_p, cor_out_stat))
+}
+
+
+#' Read the `n_points` attribute attached by `create_layout2()`; returns 0L if
+#' the attribute is missing (R-version-agnostic alternative to `%||%`).
+#' @noRd
+.n_points_attr <- function(ly) {
+  n <- attr(ly, "n_points")
+  if (is.null(n) || !is.finite(n)) 0L else as.integer(n)
 }
 
 
@@ -129,7 +138,7 @@ create_layout2 <- function(graph, stat_out, hub_names = NULL, hub_n = NULL, r = 
 
 
   circle_df <- data.frame(
-    id = 1:n_points,
+    id = seq_len(n_points),
     x = x,
     y = y
   )
@@ -157,6 +166,11 @@ create_layout2 <- function(graph, stat_out, hub_names = NULL, hub_n = NULL, r = 
     x = layout_manual_2$x,
     y = layout_manual_2$y
   )
+
+  # carry the non-hub / hub split point so callers (e.g. gglink_heatmap_triple)
+  # don't need to re-derive it via a hard-coded slice index.
+  attr(ly, "n_points") <- n_points
+  attr(ly, "n_hub")    <- length(hub_names)
 
   return(ly)
 }

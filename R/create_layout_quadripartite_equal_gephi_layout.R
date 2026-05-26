@@ -36,14 +36,13 @@ create_layout_quadripartite_equal_gephi_layout <- function(
   module_list <- node_df %>% dplyr::group_split(Modularity, .keep = TRUE)
   n_vec <- purrr::map_int(module_list, nrow)
 
-  if (length(n_vec) < 4) {
-    stop("Quadripartite layout requires at least 4 modules (from column `Modularity`).")
-  }
-  if (length(n_vec) > 4) {
-    message("More than 4 modules detected; only the top 4 modules are used for the quadripartite layout.")
-    module_list <- module_list[1:4]
-    n_vec <- n_vec[1:4]
-    mod_levels <- mod_levels[1:4]
+  if (length(n_vec) != 4) {
+    stop(
+      "Quadripartite layout requires exactly 4 modules in `Modularity`; got ",
+      length(n_vec), ".\n",
+      "  Filter `graph_obj` to 4 modules first, or use a tripartite / pentapartite layout instead.",
+      call. = FALSE
+    )
   }
 
 

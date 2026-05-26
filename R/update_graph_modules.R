@@ -40,6 +40,12 @@ update_graph_modules <- function(graph_obj,
     stop("`graph_obj` must be a `tbl_graph` object.", call. = FALSE)
   }
 
+  # Track whether the user has explicitly customised module order;
+  # downstream layout helpers (e.g. create_layout_multirings) read this marker
+  # to decide whether to respect the factor levels or fall back to default
+  # size-based ordering.
+  user_supplied_levels <- !is.null(levels)
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
@@ -162,6 +168,12 @@ update_graph_modules <- function(graph_obj,
       tidygraph::arrange(Modularity)
   }
 
+  # Mark whether the user supplied an explicit `levels` argument so that
+  # downstream layout helpers can decide whether to honour the order.
+  graph_obj_new <- igraph::set_graph_attr(
+    graph_obj_new, ".modularity_user_ordered", user_supplied_levels
+  )
+
   return(graph_obj_new)
 }
 
@@ -198,6 +210,11 @@ update_graph_modules <- function(graph_obj,
 update_graph_modules2 <- function(graph_obj,
                                  modules_new,
                                  levels = NULL) {
+  # Track whether the user has explicitly customised module order;
+  # downstream layout helpers (e.g. create_layout_multirings) read this marker
+  # to decide whether to respect the factor levels or fall back to default
+  # size-based ordering.
+  user_supplied_levels <- !is.null(levels)
   if (!inherits(graph_obj, "tbl_graph")) {
     stop("`graph_obj` must be a `tbl_graph` object.", call. = FALSE)
   }
@@ -254,6 +271,12 @@ update_graph_modules2 <- function(graph_obj,
       tidygraph::activate(nodes) %>%
       tidygraph::arrange(Modularity)
   }
+
+  # Mark whether the user supplied an explicit `levels` argument so that
+  # downstream layout helpers can decide whether to honour the order.
+  graph_obj_new <- igraph::set_graph_attr(
+    graph_obj_new, ".modularity_user_ordered", user_supplied_levels
+  )
 
   return(graph_obj_new)
 }

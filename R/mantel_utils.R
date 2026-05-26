@@ -35,6 +35,16 @@ NULL
 #' matrix and runs Mantel test. Output format matches \code{psych::corr.test}
 #' for drop-in use in \code{gglink_heatmaps}.
 #'
+#' \strong{NOTE (statistical caveat).} This is the \strong{column-vs-column}
+#' Mantel variant: each species column and each env column is reduced to a
+#' single-variable distance matrix before the Mantel test. With one variable
+#' per side, \code{vegan::mantel} is mathematically close to a (rank)
+#' correlation between the two columns and does \strong{not} carry the
+#' "community-vs-environment" interpretation that ecology papers usually
+#' associate with a Mantel test. For the standard ecological pattern, where
+#' a whole species block (community matrix) is tested against each
+#' environmental gradient, use \code{\link{mantel_block_vs_col}} instead.
+#'
 #' @rdname mantel_utils
 #' @export
 mantel_pairwise <- function(spec_df,
@@ -212,4 +222,158 @@ mantel_between_blocks <- function(spec,
     Pvalue = p_vec,
     stringsAsFactors = FALSE
   )
+}
+
+
+#' Block-vs-column Mantel test (ecological standard)
+#'
+#' Treats the whole \code{spec_df} as a single community matrix: all of its
+#' columns together form ONE distance matrix (\code{vegan::vegdist} with
+#' \code{spec_dist_method}). For each column of \code{env_df}, that single
+#' column is converted into its own distance matrix
+#' (\code{vegan::vegdist} with \code{env_dist_method}) and a Mantel test is
+#' run between the two distance matrices.
+#'
+#' This is the \strong{ecologically meaningful} Mantel pattern (also used by
+#' linkET / ggcor): "community structure of a spec block vs each
+#' environmental gradient". Use this instead of
+#' \code{\link{mantel_pairwise}} when you want a Mantel result that carries
+#' the standard "community-vs-environment" interpretation.
+#'
+#' @param spec_df Data frame or matrix; rows = samples, columns = species
+#'   (or any community variables). The full matrix is converted into ONE
+#'   distance matrix.
+#' @param env_df Data frame or matrix; rows = samples, columns = env
+#'   variables. Each column is converted into its own distance matrix and
+#'   tested separately.
+#' @param block_name Character (default \code{"block"}). Value placed in the
+#'   \code{ID} column of the result, useful for tagging which block these
+#'   rows came from when binding many results together.
+#' @param method Correlation method for the Mantel test. One of
+#'   \code{"pearson"}, \code{"spearman"}, or \code{"kendall"}.
+#' @param spec_dist_method Distance method for the spec matrix
+#'   (\code{vegan::vegdist}). Common ecological choices:
+#'   \code{"bray"}, \code{"jaccard"}, \code{"euclidean"}.
+#' @param env_dist_method Distance method for each env column
+#'   (\code{vegan::vegdist}). Default \code{"euclidean"} is the standard
+#'   choice for continuous env variables.
+#' @param permutations Integer. Number of permutations for the test.
+#' @param na_omit If \code{TRUE}, drop incomplete cases jointly across
+#'   \code{spec_df} and \code{env_df} before computing distances.
+#'
+#' @return A data frame with one row per env column. Columns:
+#'   \code{ID} (= \code{block_name}), \code{Type} (env column name),
+#'   \code{Correlation} (Mantel r), \code{Pvalue} (Mantel p).
+#' @rdname mantel_utils
+#' @export
+mantel_block_vs_col <- function(spec_df,
+                                env_df,
+                                block_name = "block",
+                                method = c("pearson", "spearman", "kendall"),
+                                spec_dist_method = "bray",
+                                env_dist_method = "euclidean",
+                                permutations = 999L,
+                                na_omit = TRUE) {
+  method <- match.arg(method)
+  spec_df <- as.data.frame(spec_df)
+  env_df  <- as.data.frame(env_df)
+
+  if (nrow(spec_df) != nrow(env_df)) {
+    stop("'spec_df' and 'env_df' must have the same number of rows.", call. = FALSE)
+  }
+
+  if (isTRUE(na_omit)) {
+    ok <- stats::complete.cases(spec_df) & stats::complete.cases(env_df)
+    spec_df <- spec_df[ok, , drop = FALSE]
+    env_df  <- env_df[ok, , drop = FALSE]
+  }
+
+  env_cols <- colnames(env_df)
+  if (nrow(spec_df) < 3L || length(env_cols) < 1L) {
+    return(data.frame(
+      ID = character(0), Type = character(0),
+      Correlation = numeric(0), Pvalue = numeric(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  d_spec <- vegan::vegdist(as.matrix(spec_df), method = spec_dist_method)
+
+  r_vec <- rep(NA_real_, length(env_cols))
+  p_vec <- rep(NA_real_, length(env_cols))
+  for (k in seq_along(env_cols)) {
+    e_mat <- as.matrix(env_df[, k, drop = FALSE])
+    d_env <- tryCatch(
+      vegan::vegdist(e_mat, method = env_dist_method),
+      error = function(e) NULL
+    )
+    if (is.null(d_env)) next
+    m <- vegan::mantel(
+      d_spec, d_env,
+      method = method,
+      permutations = permutations
+    )
+    r_vec[k] <- m$statistic
+    p_vec[k] <- m$signif
+  }
+
+  data.frame(
+    ID = rep(block_name, length(env_cols)),
+    Type = env_cols,
+    Correlation = r_vec,
+    Pvalue = p_vec,
+    stringsAsFactors = FALSE
+  )
+}
+
+
+#' Get module-to-OTU membership from a tbl_graph
+#'
+#' Internal helper used by the modularity-based heatmap function. Returns a
+#' named list mapping each module label to its set of OTU/node names.
+#'
+#' @param graph_obj A \code{tbl_graph} or \code{igraph} with a node
+#'   \code{name} attribute and a module column.
+#' @param module_col Module column name. If missing, falls back to one of
+#'   \code{"Modularity"}, \code{"modularity3"}, \code{"modularity2"}.
+#' @param exclude_others If \code{TRUE}, drop nodes labelled \code{"Others"}.
+#'
+#' @return Named list. Names are module labels, values are character vectors
+#'   of OTU/node names.
+#' @keywords internal
+get_module_members <- function(graph_obj,
+                               module_col = "Modularity",
+                               exclude_others = TRUE) {
+  node_df <- graph_obj %>%
+    tidygraph::activate(nodes) %>%
+    tidygraph::as_tibble()
+
+  if (!"name" %in% colnames(node_df)) {
+    stop("`graph_obj` nodes must have a `name` column.", call. = FALSE)
+  }
+
+  mod_candidates <- c("Modularity", "modularity3", "modularity2")
+  if (!module_col %in% colnames(node_df)) {
+    hit <- mod_candidates[mod_candidates %in% colnames(node_df)]
+    module_col <- if (length(hit) > 0) hit[1] else stop("No module column found.", call. = FALSE)
+  }
+
+  node_names <- as.character(node_df$name)
+  modules    <- as.character(node_df[[module_col]])
+
+  if (isTRUE(exclude_others)) {
+    keep <- modules != "Others"
+    node_names <- node_names[keep]
+    modules    <- modules[keep]
+  }
+
+  mod_levels <- unique(modules)
+  mod_levels <- mod_levels[mod_levels != "Others"]
+  if (length(mod_levels) == 0L) {
+    stop("No non-'Others' modules found in graph_obj.", call. = FALSE)
+  }
+
+  out <- lapply(mod_levels, function(m) node_names[modules == m])
+  names(out) <- mod_levels
+  out
 }

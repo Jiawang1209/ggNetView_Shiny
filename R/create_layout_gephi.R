@@ -63,7 +63,7 @@ create_layout_gephi <- function(
   prev_n <- layout_df_info$number
 
 
-  for (index in 2:(dim(layout_df_info)[1])) {
+  for (index in seq_len(dim(layout_df_info)[1])[-1L]) {
     if (index == 2) {
       # index = 2
       # l <- seq(0, 2*pi, length.out = prev_n[index])

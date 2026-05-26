@@ -94,6 +94,61 @@
 #' Change  label segment size.
 #' @param labelsegmentalpha Integer  (default = 1).
 #' Change  label segment alpha.
+#' @param label_layout Character (default = \code{"two_column"}).
+#' Strategy used to place module text labels when \code{label} is not
+#' \code{FALSE}. One of:
+#' \itemize{
+#'   \item \code{"two_column"} (default; backward compatible): modules whose
+#'     centroid \code{x} is left of the network median go to a fixed left
+#'     column at \code{x = xr[1] - dx}, the rest to a fixed right column at
+#'     \code{x = xr[2] + dx}, with labels evenly distributed along \code{y}.
+#'     Best for very crowded networks or layouts that read left-to-right
+#'     (bipartite, grid).
+#'   \item \code{"two_column_follow"}: 360-degree ring layout with
+#'     two-segment "L-shape" leaders. Modules are sorted by their
+#'     actual angle from the network centroid and assigned angularly
+#'     equispaced target angles around the full \code{2*pi}, so
+#'     labels are evenly distributed around the network while
+#'     preserving the angular neighbour order. Each label is
+#'     projected onto an outer ellipse whose semi-axes are
+#'     \code{(1 + label_outer_pad)} times the network's half-width /
+#'     half-height. The leader has two segments: the first leg is
+#'     drawn manually via \code{geom_segment} from the module
+#'     centroid to an elbow on the network boundary at the module's
+#'     actual angle; the second leg is drawn by \code{ggrepel} from
+#'     the label (which it may push tangentially with \code{force = 1}
+#'     to avoid overlaps) back to that elbow. Use this when you need
+#'     the L bend to be clearly visible and labels to never overlap.
+#'   \item \code{"label_circle"}: 360-degree ring layout drawn
+#'     entirely by \code{ggrepel}. Same equispacing as
+#'     \code{"two_column_follow"} (so labels track module angular
+#'     order around the outer ellipse), but no manual first leg --
+#'     \code{ggrepel} handles both placement and the connecting
+#'     segment, with \code{segment.square = TRUE} and
+#'     \code{segment.squareShape = 0} so the leader is an L-shape
+#'     between label and module centroid. Code is much simpler than
+#'     \code{"two_column_follow"} and works well when modules are
+#'     roughly evenly distributed around the network; the trade-off
+#'     is that the L bend can visually collapse when a label happens
+#'     to sit on its module's radial line (rare with full
+#'     equispacing). Requires \code{ggrepel >= 0.9.4}.
+#' }
+#' @param label_wrap_width Integer or NULL (default = \code{NULL}).
+#' If a positive integer, module text labels are wrapped to roughly that
+#' many characters per line via \code{stringr::str_wrap()} before
+#' rendering. Useful for long pathway / taxonomy names. Applies to every
+#' \code{label_layout}.
+#' @param label_outer_pad Numeric (default = \code{0.40}).
+#' Fractional outward push of the label anchors, expressed as a multiple
+#' of the network's \code{x}-range (for \code{"two_column"}) or as the
+#' fractional enlargement of the outer label-anchor ellipse (for
+#' \code{"two_column_follow"}). Larger values move labels further
+#' away from the network and make the slanted second leg of the
+#' \code{"two_column_follow"} L-shape leader more pronounced. Try
+#' \code{0.20} for a tight layout that almost hugs the network,
+#' \code{0.40} for the default breathing room, \code{0.55+} when
+#' modules sit inside a thick \code{add_group_outer} ring or labels
+#' are long.
 #' @param add_group_outer Logical (default = FALSE).
 #' Whether to add a circle boundary around the entire network (mimics \code{ggforce::geom_mark_circle}).
 #' @param add_group_outer_expand Numeric (default = 2).
@@ -109,13 +164,34 @@
 #' @param add_group_outer_linewidth Numeric (default = 0.5).
 #' Line width of the group outer circle.
 #' @param add_outer Logical (default = FALSE).
-#' Whether to add an outer circle/border around each module.
+#' Whether to draw a smooth outer boundary around each module. The boundary is
+#' computed by 2D kernel density estimation followed by a Highest-Density-Region
+#' (HDR) contour: it encloses the densest portion of each module rather than
+#' all of its points. As a side effect, a single module whose points fall into
+#' two well-separated clouds may produce two disconnected polygons (this is by
+#' design and matches the behaviour of e.g. `mascarade`).
 #' @param q_outer Numeric (default = 0.88).
-#' Quantile of radial distance used to construct the smooth outer boundary for each module.
-#' Higher values make the boundary more expanded; lower values make it tighter.
+#' HDR coverage of the outer boundary: the contour is drawn at the density
+#' level whose iso-density region contains a fraction `q_outer` of the module's
+#' empirical probability mass. Higher values make the boundary more inclusive
+#' (closer to the convex hull of the module); lower values make it tighter
+#' around the densest core. Sparse outliers/satellites typically fall outside
+#' the contour and remain visible as bare nodes.
+#' Note: modules with fewer than 10 nodes bypass the KDE path entirely and are
+#' enclosed by a convex hull, so `q_outer` (and `bandwidth_scale`) have no
+#' effect on them.
 #' @param expand_outer Numeric (default = 1.02).
-#' Global scaling factor applied to the smoothed radial distances when drawing the outer boundary.
-#' Values > 1 slightly expand the boundary; values < 1 slightly shrink it.
+#' Multiplicative scaling applied to each polygon from its own centroid after
+#' the HDR contour is drawn. Values > 1 slightly expand the boundary, values
+#' < 1 slightly shrink it. Useful for adding a small visual breathing room
+#' between the boundary and the nodes.
+#' @param bandwidth_scale Numeric (default = 1.0).
+#' Multiplier on the robust normal-reference 2D KDE bandwidth used to build the
+#' outer boundary. Values > 1 produce smoother, wider contours (and may merge
+#' nearby sub-clusters of a module into a single component); values < 1
+#' produce tighter, more wiggly contours that follow local point density more
+#' closely. Has no effect when \code{add_outer = FALSE} or when a module falls
+#' back to the convex-hull path (very small clusters).
 #' @param outerwidth Integer  (default = 1.25).
 #' Change  outer linewidth.
 #' @param outerlinetype Integer  (default = 2).
@@ -219,6 +295,9 @@ ggNetView <- function(graph_obj,
                       labelsize = 10,
                       labelsegmentsize = 1,
                       labelsegmentalpha = 1,
+                      label_layout = c("two_column", "two_column_follow", "label_circle"),
+                      label_wrap_width = NULL,
+                      label_outer_pad = 0.40,
                       add_group_outer = FALSE,
                       add_group_outer_expand = 2,
                       add_group_outer_color = "grey50",
@@ -229,8 +308,9 @@ ggNetView <- function(graph_obj,
                       add_outer = FALSE,
                       q_outer = 0.88,
                       expand_outer = 1.02,
-                      outerwidth = 1.25,
-                      outerlinetype = 2,
+                      bandwidth_scale = 1.0,
+                      outerwidth = 1,
+                      outerlinetype = 1,
                       outeralpha = 0.5,
                       nodelabsize = 5,
                       remove = FALSE,
@@ -247,6 +327,20 @@ ggNetView <- function(graph_obj,
                       ){
 
   layout.module <- match.arg(layout.module)
+  label_layout <- match.arg(label_layout)
+
+  if (!is.null(label_wrap_width)) {
+    if (!is.numeric(label_wrap_width) || length(label_wrap_width) != 1 ||
+        is.na(label_wrap_width) || label_wrap_width < 1) {
+      stop("`label_wrap_width` must be NULL or a single positive integer.")
+    }
+    label_wrap_width <- as.integer(label_wrap_width)
+  }
+
+  if (!is.numeric(label_outer_pad) || length(label_outer_pad) != 1 ||
+      is.na(label_outer_pad) || label_outer_pad < 0) {
+    stop("`label_outer_pad` must be a single non-negative numeric value.")
+  }
 
   set.seed(seed)
 
@@ -516,17 +610,87 @@ ggNetView <- function(graph_obj,
 
     xr <- NULL; yr <- NULL; x_mid <- NULL
     dx <- NULL; pad <- NULL; lab_df <- NULL
+    plot_xlim <- NULL; plot_ylim <- NULL; label_force <- NULL
+    # Non-NULL -> render code adds a geom_segment first-leg from module
+    # centroid to the elbow on the network boundary (used by
+    # two_column_follow). NULL -> no manual first leg.
+    lab_leader_df <- NULL
+    # TRUE -> pass segment.square = TRUE to geom_text_repel so ggrepel
+    # draws an L-shape leader. Requires ggrepel >= 0.9.4. Used by
+    # label_circle. Combined with segment.squareShape = 0 to force the
+    # elbow at the true L corner instead of collapsing to the label end.
+    label_segment_square       <- FALSE
+    label_segment_square_shape <- 1
+    # point.padding passed to geom_text_repel. 0 closes any gap at the
+    # aes point -- needed by two_column_follow whose aes point IS the
+    # elbow shared with the manual first leg (any padding leaves a
+    # visible disconnect at the elbow).
+    label_point_padding        <- 0.15
 
     .build_label_location <- function(){
-      # compute label location
+      # ---- basic geometry shared by both strategies ----
       xr <<- range(ly1_1[["layout"]]$x)
       yr <<- range(ly1_1[["layout"]]$y)
       x_mid <<- stats::median(ly1_1[["layout"]]$x)
-      dx <<- diff(xr) * 0.12
+      dx <<- diff(xr) * label_outer_pad
       pad <<- dx * 1.2
 
-      # label df location
-      lab_df <<- ly1_1[["graph_ly_final"]] %>%
+      # text-wrap helper (no-op when label_wrap_width is NULL)
+      .wrap_label <- function(txt) {
+        if (is.null(label_wrap_width)) {
+          as.character(txt)
+        } else {
+          stringr::str_wrap(as.character(txt), width = label_wrap_width)
+        }
+      }
+
+      # Partial equispacing: enforce a minimum angular gap between
+      # neighbouring labels (analog of p2's rank-rescaling within a
+      # side, but only "spreading where needed"). Sparse modules keep
+      # theta_target = theta_actual (zero displacement); clustered
+      # modules get pushed apart just enough to clear min_gap. The
+      # circle is "broken" at the largest natural gap so naturally
+      # close-but-wrapped modules (near +/- pi) see each other.
+      # Re-centring after the forward pass minimises overall drift so
+      # the cluster's mean angle is preserved.
+      #   min_gap = 2*pi / (2*N) = half the average per-label slice.
+      .partial_equispace <- function(theta_in) {
+        n <- length(theta_in)
+        if (n < 2) return(theta_in)
+        sort_order  <- order(theta_in)
+        sorted_th   <- theta_in[sort_order]
+        gaps        <- c(diff(sorted_th),
+                         sorted_th[1] + 2 * pi - sorted_th[n])
+        max_gap_idx <- which.max(gaps)
+        if (max_gap_idx < n) {
+          rotation     <- c((max_gap_idx + 1):n, seq_len(max_gap_idx))
+          rotated_th   <- sorted_th[rotation]
+          wrap_n       <- max_gap_idx
+          rotated_th[(n - wrap_n + 1):n] <-
+            rotated_th[(n - wrap_n + 1):n] + 2 * pi
+          rotated_orig <- sort_order[rotation]
+        } else {
+          rotated_th   <- sorted_th
+          rotated_orig <- sort_order
+        }
+        min_gap  <- 2 * pi / (2 * n)
+        adjusted <- rotated_th
+        for (i in 2:n) {
+          if (adjusted[i] - adjusted[i - 1] < min_gap) {
+            adjusted[i] <- adjusted[i - 1] + min_gap
+          }
+        }
+        # re-centre so the spread sequence's mean matches the originals'
+        adjusted <- adjusted + (mean(rotated_th) - mean(adjusted))
+        # normalise into [-pi, pi]
+        adjusted <- atan2(sin(adjusted), cos(adjusted))
+        out <- numeric(n)
+        out[rotated_orig] <- adjusted
+        out
+      }
+
+      # shared base: one row per module (excluding "Others"), with side / y_rank
+      base_df <- ly1_1[["graph_ly_final"]] %>%
         dplyr::distinct(modularity3, .keep_all = T) %>%
         dplyr::filter(modularity3 != "Others") %>%
         dplyr::mutate(side = ifelse(x < x_mid, "left", "right")) %>%
@@ -534,13 +698,204 @@ ggNetView <- function(graph_obj,
         dplyr::arrange(y, .by_group = TRUE) %>%
         dplyr::mutate(
           y_rank   = dplyr::row_number(),
-          y_target = scales::rescale(y_rank, to = yr),
-          x_anchor = dplyr::if_else(side == "left", xr[1] - dx, xr[2] + dx),
-          nudge_x  = x_anchor - x,
-          nudge_y  = y_target - y,
-          hjust    = dplyr::if_else(side == "left", 1, 0)
+          y_target = scales::rescale(y_rank, to = yr)
         ) %>%
         dplyr::ungroup()
+
+      if (identical(label_layout, "two_column")) {
+        # ===== two fixed columns: x_anchor pinned to xr[1] - dx / xr[2] + dx
+        lab_df <<- base_df %>%
+          dplyr::mutate(
+            x_anchor = dplyr::if_else(side == "left", xr[1] - dx, xr[2] + dx),
+            y_anchor = y_target,
+            nudge_x  = x_anchor - x,
+            nudge_y  = y_target - y,
+            hjust    = dplyr::if_else(side == "left", 1, 0),
+            vjust    = 0.5,
+            .label_text = .wrap_label(module_label_fun(modularity3))
+          )
+
+        plot_xlim                  <<- c(xr[1] - pad, xr[2] + pad)
+        plot_ylim                  <<- yr
+        label_force                <<- 0.05
+        lab_leader_df              <<- NULL    # no manual first leg
+        label_segment_square       <<- FALSE   # straight ggrepel segment
+        label_segment_square_shape <<- 1
+        label_point_padding        <<- 0.15    # default gap from node
+      } else if (identical(label_layout, "two_column_follow")) {
+        # ===== two_column_follow: label at module's actual angle ==========
+        # No equispacing -- each label sits at its module's REAL angular
+        # position on the outer ellipse, so left-side modules get
+        # left-side labels and right-side modules get right-side labels.
+        # Leader has two segments:
+        #   - first leg (manual geom_segment in the render code) from
+        #     module centroid to an elbow on the network's bounding
+        #     ellipse at the same theta_actual -- this is the radial
+        #     "exit the network" stub
+        #   - second leg drawn by ggrepel from label back to the elbow.
+        # ggrepel force = 1 lets it slide overlapping labels (along the
+        # tangent direction in practice) without breaking the leader,
+        # because ggrepel always retargets its segment to the elbow.
+        centroids <- ly1_1[["graph_ly_final"]] %>%
+          dplyr::filter(modularity3 != "Others") %>%
+          dplyr::group_by(modularity3) %>%
+          dplyr::summarise(mx = mean(x), my = mean(y), .groups = "drop")
+
+        cx <- mean(xr)
+        cy <- mean(yr)
+        R_x_net <- (xr[2] - xr[1]) / 2
+        R_y_net <- (yr[2] - yr[1]) / 2
+        if (!is.finite(R_x_net) || R_x_net <= 0) R_x_net <- 1
+        if (!is.finite(R_y_net) || R_y_net <= 0) R_y_net <- 1
+        R_x_outer <- R_x_net * (1 + label_outer_pad)
+        R_y_outer <- R_y_net * (1 + label_outer_pad)
+
+        base_follow <- ly1_1[["graph_ly_final"]] %>%
+          dplyr::distinct(modularity3, .keep_all = T) %>%
+          dplyr::filter(modularity3 != "Others") %>%
+          dplyr::left_join(centroids, by = "modularity3") %>%
+          dplyr::mutate(theta_actual = atan2(my - cy, mx - cx))
+
+        # Partial equispacing of theta_target (closer to p2's intent):
+        # sparse modules keep theta_target = theta_actual so their
+        # labels sit exactly above/right/etc. of their modules;
+        # clustered modules get pushed apart just enough to clear the
+        # min angular gap so labels don't overlap. The L bend will be
+        # visible only for clustered modules where theta_target
+        # actually differs from theta_actual -- which is exactly where
+        # an L is needed to distinguish neighbouring labels.
+        theta_target_ord <- .partial_equispace(base_follow$theta_actual)
+
+        lab_df <<- base_follow %>%
+          dplyr::mutate(
+            theta_target = theta_target_ord,
+            # label sits on the outer ellipse at the equispaced
+            # theta_target
+            x_anchor = cx + R_x_outer * cos(theta_target),
+            y_anchor = cy + R_y_outer * sin(theta_target),
+            # elbow on the network's bounding ellipse at the module's
+            # ACTUAL angle: first leg of the L goes straight radially
+            # from the module centroid out to the network boundary.
+            # Because theta_target != theta_actual (thanks to
+            # equispacing), the second leg ggrepel draws -- from the
+            # label back to this elbow -- is slanted, giving a clear L.
+            elbow_x  = cx + R_x_net * cos(theta_actual),
+            elbow_y  = cy + R_y_net * sin(theta_actual),
+            # ggrepel's "point" = the elbow. ggrepel will draw the
+            # second leg from the label back to this elbow.
+            x        = elbow_x,
+            y        = elbow_y,
+            nudge_x  = x_anchor - elbow_x,
+            nudge_y  = y_anchor - elbow_y,
+            # hjust / vjust fan the text outward along theta_target
+            hjust    = (1 - cos(theta_target)) / 2,
+            vjust    = (1 - sin(theta_target)) / 2,
+            .label_text = .wrap_label(module_label_fun(modularity3))
+          )
+
+        # lab_leader_df is just a flag (re-using lab_df) so the render
+        # code knows to draw the manual first leg via geom_segment from
+        # the module centroid (mx, my) to the elbow (elbow_x, elbow_y).
+        lab_leader_df <<- lab_df
+
+        # plot_xlim matches two_column (left/right labels fit in the
+        # 0.6 R_x_net side pad). plot_ylim must extend to the outer
+        # ellipse so top/bottom label anchors don't sit outside the
+        # plot panel -- two_column doesn't need this because its
+        # labels never leave yr in the y direction. The theme's 20pt
+        # plot.margin covers the remaining text-height overflow above
+        # / below each anchor.
+        plot_xlim   <<- c(xr[1] - pad, xr[2] + pad)
+        plot_ylim   <<- c(cy - R_y_outer, cy + R_y_outer)
+        # force = 0: labels stay exactly at the outer ellipse position
+        # we computed. Using force = 1 here can push labels back INTO
+        # the network when ggrepel resolves label-label overlaps, which
+        # the user explicitly forbids. If labels overlap because too
+        # many modules sit at similar angles, increase label_outer_pad
+        # so the outer ring has more tangential room.
+        label_force                <<- 0
+        label_segment_square       <<- FALSE   # ggrepel draws single line
+        label_segment_square_shape <<- 1
+        # ★ no padding around aes point: the aes IS the elbow shared
+        # with the manual first leg, so ggrepel's segment must reach
+        # it exactly or you see a visible gap at the L corner
+        label_point_padding        <<- 0
+      } else {
+        # ===== label_circle: pure ggrepel + module's actual angle =========
+        # Same "label at module's actual angle on the outer ellipse" as
+        # two_column_follow, but the leader is drawn entirely by ggrepel
+        # (no manual first leg). ggrepel's aes(x, y) is the module
+        # centroid, nudge places the label initially at outer ellipse at
+        # theta_actual, force = 1 lets ggrepel spread overlapping labels.
+        # segment.square = TRUE (with squareShape = 0) makes ggrepel draw
+        # an L-shape leader. Simpler code than two_column_follow but the
+        # L bend can visually collapse when label and module sit on the
+        # same radial. Requires ggrepel >= 0.9.4.
+        centroids <- ly1_1[["graph_ly_final"]] %>%
+          dplyr::filter(modularity3 != "Others") %>%
+          dplyr::group_by(modularity3) %>%
+          dplyr::summarise(mx = mean(x), my = mean(y), .groups = "drop")
+
+        cx <- mean(xr)
+        cy <- mean(yr)
+        R_x_net <- (xr[2] - xr[1]) / 2
+        R_y_net <- (yr[2] - yr[1]) / 2
+        if (!is.finite(R_x_net) || R_x_net <= 0) R_x_net <- 1
+        if (!is.finite(R_y_net) || R_y_net <= 0) R_y_net <- 1
+        R_x_outer <- R_x_net * (1 + label_outer_pad)
+        R_y_outer <- R_y_net * (1 + label_outer_pad)
+
+        base_follow <- ly1_1[["graph_ly_final"]] %>%
+          dplyr::distinct(modularity3, .keep_all = T) %>%
+          dplyr::filter(modularity3 != "Others") %>%
+          dplyr::left_join(centroids, by = "modularity3") %>%
+          dplyr::mutate(theta_actual = atan2(my - cy, mx - cx))
+
+        # Partial equispacing: sparse modules keep theta_target =
+        # theta_actual, clustered modules get pushed apart just
+        # enough to clear the min angular gap. See two_column_follow
+        # for the algorithm rationale.
+        theta_target_ord <- .partial_equispace(base_follow$theta_actual)
+
+        lab_df <<- base_follow %>%
+          dplyr::mutate(
+            theta_target = theta_target_ord,
+            x_anchor     = cx + R_x_outer * cos(theta_target),
+            y_anchor     = cy + R_y_outer * sin(theta_target),
+            # ggrepel's "point" = module centroid; nudge places the
+            # label on the outer ellipse at the equispaced theta_target
+            x        = mx,
+            y        = my,
+            nudge_x  = x_anchor - mx,
+            nudge_y  = y_anchor - my,
+            hjust    = (1 - cos(theta_target)) / 2,
+            vjust    = (1 - sin(theta_target)) / 2,
+            .label_text = .wrap_label(module_label_fun(modularity3))
+          )
+
+        # plot_xlim matches two_column; plot_ylim must extend to the
+        # outer ellipse so top/bottom label anchors fit inside the
+        # panel (theme's 20pt margin covers the remaining text height).
+        plot_xlim   <<- c(xr[1] - pad, xr[2] + pad)
+        plot_ylim   <<- c(cy - R_y_outer, cy + R_y_outer)
+        lab_leader_df              <<- NULL    # ggrepel draws everything
+        # force = 0: same reason as two_column_follow -- ggrepel's
+        # collision avoidance would otherwise pull labels back toward
+        # their aes point (the module centroid, inside the network).
+        # Keep labels exactly at the outer ellipse; if they overlap
+        # because of clustered angles, bump label_outer_pad.
+        label_force                <<- 0
+        # segment.square = FALSE so ggrepel draws a single straight
+        # slanted line from label to module. With segment.square = TRUE,
+        # the L would visually collapse here because the label sits on
+        # the module's radial line (label, network centre, module are
+        # collinear -- the bend has no perpendicular component to show).
+        # Using a single straight line makes label_circle visually
+        # distinct from two_column_follow's right-angle L.
+        label_segment_square       <<- FALSE
+        label_segment_square_shape <<- 1       # unused when square=FALSE
+        label_point_padding        <<- 0.15    # default gap from module
+      }
     }
 
 
@@ -554,7 +909,8 @@ ggNetView <- function(graph_obj,
           tidygraph::as_tibble() %>%
           dplyr::pull(modularity3),
         q = q_outer,
-        expand = expand_outer
+        expand = expand_outer,
+        bandwidth_scale = bandwidth_scale
       )
 
       return(maskTable)
@@ -930,7 +1286,24 @@ ggNetView <- function(graph_obj,
 
       p1_1 <- p1_1 +
         ggnewscale::new_scale_color() +
-        ggrepel::geom_text_repel(data = lab_df %>% dplyr::mutate(.label_text = module_label_fun(modularity3)),
+        # First leg of the two-segment leader (two_column_follow only):
+        # from module centroid (mx, my) to the elbow on the network
+        # boundary (elbow_x, elbow_y). The second leg is drawn by
+        # ggrepel (from label to elbow), so even if ggrepel pushes the
+        # label to avoid overlap, the leader stays connected.
+        (if (!is.null(lab_leader_df))
+           ggplot2::geom_segment(
+             data = lab_leader_df,
+             mapping = ggplot2::aes(x = mx, y = my,
+                                    xend = elbow_x, yend = elbow_y,
+                                    color = .data[[group.by]]),
+             linewidth = labelsegmentsize,
+             alpha     = labelsegmentalpha,
+             lineend   = "round",
+             show.legend = FALSE
+           )
+         else NULL) +
+        ggrepel::geom_text_repel(data = lab_df,
                                  mapping = ggplot2::aes(x = x,
                                                y = y,
                                                label = .label_text,
@@ -939,19 +1312,29 @@ ggNetView <- function(graph_obj,
                                  nudge_x = lab_df$nudge_x,
                                  nudge_y = lab_df$nudge_y,
                                  hjust   = lab_df$hjust,
+                                 vjust   = lab_df$vjust,
+                                 # ggrepel draws the second leg of the
+                                 # two_column_follow leader (and the full
+                                 # leader for two_column / label_circle).
+                                 # min.segment.length = 0 forces it on.
                                  min.segment.length = 0,
-                                 segment.size = labelsegmentsize,
+                                 segment.size  = labelsegmentsize,
                                  segment.alpha = labelsegmentalpha,
+                                 # segment.square (>= ggrepel 0.9.4) is
+                                 # TRUE only for label_circle so ggrepel
+                                 # draws an L-shape there; FALSE elsewhere
+                                 segment.square      = label_segment_square,
+                                 segment.squareShape = label_segment_square_shape,
                                  max.overlaps = Inf,
                                  box.padding = 0.15,
-                                 point.padding = 0.15,
-                                 force = 0.05,
+                                 point.padding = label_point_padding,
+                                 force = label_force,
                                  show.legend = F
         ) +
         color_scale_lab +
         ggplot2::coord_equal(clip = "off",
-                             xlim = c(xr[1] - pad, xr[2] + pad),
-                             ylim = yr) +
+                             xlim = plot_xlim,
+                             ylim = plot_ylim) +
         theme_ggnetview()
     }
 
@@ -971,7 +1354,9 @@ ggNetView <- function(graph_obj,
         ggnewscale::new_scale_color() +
         ggplot2::geom_polygon(data=maskTable %>%
                                 dplyr::filter(cluster != "Others"),
-                              mapping = ggplot2::aes(x = x, y = y, group=cluster, fill = cluster, color = cluster),
+                              mapping = ggplot2::aes(x = x, y = y,
+                                                     group = interaction(cluster, polygon_id),
+                                                     fill = cluster, color = cluster),
                               linewidth = outerwidth,
                               linetype = outerlinetype,
                               alpha = outeralpha,
@@ -998,7 +1383,24 @@ ggNetView <- function(graph_obj,
 
       p1_1 <- p1_1 +
         ggnewscale::new_scale_color() +
-        ggrepel::geom_text_repel(data = lab_df %>% dplyr::mutate(.label_text = module_label_fun(modularity3)),
+        # First leg of the two-segment leader (two_column_follow only):
+        # from module centroid (mx, my) to the elbow on the network
+        # boundary (elbow_x, elbow_y). The second leg is drawn by
+        # ggrepel (from label to elbow), so even if ggrepel pushes the
+        # label to avoid overlap, the leader stays connected.
+        (if (!is.null(lab_leader_df))
+           ggplot2::geom_segment(
+             data = lab_leader_df,
+             mapping = ggplot2::aes(x = mx, y = my,
+                                    xend = elbow_x, yend = elbow_y,
+                                    color = modularity2),
+             linewidth = labelsegmentsize,
+             alpha     = labelsegmentalpha,
+             lineend   = "round",
+             show.legend = FALSE
+           )
+         else NULL) +
+        ggrepel::geom_text_repel(data = lab_df,
                                  mapping = ggplot2::aes(x = x,
                                                y = y,
                                                label = .label_text,
@@ -1007,20 +1409,32 @@ ggNetView <- function(graph_obj,
                                  nudge_x = lab_df$nudge_x,
                                  nudge_y = lab_df$nudge_y,
                                  hjust   = lab_df$hjust,
+                                 vjust   = lab_df$vjust,
+                                 # ggrepel draws the second leg of the
+                                 # two_column_follow leader (and the full
+                                 # leader for two_column / label_circle).
+                                 # min.segment.length = 0 forces it on.
                                  min.segment.length = 0,
-                                 segment.size = labelsegmentsize,
+                                 segment.size  = labelsegmentsize,
                                  segment.alpha = labelsegmentalpha,
+                                 # segment.square (>= ggrepel 0.9.4) is
+                                 # TRUE only for label_circle so ggrepel
+                                 # draws an L-shape there; FALSE elsewhere
+                                 segment.square      = label_segment_square,
+                                 segment.squareShape = label_segment_square_shape,
                                  max.overlaps = Inf,
                                  box.padding = 0.15,
-                                 point.padding = 0.15,
-                                 force = 0.05,
+                                 point.padding = label_point_padding,
+                                 force = label_force,
                                  show.legend = F
         ) +
         color_scale_lab_outer +
         ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
         ggplot2::geom_polygon(data= maskTable %>% dplyr::filter(cluster != "Others"),
-                              mapping = ggplot2::aes(x = x, y = y, group=cluster, fill = cluster, color = cluster),
+                              mapping = ggplot2::aes(x = x, y = y,
+                                                     group = interaction(cluster, polygon_id),
+                                                     fill = cluster, color = cluster),
                               linewidth = outerwidth,
                               linetype = outerlinetype,
                               alpha = outeralpha,
@@ -1028,8 +1442,8 @@ ggNetView <- function(graph_obj,
         fill_scale_mask_outer +
         color_scale_mask_outer +
         ggplot2::coord_equal(clip = "off",
-                             xlim = c(xr[1] - pad, xr[2] + pad),
-                             ylim = yr) +
+                             xlim = plot_xlim,
+                             ylim = plot_ylim) +
         theme_ggnetview()
     }
 

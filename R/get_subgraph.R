@@ -63,7 +63,9 @@ get_subgraph <- function(graph_obj, select_module = NULL){
     tibble::rownames_to_column(var = "Module") %>%
     dplyr::rename(Number = V1)
 
-  print(stat_module)
+  # use message() instead of print() so non-interactive use (knitr, plumber,
+  # tests) does not have its stdout polluted with the module summary table.
+  message(paste(utils::capture.output(stat_module), collapse = "\n"))
 
 
   if (!is.null(select_module)) {

@@ -10,7 +10,11 @@
 #' @param background Plot background color; NULL for transparent. Default "white".
 #' @param foreground Foreground color for strip background/border; NULL to skip.
 #' @param border Logical; draw panel border with `foreground` color if TRUE. Default FALSE.
-#' @param plot_margin Outer plot margin (ggplot2::margin). Default margin(10,10,10,10).
+#' @param plot_margin Outer plot margin (ggplot2::margin). Default
+#'   \code{margin(20, 20, 20, 20)} (in pt). Bumped from \code{10} to
+#'   give labels rendered outside the plot panel (\code{coord_equal(clip = "off")}
+#'   in \code{ggNetView()}) enough room to render without being
+#'   cropped by the device boundary.
 #' @param grid "none","x","y","both" to toggle major grid lines. Default "none".
 #'
 #' @returns A ggplot2 theme object.
@@ -35,7 +39,7 @@ theme_ggnetview <- function(
     background   = "white",
     foreground   = NULL,
     border       = FALSE,
-    plot_margin  = ggplot2::margin(10, 10, 10, 10),
+    plot_margin  = ggplot2::margin(20, 20, 20, 20),
     grid         = c("none","x","y","both")
 ){
   grid <- match.arg(grid)

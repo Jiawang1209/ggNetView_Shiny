@@ -51,10 +51,27 @@ build_graph_from_igraph <- function(igraph,
 
   vertex_attrs <- igraph::vertex_attr_names(g)
   module_candidates <- c("Modularity", "modularity2", "modularity3", "modularity")
-  detected_module_attr <- if (!is.null(module_attr)) {
-    module_attr
+
+  # If the user explicitly named `module_attr` but it is not on the graph, fail
+  # loudly instead of silently re-running community detection — the latter
+  # ignores the user's intent and was the source of a hidden bug.
+  if (!is.null(module_attr)) {
+    if (length(module_attr) != 1L || !is.character(module_attr) || is.na(module_attr)) {
+      stop("`module_attr` must be a single non-NA character string naming a vertex attribute.",
+           call. = FALSE)
+    }
+    if (!module_attr %in% vertex_attrs) {
+      stop(
+        "`module_attr = \"", module_attr,
+        "\"` is not a vertex attribute on the supplied graph. ",
+        "Available vertex attributes: ",
+        if (length(vertex_attrs) == 0L) "<none>" else paste(vertex_attrs, collapse = ", "), ".",
+        call. = FALSE
+      )
+    }
+    detected_module_attr <- module_attr
   } else {
-    module_candidates[module_candidates %in% vertex_attrs][1]
+    detected_module_attr <- module_candidates[module_candidates %in% vertex_attrs][1]
   }
 
   use_existing_modules <- isTRUE(use_existing_modules) &&
@@ -107,12 +124,12 @@ build_graph_from_igraph <- function(igraph,
   if (max_model < top_modules) {
 
     message(paste("The max module in network is", max_model, "we use the", max_model, " modules for next analysis"))
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[1:max_model] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(max_model)] %>% names()
     # no others
 
   }else if (max_model >= top_modules) {
 
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[1:top_modules] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(top_modules)] %>% names()
   }
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")

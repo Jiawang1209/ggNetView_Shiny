@@ -4,7 +4,7 @@ create_layout_bipartite_layout <- function(
     r = 6,
     node_add = NULL,
     anchor_dist = 10,
-    scale = scale,
+    scale = TRUE,
     orientation = c("up","down","left","right"),
     angle = 0
   ){

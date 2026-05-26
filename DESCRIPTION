@@ -21,7 +21,9 @@ LinkingTo:
     RcppArmadillo
 Imports:
     boot,
+    bslib,
     dplyr,
+    DT,
     FNN,
     future,
     future.apply,
@@ -34,6 +36,7 @@ Imports:
     Hmisc,
     huge,
     igraph,
+    jsonlite,
     magrittr,
     MASS,
     Matrix,
@@ -45,8 +48,10 @@ Imports:
     qgraph,
     Rcpp,
     readr,
+    rlang,
     scales,
     scatterpie,
+    shiny,
     stats,
     stringr,
     tibble,
@@ -57,8 +62,11 @@ Imports:
     VGAM,
     WGCNA
 Suggests:
+    dynamicTreeCut,
+    influential,
     knitr,
     rmarkdown,
+    RobustRankAggreg,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Encoding: UTF-8

@@ -1,0 +1,340 @@
+source(testthat::test_path("../../R/app_validation.R"))
+source(testthat::test_path("../../R/app_registry.R"))
+source(testthat::test_path("../../R/app_adapters.R"))
+source(testthat::test_path("../../R/app_graph_builders.R"))
+source(testthat::test_path("../../R/app_exports.R"))
+
+test_that("graph export formats include graph-specific artifacts", {
+  formats <- export_formats_for_type("graph")
+  expect_true(all(c("rds", "nodes_csv", "edges_csv", "adjacency_csv", "params_json") %in% formats))
+  expect_false(any(c("png", "pdf") %in% formats))
+})
+
+test_that("result export formats include table artifacts", {
+  formats <- export_formats_for_type("result")
+  expect_true(all(c("csv", "rds", "params_json") %in% formats))
+})
+
+test_that("plot export formats remain plot-only for images", {
+  formats <- export_formats_for_type("plot")
+  expect_true(all(c("png", "pdf") %in% formats))
+})
+
+test_that("graph CSV writers export nodes, edges, and adjacency", {
+  graph <- igraph::make_ring(3)
+  graph <- igraph::set_vertex_attr(graph, "name", value = c("A", "B", "C"))
+  graph <- igraph::set_edge_attr(graph, "weight", value = c(0.2, 0.4, 0.6))
+
+  nodes_path <- tempfile(fileext = ".csv")
+  edges_path <- tempfile(fileext = ".csv")
+  adjacency_path <- tempfile(fileext = ".csv")
+
+  write_graph_nodes_csv(graph, nodes_path)
+  write_graph_edges_csv(graph, edges_path)
+  write_graph_adjacency_csv(graph, adjacency_path)
+
+  expect_equal(nrow(utils::read.csv(nodes_path)), 3L)
+  expect_equal(nrow(utils::read.csv(edges_path)), 3L)
+  expect_equal(nrow(utils::read.csv(adjacency_path)), 3L)
+})
+
+test_that("workflow replay plan identifies graph builder outputs", {
+  manifest <- list(
+    app = "ggNetView Shiny",
+    items = list(
+      list(id = "obj_0001", name = "matrix_a", type = "matrix", source = "", params = list()),
+      list(
+        id = "obj_0002",
+        name = "matrix_graph",
+        type = "graph",
+        source = "obj_0001",
+        params = list(builder = "matrix", source_ids = "obj_0001")
+      )
+    )
+  )
+
+  plan <- workflow_replay_plan(manifest)
+
+  expect_true(all(c("builder", "replay_reason") %in% names(plan)))
+  expect_equal(plan$status[plan$id == "obj_0002"], "builder-output-needs-rerun")
+  expect_equal(plan$builder[plan$id == "obj_0002"], "matrix")
+})
+
+test_that("workflow replay reruns graph builders when sources are present", {
+  registry <- registry_new()
+  mat <- utils::read.csv(
+    testthat::test_path("../../inst/extdata/phase2_example_matrix.csv"),
+    row.names = 1,
+    check.names = FALSE
+  )
+  source_item <- registry_add(registry, name = "matrix_a", type = "matrix", data = mat)
+  manifest_item <- list(
+    id = "obj_9999",
+    name = "replayed_matrix_graph",
+    type = "graph",
+    source = source_item$id,
+    params = list(
+      builder = "matrix",
+      source_ids = source_item$id,
+      method = "cor",
+      cor.method = "pearson",
+      r.threshold = 0.2,
+      p.threshold = 1
+    )
+  )
+
+  results <- workflow_replay_graph_builders(registry, list(manifest_item))
+
+  expect_length(results, 1L)
+  expect_true(isTRUE(results[[1]]$ok), info = results[[1]]$trace %||% results[[1]]$message)
+  expect_equal(shiny::isolate(registry_count(registry)), 2L)
+  replayed <- shiny::isolate(registry$items[[results[[1]]$value$id]])
+  expect_s3_class(replayed$data, "igraph")
+  expect_equal(replayed$params$builder, "matrix")
+  expect_equal(replayed$params$source_ids, source_item$id)
+})
+
+test_that("workflow replay explains missing graph builder sources", {
+  registry <- registry_new()
+  manifest_item <- list(
+    id = "obj_9999",
+    name = "missing_source_graph",
+    type = "graph",
+    source = "obj_missing",
+    params = list(builder = "matrix", source_ids = "obj_missing")
+  )
+
+  results <- workflow_replay_graph_builders(registry, list(manifest_item))
+
+  expect_length(results, 1L)
+  expect_false(isTRUE(results[[1]]$ok))
+  expect_match(results[[1]]$message, "source object is not available")
+})
+
+test_that("workflow manifest restores snapshotted inputs for graph-builder replay", {
+  registry <- registry_new()
+  mat <- utils::read.csv(
+    testthat::test_path("../../inst/extdata/phase2_example_matrix.csv"),
+    row.names = 1,
+    check.names = FALSE
+  )
+  source_item <- registry_add(registry, name = "matrix_a", type = "matrix", data = mat)
+  graph <- safe_graph_builder(
+    mode = "matrix",
+    inputs = list(matrix = mat),
+    params = list(method = "cor", cor.method = "pearson", r.threshold = 0.2, p.threshold = 1)
+  )$value
+  registry_add(
+    registry,
+    name = "matrix_graph",
+    type = "graph",
+    data = graph,
+    source = source_item$id,
+    params = list(
+      builder = "matrix",
+      source_ids = source_item$id,
+      method = "cor",
+      cor.method = "pearson",
+      r.threshold = 0.2,
+      p.threshold = 1
+    )
+  )
+
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(registry, path)
+  manifest <- read_workflow_manifest(path)
+
+  empty_registry <- registry_new()
+  restored <- workflow_restore_manifest_inputs(empty_registry, manifest)
+  replay_results <- workflow_replay_graph_builders(empty_registry, manifest)
+
+  expect_true(isTRUE(restored$ok), info = restored$message)
+  expect_equal(restored$value$restored, 1L)
+  expect_false(is.null(shiny::isolate(registry_get(empty_registry, source_item$id))))
+  expect_length(replay_results, 1L)
+  expect_true(isTRUE(replay_results[[1]]$ok), info = replay_results[[1]]$trace %||% replay_results[[1]]$message)
+  expect_equal(shiny::isolate(registry_count(empty_registry)), 2L)
+})
+
+test_that("workflow manifest snapshots unreplayable graph and plot objects", {
+  registry <- registry_new()
+  graph <- igraph::make_ring(4)
+  graph_item <- registry_add(
+    registry,
+    name = "imported_graph",
+    type = "graph",
+    data = graph,
+    source = "manual_import",
+    params = list()
+  )
+  plot <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
+    ggplot2::geom_point()
+  plot_item <- registry_add(
+    registry,
+    name = "manual_plot",
+    type = "plot",
+    data = plot,
+    source = graph_item$id,
+    params = list(layout = "manual")
+  )
+
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(registry, path)
+  manifest <- read_workflow_manifest(path)
+
+  snapshots <- lapply(manifest$items, `[[`, "data_snapshot")
+  expect_true(!is.null(snapshots[[1]]))
+  expect_true(!is.null(snapshots[[2]]))
+
+  empty_registry <- registry_new()
+  restored <- workflow_restore_manifest_inputs(empty_registry, manifest)
+
+  expect_true(isTRUE(restored$ok), info = restored$message)
+  expect_equal(restored$value$restored, 2L)
+  restored_graph <- shiny::isolate(registry_get(empty_registry, graph_item$id))
+  restored_plot <- shiny::isolate(registry_get(empty_registry, plot_item$id))
+  expect_s3_class(restored_graph$data, "igraph")
+  expect_s3_class(restored_plot$data, "ggplot")
+})
+
+test_that("workflow manifest does not snapshot replayable graph and recipe plot outputs", {
+  registry <- registry_new()
+  mat <- utils::read.csv(
+    testthat::test_path("../../inst/extdata/phase2_example_matrix.csv"),
+    row.names = 1,
+    check.names = FALSE
+  )
+  source_item <- registry_add(registry, name = "matrix_a", type = "matrix", data = mat)
+  graph <- safe_graph_builder(
+    mode = "matrix",
+    inputs = list(matrix = mat),
+    params = list(method = "cor", cor.method = "pearson", r.threshold = 0.2, p.threshold = 1)
+  )$value
+  registry_add(
+    registry,
+    name = "matrix_graph",
+    type = "graph",
+    data = graph,
+    source = source_item$id,
+    params = list(builder = "matrix", source_ids = source_item$id)
+  )
+  plot <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
+    ggplot2::geom_point()
+  registry_add(
+    registry,
+    name = "gallery_plot",
+    type = "plot",
+    data = plot,
+    source = source_item$id,
+    params = list(recipe = "network_plot_circle")
+  )
+
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(registry, path)
+  manifest <- read_workflow_manifest(path)
+  snapshots <- lapply(manifest$items, `[[`, "data_snapshot")
+
+  expect_true(!is.null(snapshots[[1]]))
+  expect_null(snapshots[[2]])
+  expect_null(snapshots[[3]])
+})
+
+test_that("workflow restore handles existing IDs with explicit conflict policies", {
+  source_registry <- registry_new()
+  mat <- utils::read.csv(
+    testthat::test_path("../../inst/extdata/phase2_example_matrix.csv"),
+    row.names = 1,
+    check.names = FALSE
+  )
+  original <- registry_add_with_id(
+    source_registry,
+    id = "obj_0042",
+    name = "matrix_a",
+    type = "matrix",
+    data = mat
+  )
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(source_registry, path)
+  manifest <- read_workflow_manifest(path)
+
+  target_registry <- registry_new()
+  existing <- registry_add_with_id(
+    target_registry,
+    id = original$id,
+    name = "existing_matrix",
+    type = "matrix",
+    data = mat * 0
+  )
+
+  skipped <- workflow_restore_manifest_inputs(target_registry, manifest, conflict = "skip")
+  expect_true(isTRUE(skipped$ok), info = skipped$message)
+  expect_equal(skipped$value$restored, 0L)
+  expect_equal(skipped$value$conflicts, 1L)
+  expect_equal(shiny::isolate(registry_get(target_registry, original$id))$name, existing$name)
+
+  renamed <- workflow_restore_manifest_inputs(target_registry, manifest, conflict = "rename")
+  expect_true(isTRUE(renamed$ok), info = renamed$message)
+  expect_equal(renamed$value$restored, 1L)
+  expect_equal(renamed$value$conflicts, 1L)
+  expect_false(original$id %in% renamed$value$restored_ids)
+
+  replaced <- workflow_restore_manifest_inputs(target_registry, manifest, conflict = "replace")
+  expect_true(isTRUE(replaced$ok), info = replaced$message)
+  expect_equal(replaced$value$restored, 1L)
+  expect_equal(replaced$value$conflicts, 1L)
+  expect_equal(shiny::isolate(registry_get(target_registry, original$id))$name, original$name)
+})
+
+test_that("workflow replay can be restricted to selected manifest steps", {
+  manifest <- list(
+    app = "ggNetView Shiny",
+    items = list(
+      list(id = "obj_0001", name = "matrix_a", type = "matrix", source = "", params = list()),
+      list(
+        id = "obj_0002",
+        name = "matrix_graph",
+        type = "graph",
+        source = "obj_0001",
+        params = list(builder = "matrix", source_ids = "obj_0001")
+      ),
+      list(
+        id = "obj_0003",
+        name = "gallery_plot",
+        type = "plot",
+        source = "obj_0002",
+        params = list(recipe = "network_plot_circle")
+      )
+    )
+  )
+  plan <- workflow_replay_plan(manifest)
+  selected_builder <- workflow_filter_replay_plan(plan, selected_steps = "2")
+  selected_recipe <- workflow_filter_replay_plan(plan, selected_steps = 3L)
+
+  expect_equal(selected_builder$id, "obj_0002")
+  expect_equal(workflow_replay_recipes(selected_builder, "network_plot_circle"), character())
+  expect_equal(workflow_replay_builder_items(workflow_filter_manifest_items(manifest, selected_builder))[[1]]$id, "obj_0002")
+  expect_equal(workflow_replay_recipes(selected_recipe, "network_plot_circle"), "network_plot_circle")
+})
+
+test_that("workflow restore plan summarizes snapshot and conflict state", {
+  registry <- registry_new()
+  mat <- utils::read.csv(
+    testthat::test_path("../../inst/extdata/phase2_example_matrix.csv"),
+    row.names = 1,
+    check.names = FALSE
+  )
+  item <- registry_add_with_id(registry, id = "obj_0042", name = "matrix_a", type = "matrix", data = mat)
+  path <- tempfile(fileext = ".json")
+  write_workflow_manifest(registry, path)
+  manifest <- read_workflow_manifest(path)
+
+  plan_empty <- workflow_restore_plan(registry_new(), manifest)
+  plan_conflict <- workflow_restore_plan(registry, manifest)
+
+  expect_true(all(c("restore_status", "conflict", "snapshot_bytes") %in% names(plan_empty)))
+  expect_equal(plan_empty$restore_status[plan_empty$id == item$id], "snapshot-restorable")
+  expect_false(plan_empty$conflict[plan_empty$id == item$id])
+  expect_equal(plan_conflict$restore_status[plan_conflict$id == item$id], "snapshot-conflict")
+  expect_true(plan_conflict$conflict[plan_conflict$id == item$id])
+  expect_gt(plan_empty$snapshot_bytes[plan_empty$id == item$id], 0)
+})

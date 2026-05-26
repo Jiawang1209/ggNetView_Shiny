@@ -3,7 +3,8 @@
 #' @param adjacency_matrix Numeric matrix.
 #' A numeric matrix with adjacency matrix.
 #'
-#' @returns a data frame of edge
+#' @returns A data frame with columns `from`, `to`, `weight` describing the
+#' edges of the adjacency matrix (one row per edge of the undirected graph).
 #' @export
 #'
 #' @examples
@@ -44,8 +45,14 @@ trans_adjacency_matrix_to_df <- function(adjacency_matrix){
   # delect single node
   g <- igraph::delete_vertices(g, which(igraph::degree(g)==0))
 
-  edge_df <- data.frame(igraph::as_edgelist(g)) %>%
-    purrr::set_names(c("from", "to"))
+  # The graph was built with `weighted = TRUE`; retain the edge weights so the
+  # caller can reconstruct the original matrix entries (previously dropped).
+  edge_df <- data.frame(
+    igraph::as_edgelist(g),
+    weight = igraph::E(g)$weight,
+    stringsAsFactors = FALSE
+  ) %>%
+    purrr::set_names(c("from", "to", "weight"))
 
 
   return(edge_df)

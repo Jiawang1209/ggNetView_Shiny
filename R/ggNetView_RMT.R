@@ -270,13 +270,18 @@ ggNetView_RMT <- function(
       Nseg <- 20
       xs <- numeric(Nseg + 1)
       xs[1] <- min(sp)
-      for (i in 1:Nseg) xs[i+1] <- -log(exp(-xs[i]) - A/Nseg)
+      # `exp(-xs[i]) - A/Nseg` can fall to 0 or below when the spacing range is
+      # tiny relative to A/Nseg; clamp to .Machine$double.eps so log() stays finite.
+      for (i in seq_len(Nseg)) {
+        arg <- exp(-xs[i]) - A / Nseg
+        xs[i + 1L] <- -log(max(arg, .Machine$double.eps))
+      }
       trap_int <- function(xx, yy) {
         idx <- 2:length(xx)
         as.double(t(xx[idx] - xx[idx-1]) %*% (yy[idx] + yy[idx-1])) / 2
       }
       area_obs <- numeric(Nseg)
-      for (i in 1:Nseg) {
+      for (i in seq_len(Nseg)) {
         xsec <- x[x >= xs[i] & x <= xs[i+1]]
         xsec <- unique(c(xs[i], xsec, xs[i+1]))
         ysec <- stats::approx(x, y_obs, xout = xsec, rule = 2)$y
