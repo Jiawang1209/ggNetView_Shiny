@@ -14,4 +14,6 @@ source("server.R")
 
 app <- shiny::shinyApp(ui, server)
 stopifnot(inherits(app, "shiny.appobj"))
+stopifnot(is.numeric(getOption("shiny.maxRequestSize")))
+stopifnot(getOption("shiny.maxRequestSize") >= 500 * 1024^2)
 cat("shiny app startup passed\n")

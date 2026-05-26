@@ -7,6 +7,12 @@ library(igraph)
 app_root <- normalizePath(file.path("..", ".."), mustWork = FALSE)
 options(ggnetview.app_root = app_root)
 
+upload_limit_mb <- suppressWarnings(as.numeric(Sys.getenv("GGNETVIEW_SHINY_MAX_UPLOAD_MB", "500")))
+if (length(upload_limit_mb) != 1L || is.na(upload_limit_mb) || !is.finite(upload_limit_mb) || upload_limit_mb <= 0) {
+  upload_limit_mb <- 500
+}
+options(shiny.maxRequestSize = upload_limit_mb * 1024^2)
+
 app_helper_env <- new.env(parent = .GlobalEnv)
 app_helper_files <- file.path(app_root, "R", c(
   "app_validation.R",
