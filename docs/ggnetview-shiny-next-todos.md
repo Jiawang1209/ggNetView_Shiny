@@ -13,15 +13,16 @@ Date: 2026-05-26
 - Data Hub can load sample metadata and Compare & Environment can use it for grouped matrix network plots.
 - Graph Builder has real API-backed entry points for matrix, RMT-assisted matrix, edge table, node+edge table, STRINGDB/PPI table, igraph object, adjacency, double matrix, multi-matrix, WGCNA/TOM, and consensus graph construction.
 - Graph Explorer can register graph info, module subgraphs, and sample subgraphs.
-- Visual Lab exposes major manual layout families and common `ggNetView()` parameters, including outline/geometric variants plus additional circular-module petal, square, star, diamond, and heart layouts that pass real `ggNetView()` smoke checks. Advanced Visual Lab controls now cover manual layout/rendering knobs such as node layers, rings, radius, shrink/inner-shrink, nearest-neighbor module placement, jitter, edge visibility/curves, edge alpha/color, point labels, and "Others" offsets.
+- Visual Lab exposes major manual layout families and common `ggNetView()` parameters, including outline/geometric variants plus additional circular-module petal, square, star, diamond, and heart layouts that pass real `ggNetView()` smoke checks. Advanced Visual Lab controls now cover manual layout/rendering knobs such as node layers, rings, radius, shrink/inner-shrink, nearest-neighbor module placement, jitter, edge visibility/curves, edge alpha/color, point labels, and "Others" offsets. Visual Lab also has direct plot width/height controls plus local PNG/PDF downloads next to the plot preview.
 - Topology can register global topology, direct parallel topology, robustness, sample-level topology/statistics, centrality, IVI, and Zi-Pi/keystone result tables.
+- Topology result cards now expose local CSV downloads for topology, robustness, node metrics, sample topology, sample statistics, and sample robustness tables, so generated results can be saved from the same place they are inspected.
 - Graph Builder, Visual Lab, Topology, Compare & Environment, and Gallery recipe execution now wrap real ggNetView calls with progress feedback and temporary action-button busy states.
 - Compare & Environment can register multi-network comparison plots with optional pair restrictions, normalized link detail tables, pair-level link summaries, topology comparison summaries, environment-link plots/statistics with environment/spec block selectors, env/spec pair restrictions, multi-core geometry controls, module-level environment heatmaps, Mantel pairwise tables, and report-oriented interpretation summaries with domain labels, signal levels, narrative text, and caveats.
 - Compare Networks now exposes the broader manual-backed multi-network group layouts, including row/column/geometric/snake/sine/cosine/center-pairs arrangements plus advanced rotation, anchor, row/column, sine-period, and label controls for real `ggNetView_multi_link()` and compatible grouped `ggNetView_multi()` paths.
 - `tests/run_shiny_manual_workflow_smoke.R` now exercises the broad manual-backed backend workflow: gallery registration, graph/RMT/multi-matrix builders, graph info/subgraphs, Visual Lab layouts, topology/centrality/Zi-Pi/IVI boundary, multi-network comparison with custom sample metadata, environment links/triple heatmaps, Mantel, and object-aware exports. It also writes an ignored machine-readable smoke coverage JSON covering all ten manual areas.
 - `tests/run_shiny_phase2_workflow_smoke.R` now runs a real shinytest2 browser path across Data Hub, Compare & Environment, Graph Builder, Graph Explorer, Visual Lab, Topology, Export graph-node/workflow-manifest downloads, workflow manifest replay preview, and gallery recipe execution.
 - `tests/run_shiny_graph_builder_modes_smoke.R` now runs real browser builds for RMT, matrix, edge+module, node+edge, STRINGDB/PPI, igraph object, adjacency+module, double matrix, multi-matrix, WGCNA/TOM, and consensus builder paths.
-- `tests/run_shiny_analysis_export_smoke.R` now covers sample subgraphs, direct parallel topology, sample topology, centrality, IVI, Mantel, Visual Lab plot registration, and plot PNG/PDF downloads in a real browser.
+- `tests/run_shiny_analysis_export_smoke.R` now covers sample subgraphs, direct parallel topology, topology/node/sample CSV downloads, sample topology, centrality, IVI, Mantel, Visual Lab plot registration, plot width/height controls, and plot PNG/PDF downloads in a real browser.
 - `tests/run_shiny_mobile_layout_smoke.R` now checks 390px-wide navigation across the main workflow tabs and guards against page-level horizontal overflow.
 - `tests/run_shiny_visual_layouts_smoke.R` now draws every Visual Lab layout preset in a real browser, including general, geometric, circular-module, multipartite, WGCNA, dendrogram, and multirings layouts.
 - `tests/run_shiny_visual_qa_polish_smoke.R` now guards the human visual QA path: Data Hub preview table fit, Visual Lab plot-first preview, collapsed parameters, no page-level horizontal overflow, and Topology/Export navigation after drawing.
@@ -34,7 +35,7 @@ Date: 2026-05-26
 1. Full browser-level workflow smoke.
    - Current smoke covers startup, the original core programmatic workflow, the broad manual-backed backend workflow, and a real browser click-through for the main Phase 2/3 path.
    - Current browser smoke also covers every major graph-builder mode.
-   - Current browser smoke also covers sample subgraph registration, centrality/IVI buttons, a circular-module Visual Lab preset, Mantel button, and plot PNG/PDF downloads.
+   - Current browser smoke also covers sample subgraph registration, centrality/IVI buttons, a circular-module Visual Lab preset, Mantel button, local topology/node/sample CSV downloads, Visual Lab width/height controls, and plot PNG/PDF downloads.
    - Current browser smoke also covers mobile-width navigation, page-level overflow checks, and every individual Visual Lab layout preset.
    - Manual backend smoke now writes a coverage log that audits all ten manual areas.
    - Release evidence now has a generated Markdown summary that links the coverage log to the final validation checklist.
@@ -64,7 +65,7 @@ Date: 2026-05-26
    - Export Center buttons are now grouped into selected-object, type-specific, and session/workflow sections.
    - Selected object type/source/format metadata is now visible near the export controls.
    - Environment-link plot export now guards zero P values from producing non-finite line widths, with a focused PNG export regression test alongside the Visual Lab export smoke.
-   - Visual Lab now uses a plot-first preview, collapses verbose plot parameters, uses a stable plot device size, keeps controls visible by default, and preserves top navigation after drawing.
+   - Visual Lab now uses a plot-first preview, collapses verbose plot parameters, uses explicit plot width/height controls, keeps controls visible by default, and preserves top navigation after drawing.
    - Data Hub preview tables now suppress unnecessary search/pagination chrome and fit their card without a visual horizontal scrollbar.
    - Still needed: continue polishing labels after longer real-use sessions, especially for future report/project-level exports.
 

@@ -27,27 +27,33 @@ mod_topology_results_ui <- function(id) {
     bslib::card(
       bslib::card_header("Topology"),
       DT::DTOutput(ns("topology")),
+      shiny::downloadButton(ns("download_topology"), "Download Topology CSV"),
       shiny::verbatimTextOutput(ns("status"))
     ),
     bslib::card(
       bslib::card_header("Robustness"),
-      DT::DTOutput(ns("robustness"))
+      DT::DTOutput(ns("robustness")),
+      shiny::downloadButton(ns("download_robustness"), "Download Robustness CSV")
     ),
     bslib::card(
       bslib::card_header("Node Metrics"),
-      DT::DTOutput(ns("node_metrics"))
+      DT::DTOutput(ns("node_metrics")),
+      shiny::downloadButton(ns("download_node_metrics"), "Download Node Metrics CSV")
     ),
     bslib::card(
       bslib::card_header("Sample Topology"),
-      DT::DTOutput(ns("sample_topology"))
+      DT::DTOutput(ns("sample_topology")),
+      shiny::downloadButton(ns("download_sample_topology"), "Download Sample Topology CSV")
     ),
     bslib::card(
       bslib::card_header("Sample Stats"),
-      DT::DTOutput(ns("sample_stats"))
+      DT::DTOutput(ns("sample_stats")),
+      shiny::downloadButton(ns("download_sample_stats"), "Download Sample Stats CSV")
     ),
     bslib::card(
       bslib::card_header("Sample Robustness"),
-      DT::DTOutput(ns("sample_robustness"))
+      DT::DTOutput(ns("sample_robustness")),
+      shiny::downloadButton(ns("download_sample_robustness"), "Download Sample Robustness CSV")
     ),
     col_widths = c(4, 8, 6, 6, 6, 6, 6)
   )
@@ -75,6 +81,13 @@ topology_robustness_table <- function(value) {
 
 empty_result_table <- function() {
   data.frame()
+}
+
+topology_download_handler <- function(table_fn, filename) {
+  shiny::downloadHandler(
+    filename = function() filename,
+    content = function(file) write_registry_table(table_fn(), file)
+  )
 }
 
 mod_topology_results_server <- function(id, registry) {
@@ -330,5 +343,12 @@ mod_topology_results_server <- function(id, registry) {
     output$sample_stats <- DT::renderDT(sample_stats_table(), rownames = FALSE)
     output$sample_robustness <- DT::renderDT(sample_robustness_table(), rownames = FALSE)
     output$status <- shiny::renderText(status())
+
+    output$download_topology <- topology_download_handler(topology_table, "ggnetview_topology.csv")
+    output$download_robustness <- topology_download_handler(robustness_table, "ggnetview_robustness.csv")
+    output$download_node_metrics <- topology_download_handler(node_metrics_table, "ggnetview_node_metrics.csv")
+    output$download_sample_topology <- topology_download_handler(sample_topology_table, "ggnetview_sample_topology.csv")
+    output$download_sample_stats <- topology_download_handler(sample_stats_table, "ggnetview_sample_stats.csv")
+    output$download_sample_robustness <- topology_download_handler(sample_robustness_table, "ggnetview_sample_robustness.csv")
   })
 }

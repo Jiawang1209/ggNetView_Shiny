@@ -189,6 +189,15 @@ visual_lab_params_json <- function(params) {
   jsonlite::toJSON(params, auto_unbox = TRUE, pretty = TRUE)
 }
 
+visual_lab_plot_dimension <- function(value, default, min = 1, max = 30) {
+  value <- suppressWarnings(as.numeric(value))
+  if (length(value) != 1L || is.na(value) || !is.finite(value) || value <= 0) {
+    value <- default
+  }
+  value <- max(value, min)
+  min(value, max)
+}
+
 mod_visual_lab_ui <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_sidebar(
@@ -234,6 +243,8 @@ mod_visual_lab_ui <- function(id) {
         )
       ),
       shiny::numericInput(ns("seed"), "Seed", value = 1115, min = 1, step = 1),
+      shiny::numericInput(ns("plot_width"), "Plot width", value = 9, min = 1, max = 30, step = 0.5),
+      shiny::numericInput(ns("plot_height"), "Plot height", value = 6, min = 1, max = 30, step = 0.5),
       shiny::actionButton(ns("draw"), "Draw")
     ),
     bslib::card(
@@ -246,6 +257,15 @@ mod_visual_lab_ui <- function(id) {
       shiny::div(
         class = "visual-lab-status",
         shiny::verbatimTextOutput(ns("status"))
+      ),
+      shiny::div(
+        class = "ggnv-export-section",
+        shiny::tags$h5("Save Plot"),
+        shiny::div(
+          class = "ggnv-export-buttons",
+          shiny::downloadButton(ns("download_png"), "Download PNG"),
+          shiny::downloadButton(ns("download_pdf"), "Download PDF")
+        )
       ),
       bslib::accordion(
         open = FALSE,
@@ -266,6 +286,7 @@ mod_visual_lab_server <- function(id, registry) {
     }
 
     plot_obj <- shiny::reactiveVal(NULL)
+    plot_name <- shiny::reactiveVal("visual_lab_plot")
     last_params <- shiny::reactiveVal(visual_lab_params("nicely", "adjacent", FALSE, "two_column", 18, 0.4, 1, 1, 10, FALSE, FALSE, 1115))
     status <- shiny::reactiveVal("No plot drawn yet.")
 
@@ -324,18 +345,19 @@ mod_visual_lab_server <- function(id, registry) {
         return()
       }
 
-      plot_name <- unique_output_name(paste0(graph_item$name, "_plot"))
+      plot_output_name <- unique_output_name(paste0(graph_item$name, "_plot"))
       plot_obj(result$value)
+      plot_name(plot_output_name)
       last_params(params)
       registry_add(
         registry,
-        name = plot_name,
+        name = plot_output_name,
         type = "plot",
         data = result$value,
         source = graph_item$id,
         params = params
       )
-      status(paste("Registered plot:", plot_name))
+      status(paste("Registered plot:", plot_output_name))
     })
 
     output$plot <- shiny::renderPlot(
@@ -344,10 +366,13 @@ mod_visual_lab_server <- function(id, registry) {
         plot_obj()
       },
       width = function() {
-        width <- session$clientData[[paste0("output_", session$ns("plot"), "_width")]]
-        if (is.null(width) || is.na(width) || width < 700) 900 else width
+        width <- visual_lab_plot_dimension(input$plot_width, default = 9)
+        as.integer(width * 120)
       },
-      height = function() 620,
+      height = function() {
+        height <- visual_lab_plot_dimension(input$plot_height, default = 6)
+        as.integer(height * 120)
+      },
       res = 96
     )
 
@@ -356,5 +381,31 @@ mod_visual_lab_server <- function(id, registry) {
     output$params <- shiny::renderText({
       visual_lab_params_json(last_params())
     })
+
+    output$download_png <- shiny::downloadHandler(
+      filename = function() paste0(plot_name(), ".png"),
+      content = function(file) {
+        shiny::req(plot_obj())
+        write_plot_png(
+          plot_obj(),
+          file,
+          width = visual_lab_plot_dimension(input$plot_width, default = 9),
+          height = visual_lab_plot_dimension(input$plot_height, default = 6)
+        )
+      }
+    )
+
+    output$download_pdf <- shiny::downloadHandler(
+      filename = function() paste0(plot_name(), ".pdf"),
+      content = function(file) {
+        shiny::req(plot_obj())
+        write_plot_pdf(
+          plot_obj(),
+          file,
+          width = visual_lab_plot_dimension(input$plot_width, default = 9),
+          height = visual_lab_plot_dimension(input$plot_height, default = 6)
+        )
+      }
+    )
   })
 }
