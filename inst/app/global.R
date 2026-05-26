@@ -13,6 +13,14 @@ if (length(upload_limit_mb) != 1L || is.na(upload_limit_mb) || !is.finite(upload
 }
 options(shiny.maxRequestSize = upload_limit_mb * 1024^2)
 
+vector_limit_mb <- suppressWarnings(as.numeric(Sys.getenv("GGNETVIEW_SHINY_MAX_VSIZE_MB", "128000")))
+if (length(vector_limit_mb) != 1L || is.na(vector_limit_mb) || !is.finite(vector_limit_mb) || vector_limit_mb <= 0) {
+  vector_limit_mb <- 128000
+}
+if (exists("mem.maxVSize", mode = "function")) {
+  mem.maxVSize(vector_limit_mb)
+}
+
 app_helper_env <- new.env(parent = .GlobalEnv)
 app_helper_files <- file.path(app_root, "R", c(
   "app_validation.R",
