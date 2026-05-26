@@ -59,7 +59,16 @@ test_that("graph builder params match ggNetView matrix workflow", {
 
 test_that("graph builder params are empty for edge table builder", {
   params <- graph_builder_params(builder = "edge_table")
-  expect_equal(params, list())
+  expect_equal(params$module.method, "Fast_greedy")
+})
+
+test_that("graph builder params keep module method for supported builders", {
+  supported <- c("edge_table", "adjacency", "double_matrix", "multi_matrix", "consensus")
+
+  for (builder in supported) {
+    params <- graph_builder_params(builder = builder, module_method = "Walktrap")
+    expect_equal(params$module.method, "Walktrap", info = builder)
+  }
 })
 
 test_that("graph builder registry params keep replay metadata", {

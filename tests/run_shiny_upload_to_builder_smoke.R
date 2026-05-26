@@ -35,6 +35,11 @@ upload_file <- function(id, path) {
   app$wait_for_idle(timeout = 30000)
 }
 
+set_input <- function(id, value) {
+  args <- c(stats::setNames(list(value), id), list(wait_ = TRUE))
+  do.call(app$set_inputs, args)
+}
+
 click <- function(selector) {
   app$click(selector = selector)
   app$wait_for_idle(timeout = 30000)
@@ -70,5 +75,11 @@ wait_for_text("Registered uploaded_matrix")
 click_tab("Graph Builder")
 wait_for_builder_source()
 wait_for_text("Build graph")
+set_input("graph_builder-module_method", "Walktrap")
+set_input("graph_builder-r_threshold", 0.2)
+click("#graph_builder-build")
+wait_for_text("Built graph: network_graph", timeout = 120000)
+wait_for_text('"module.method": "Walktrap"', timeout = 120000)
+wait_for_text('"r.threshold": 0.2', timeout = 120000)
 
 message("upload-to-builder smoke passed")

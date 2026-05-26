@@ -21,6 +21,10 @@ builder_matches_source_type <- function(builder, source_type) {
   builder %in% unname(builder_choices_for_type(source_type))
 }
 
+graph_builder_params_json <- function(params) {
+  jsonlite::toJSON(params, auto_unbox = TRUE, pretty = TRUE)
+}
+
 graph_builder_params <- function(
   builder,
   method = "cor",
@@ -56,6 +60,12 @@ graph_builder_params <- function(
       node2_col = "node2",
       score_col = string_score_col,
       score_threshold = threshold,
+      module.method = module_method
+    ))
+  }
+
+  if (builder %in% c("edge_table", "adjacency", "double_matrix", "multi_matrix", "consensus")) {
+    return(list(
       module.method = module_method
     ))
   }
@@ -332,7 +342,11 @@ mod_graph_builder_server <- function(id, registry) {
           if (identical(input$builder, "node_edge")) input$node_id else ""
         )
       )
-      status(paste("Built graph:", item$name))
+      status(paste(
+        "Built graph:", item$name,
+        "\nBuilder:", input$builder,
+        "\nParameters:", graph_builder_params_json(params)
+      ))
       shiny::showNotification(paste("Built graph:", item$name), type = "message")
     })
 
