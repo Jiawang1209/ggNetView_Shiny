@@ -30,3 +30,33 @@ body {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+.visual-lab-preview-card .card-body {
+  min-height: 720px;
+}
+
+.visual-lab-plot-frame {
+  min-height: 620px;
+}
+
+.visual-lab-status pre {
+  margin-bottom: 0.75rem;
+  white-space: pre-wrap;
+}
+
+.bslib-sidebar-layout > .sidebar {
+  z-index: 1;
+}
+
+.navbar {
+  z-index: 20;
+}
+
+.shiny-notification {
+  max-width: min(420px, calc(100vw - 2rem));
+}
+
+#shiny-notification-panel {
+  bottom: 1rem;
+  right: 1rem;
+}

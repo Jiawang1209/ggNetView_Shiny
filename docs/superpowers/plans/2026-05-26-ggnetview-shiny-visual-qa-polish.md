@@ -44,7 +44,7 @@
 **Files:**
 - Create: `tests/run_shiny_visual_qa_polish_smoke.R`
 
-- [ ] **Step 1: Write the failing browser smoke**
+- [x] **Step 1: Write the failing browser smoke**
 
 Create `tests/run_shiny_visual_qa_polish_smoke.R` with this structure:
 
@@ -128,7 +128,7 @@ wait_for_text("Selected object")
 cat("visual QA polish browser smoke passed\n")
 ```
 
-- [ ] **Step 2: Run the smoke to verify it fails on current UX**
+- [x] **Step 2: Run the smoke to verify it fails on current UX**
 
 Run:
 
@@ -138,7 +138,7 @@ Run:
 
 Expected before fixes: FAIL either because the plot image rendered too small, params dominate the preview area, or tab switching after Visual Lab interaction is unreliable.
 
-- [ ] **Step 3: Commit only the red test if desired**
+- [x] **Step 3: Commit only the red test if desired**
 
 ```bash
 git add tests/run_shiny_visual_qa_polish_smoke.R
@@ -154,7 +154,7 @@ git commit -m "test: add visual qa polish smoke"
 - Test: `tests/run_shiny_visual_qa_polish_smoke.R`
 - Test: `tests/run_shiny_visual_layouts_smoke.R`
 
-- [ ] **Step 1: Move params into a collapsed details panel**
+- [x] **Step 1: Move params into a collapsed details panel**
 
 In `mod_visual_lab_ui()`, replace the preview card body:
 
@@ -191,7 +191,7 @@ bslib::card(
 )
 ```
 
-- [ ] **Step 2: Make `renderPlot()` use a stable device size**
+- [x] **Step 2: Make `renderPlot()` use a stable device size**
 
 Replace:
 
@@ -219,7 +219,7 @@ output$plot <- shiny::renderPlot(
 )
 ```
 
-- [ ] **Step 3: Run focused Visual Lab smokes**
+- [x] **Step 3: Run focused Visual Lab smokes**
 
 Run:
 
@@ -230,7 +230,7 @@ Run:
 
 Expected: both pass; no visible `figure margins too large` in the app terminal during the focused Visual Lab path.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add inst/app/modules/mod_visual_lab.R tests/run_shiny_visual_qa_polish_smoke.R
@@ -247,7 +247,7 @@ git commit -m "fix: stabilize visual lab preview"
 - Modify: `app.R` if a new CSS file must be included.
 - Test: `tests/run_shiny_visual_qa_polish_smoke.R`
 
-- [ ] **Step 1: Keep Visual Lab controls visible by default**
+- [x] **Step 1: Keep Visual Lab controls visible by default**
 
 In `mod_visual_lab_ui()`, update the sidebar declaration from:
 
@@ -262,7 +262,7 @@ sidebar = bslib::sidebar(
   open = TRUE,
 ```
 
-- [ ] **Step 2: Add scoped CSS for the Visual Lab sidebar and preview**
+- [x] **Step 2: Add scoped CSS for the Visual Lab sidebar and preview**
 
 If `inst/app/www/app.css` exists, append this. If it does not exist, create it and ensure `app.R` includes it with `shiny::includeCSS("inst/app/www/app.css")` or the existing app resource pattern.
 
@@ -289,7 +289,7 @@ If `inst/app/www/app.css` exists, append this. If it does not exist, create it a
 }
 ```
 
-- [ ] **Step 3: Run navigation regression smoke**
+- [x] **Step 3: Run navigation regression smoke**
 
 Run:
 
@@ -299,7 +299,7 @@ Run:
 
 Expected: PASS, including `Visual Lab -> Topology -> Export` navigation after drawing.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add inst/app/modules/mod_visual_lab.R inst/app/www/app.css app.R tests/run_shiny_visual_qa_polish_smoke.R
@@ -386,7 +386,7 @@ git commit -m "fix: polish data hub tables"
 - Modify or create: `inst/app/www/app.css`
 - Test: `tests/run_shiny_task_feedback_smoke.R`
 
-- [ ] **Step 1: Add notification spacing**
+- [x] **Step 1: Add notification spacing**
 
 Add:
 
@@ -401,7 +401,7 @@ Add:
 }
 ```
 
-- [ ] **Step 2: Run task feedback smoke**
+- [x] **Step 2: Run task feedback smoke**
 
 Run:
 

@@ -193,6 +193,7 @@ mod_visual_lab_ui <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_sidebar(
     sidebar = bslib::sidebar(
+      open = TRUE,
       shiny::selectInput(ns("graph_id"), "Graph object", choices = character()),
       shiny::selectInput(ns("layout"), "Layout", choices = visual_lab_layout_choices()),
       shiny::selectInput(ns("layout_module"), "Module placement", choices = c("adjacent", "random", "order")),
@@ -236,10 +237,23 @@ mod_visual_lab_ui <- function(id) {
       shiny::actionButton(ns("draw"), "Draw")
     ),
     bslib::card(
+      class = "visual-lab-preview-card",
       bslib::card_header("Preview"),
-      shiny::plotOutput(ns("plot"), height = 650),
-      shiny::verbatimTextOutput(ns("status")),
-      shiny::verbatimTextOutput(ns("params"))
+      shiny::div(
+        class = "visual-lab-plot-frame",
+        shiny::plotOutput(ns("plot"), height = "620px")
+      ),
+      shiny::div(
+        class = "visual-lab-status",
+        shiny::verbatimTextOutput(ns("status"))
+      ),
+      bslib::accordion(
+        open = FALSE,
+        bslib::accordion_panel(
+          "Plot parameters",
+          shiny::verbatimTextOutput(ns("params"))
+        )
+      )
     )
   )
 }
@@ -324,10 +338,18 @@ mod_visual_lab_server <- function(id, registry) {
       status(paste("Registered plot:", plot_name))
     })
 
-    output$plot <- shiny::renderPlot({
-      shiny::req(plot_obj())
-      plot_obj()
-    })
+    output$plot <- shiny::renderPlot(
+      {
+        shiny::req(plot_obj())
+        plot_obj()
+      },
+      width = function() {
+        width <- session$clientData[[paste0("output_", session$ns("plot"), "_width")]]
+        if (is.null(width) || is.na(width) || width < 700) 900 else width
+      },
+      height = function() 620,
+      res = 96
+    )
 
     output$status <- shiny::renderText(status())
 
