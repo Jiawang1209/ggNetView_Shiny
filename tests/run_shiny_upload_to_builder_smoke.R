@@ -69,9 +69,29 @@ wait_for_builder_source <- function(timeout = 60000) {
   app$wait_for_js(script, timeout = timeout)
 }
 
-upload_file("data_hub-file", file.path(repo_root, "inst", "extdata", "example_matrix.csv"))
-wait_for_text("Registered uploaded_matrix")
+expect_no_builder_source <- function() {
+  script <- paste(
+    "(() => {",
+    "const source = document.getElementById('graph_builder-source_id');",
+    "if (!source) return false;",
+    "return source.options.length === 0 || source.value === '';",
+    "})()"
+  )
+  value <- app$get_js(script)
+  if (!isTRUE(value)) {
+    stop("Graph Builder should not have a source before Load data is clicked.", call. = FALSE)
+  }
+}
 
+click_tab("Data Hub")
+upload_file("data_hub-file", file.path(repo_root, "inst", "extdata", "example_matrix.csv"))
+
+click_tab("Graph Builder")
+expect_no_builder_source()
+
+click_tab("Data Hub")
+click("#data_hub-register")
+wait_for_text("Registered uploaded_matrix")
 click_tab("Graph Builder")
 wait_for_builder_source()
 wait_for_text("Build graph")

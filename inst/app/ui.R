@@ -5,6 +5,13 @@ ui <- bslib::page_navbar(
     shiny::tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
     app_task_feedback_script()
   ),
+  bslib::nav_panel(
+    "Introduction",
+    bslib::card(
+      class = "ggnv-introduction",
+      shiny::includeMarkdown(file.path(app_root, "README.md"))
+    )
+  ),
   bslib::nav_panel("Data Hub", mod_data_hub_ui("data_hub")),
   bslib::nav_panel("Graph Builder", mod_graph_builder_ui("graph_builder")),
   bslib::nav_panel("Graph Explorer", mod_graph_explorer_ui("graph_explorer")),

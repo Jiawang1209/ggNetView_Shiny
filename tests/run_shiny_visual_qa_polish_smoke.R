@@ -100,6 +100,7 @@ assert_no_horizontal_overflow <- function(context) {
   invisible(TRUE)
 }
 
+activate_tab("Data Hub")
 wait_for_text("Load manual examples")
 click("#data_hub-load_gallery")
 wait_for_text("Registered manual example workflow objects", timeout = 120000)

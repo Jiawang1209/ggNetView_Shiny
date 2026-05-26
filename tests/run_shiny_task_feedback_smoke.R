@@ -57,6 +57,18 @@ button_is_idle <- function(id) {
   )
 }
 
+app$run_js(
+  "(() => {
+    const link = document.querySelector(\"a[data-value='Data Hub']\");
+    if (window.bootstrap && window.bootstrap.Tab) {
+      window.bootstrap.Tab.getOrCreateInstance(link).show();
+    } else {
+      link.click();
+    }
+    return true;
+  })();"
+)
+app$wait_for_idle(timeout = 30000)
 app$click(selector = "#data_hub-load_gallery")
 wait_for_js(button_is_busy("data_hub-load_gallery"), timeout = 1000)
 wait_for_js(button_is_idle("data_hub-load_gallery"), timeout = 30000)

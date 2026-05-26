@@ -88,7 +88,7 @@ mod_data_hub_ui <- function(id) {
       shiny::fileInput(ns("file"), "Upload CSV, TSV, or TXT"),
       shiny::selectInput(ns("upload_type"), "Object type", choices = upload_type_choices(), selected = "auto"),
       shiny::textInput(ns("object_name"), "Object name", value = "uploaded_matrix"),
-      shiny::actionButton(ns("register"), "Register object"),
+      shiny::actionButton(ns("register"), "Load data"),
       shiny::actionButton(ns("load_example"), "Load example matrix"),
       shiny::actionButton(ns("load_gallery"), "Load manual examples"),
       shiny::selectInput(
@@ -158,10 +158,6 @@ mod_data_hub_server <- function(id, registry) {
 
       invisible(result)
     }
-
-    shiny::observeEvent(input$file, {
-      register_uploaded_file()
-    }, ignoreInit = TRUE)
 
     shiny::observeEvent(input$register, {
       register_uploaded_file()

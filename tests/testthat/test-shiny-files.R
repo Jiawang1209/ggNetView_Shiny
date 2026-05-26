@@ -15,6 +15,13 @@ test_that("first milestone Shiny module files exist", {
   expect_true(all(file.exists(test_path("../../", files))))
 })
 
+test_that("Shiny UI exposes an Introduction tab backed by README markdown", {
+  ui_text <- paste(readLines(test_path("../../inst/app/ui.R"), warn = FALSE), collapse = "\n")
+  expect_match(ui_text, "Introduction", fixed = TRUE)
+  expect_match(ui_text, "includeMarkdown", fixed = TRUE)
+  expect_match(ui_text, "README.md", fixed = TRUE)
+})
+
 test_that("mobile layout browser smoke exists and checks overflow", {
   path <- test_path("../../tests/run_shiny_mobile_layout_smoke.R")
   expect_true(file.exists(path))

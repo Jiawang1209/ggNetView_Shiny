@@ -104,6 +104,7 @@ status_text <- function() {
   })();")
 }
 
+click_tab("Data Hub")
 click("#data_hub-load_gallery")
 wait_for_text("gallery_matrix_graph")
 

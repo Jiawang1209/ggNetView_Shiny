@@ -39,6 +39,28 @@ body {
   gap: 0.5rem;
 }
 
+.ggnv-introduction {
+  max-width: 1040px;
+  width: min(1040px, calc(100vw - 2rem));
+  margin: 1rem auto;
+  overflow-x: auto;
+}
+
+.ggnv-introduction img {
+  max-width: 100%;
+  height: auto;
+}
+
+.ggnv-introduction pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.ggnv-introduction :not(pre) > code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .visual-lab-preview-card .card-body {
   min-height: 720px;
 }

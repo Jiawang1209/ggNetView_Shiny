@@ -113,6 +113,7 @@ recipe_cases <- data.frame(
   stringsAsFactors = FALSE
 )
 
+click_tab("Data Hub")
 click("#data_hub-load_gallery")
 wait_for_text("gallery_matrix_graph")
 wait_for_text("gallery_matrix_b")

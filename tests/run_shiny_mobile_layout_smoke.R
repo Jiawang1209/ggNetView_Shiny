@@ -88,6 +88,7 @@ assert_no_horizontal_overflow <- function(context) {
         if (!el.offsetParent && style.position !== 'fixed') return false;
         if (el.closest('.dataTables_wrapper')) return false;
         if (el.closest('.dataTables_scrollBody')) return false;
+        if (el.closest('.ggnv-introduction pre')) return false;
         return rect.width > viewport + 3 || rect.right > viewport + 3;
       }).slice(0, 8).map((el) => ({
         tag: el.tagName,
@@ -110,6 +111,10 @@ assert_no_horizontal_overflow <- function(context) {
   invisible(TRUE)
 }
 
+wait_for_text("ggNetView")
+assert_no_horizontal_overflow("Introduction")
+
+activate_tab("Data Hub")
 wait_for_text("Upload")
 wait_for_visible_id("data_hub-load_gallery")
 assert_no_horizontal_overflow("Data Hub")

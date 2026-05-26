@@ -40,6 +40,10 @@ click <- function(selector) {
   app$wait_for_idle(timeout = 30000)
 }
 
+click_tab <- function(label) {
+  click(sprintf("a[data-value='%s']", label))
+}
+
 wait_for_text <- function(text, timeout = 120000) {
   script <- sprintf(
     "document.body && document.body.innerText.includes(%s)",
@@ -75,6 +79,7 @@ build_graph <- function(name, source, builder, source_b = NULL, multi = NULL, co
   wait_for_text(paste("Built graph:", name))
 }
 
+click_tab("Data Hub")
 click("#data_hub-load_gallery")
 wait_for_text("gallery_sample_metadata")
 wait_for_text("gallery_matrix_graph")

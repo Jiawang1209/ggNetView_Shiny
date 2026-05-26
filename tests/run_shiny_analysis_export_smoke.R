@@ -104,6 +104,7 @@ assert_download_nonempty <- function(output_id) {
   stop("Expected non-empty download for output: ", output_id, call. = FALSE)
 }
 
+click_tab("Data Hub")
 click("#data_hub-load_gallery")
 wait_for_text("gallery_sample_metadata")
 wait_for_text("gallery_matrix_graph")
