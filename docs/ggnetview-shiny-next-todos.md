@@ -24,6 +24,7 @@ Date: 2026-05-26
 - `tests/run_shiny_analysis_export_smoke.R` now covers sample subgraphs, direct parallel topology, sample topology, centrality, IVI, Mantel, Visual Lab plot registration, and plot PNG/PDF downloads in a real browser.
 - `tests/run_shiny_mobile_layout_smoke.R` now checks 390px-wide navigation across the main workflow tabs and guards against page-level horizontal overflow.
 - `tests/run_shiny_visual_layouts_smoke.R` now draws every Visual Lab layout preset in a real browser, including general, geometric, circular-module, multipartite, WGCNA, dendrogram, and multirings layouts.
+- `tests/run_shiny_visual_qa_polish_smoke.R` now guards the human visual QA path: Data Hub preview table fit, Visual Lab plot-first preview, collapsed parameters, no page-level horizontal overflow, and Topology/Export navigation after drawing.
 - `tests/run_shiny_environment_geometry_smoke.R` now runs Gallery-backed environment geometry recipes in a real browser and checks Export plot controls for default heatmap, multi-omics blocks, collapsed-core, and rotated-arc collapsed-core outputs.
 - `tests/run_shiny_task_feedback_smoke.R` now deliberately slows a real Shiny action and asserts the shared busy-state button class/disabled state appears and clears in the browser.
 - `docs/ggnetview-shiny-release-evidence.md` can now be regenerated from the manual smoke coverage JSON, current git history, and the final validation command list. It summarizes manual-area coverage, release validation commands, recent commits, remaining limits, and next release steps.
@@ -63,6 +64,8 @@ Date: 2026-05-26
    - Export Center buttons are now grouped into selected-object, type-specific, and session/workflow sections.
    - Selected object type/source/format metadata is now visible near the export controls.
    - Environment-link plot export now guards zero P values from producing non-finite line widths, with a focused PNG export regression test alongside the Visual Lab export smoke.
+   - Visual Lab now uses a plot-first preview, collapses verbose plot parameters, uses a stable plot device size, keeps controls visible by default, and preserves top navigation after drawing.
+   - Data Hub preview tables now suppress unnecessary search/pagination chrome and fit their card without a visual horizontal scrollbar.
    - Still needed: continue polishing labels after longer real-use sessions, especially for future report/project-level exports.
 
 6. Gallery completion.

@@ -426,7 +426,7 @@ git commit -m "fix: reduce notification overlap"
 - Modify: `docs/ggnetview-shiny-release-evidence.md`
 - Modify: `docs/ggnetview-shiny-next-todos.md`
 
-- [ ] **Step 1: Run focused and full smoke commands**
+- [x] **Step 1: Run focused and full smoke commands**
 
 Run:
 
@@ -444,7 +444,7 @@ Run:
 
 Expected: all pass.
 
-- [ ] **Step 2: Launch app for human visual review**
+- [x] **Step 2: Launch app for human visual review**
 
 Run:
 
@@ -460,7 +460,7 @@ Open the actual listening URL printed by Shiny. Check:
 - Topology and Export tabs remain reachable after Visual Lab interaction.
 - Page-level horizontal overflow remains absent at desktop and mobile widths.
 
-- [ ] **Step 3: Regenerate evidence report**
+- [x] **Step 3: Regenerate evidence report**
 
 Run:
 
@@ -468,7 +468,7 @@ Run:
 /usr/local/bin/Rscript -e 'source("R/app_smoke_coverage.R"); source("R/app_release_evidence.R"); generate_release_evidence_report("docs/ggnetview-shiny-release-evidence.md", final_audit = TRUE)'
 ```
 
-- [ ] **Step 4: Update TODO baseline**
+- [x] **Step 4: Update TODO baseline**
 
 In `docs/ggnetview-shiny-next-todos.md`, add a new baseline bullet:
 
@@ -478,7 +478,7 @@ In `docs/ggnetview-shiny-next-todos.md`, add a new baseline bullet:
 
 Remove any now-fixed wording that says Visual Lab preview or navigation remains an immediate UX blocker.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/ggnetview-shiny-release-evidence.md docs/ggnetview-shiny-next-todos.md

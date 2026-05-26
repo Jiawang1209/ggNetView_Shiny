@@ -1,6 +1,6 @@
 # ggNetView Shiny Release Evidence
 
-Generated at: 2026-05-26T07:40:00+0800
+Generated at: 2026-05-26T11:00:49+0800
 
 ## Manual Coverage
 
@@ -35,6 +35,7 @@ Generated at: 2026-05-26T07:40:00+0800
 | passed | /usr/local/bin/Rscript tests/run_shiny_phase2_workflow_smoke.R | Passed in final audit: phase2 browser workflow smoke passed. |
 | passed | /usr/local/bin/Rscript tests/run_shiny_graph_builder_modes_smoke.R | Passed in final audit: graph builder modes browser smoke passed. |
 | passed | /usr/local/bin/Rscript tests/run_shiny_analysis_export_smoke.R | Passed in final audit: analysis/export browser smoke passed. |
+| passed | /usr/local/bin/Rscript tests/run_shiny_visual_qa_polish_smoke.R | Passed in final audit: visual QA polish browser smoke passed. |
 | passed | /usr/local/bin/Rscript tests/run_shiny_visual_layouts_smoke.R | Passed in final audit: visual layouts browser smoke passed for 57/57 layouts. |
 | passed | /usr/local/bin/Rscript tests/run_shiny_environment_geometry_smoke.R | Passed in final audit: environment geometry browser smoke passed for 4/4 recipes. |
 | passed | /usr/local/bin/Rscript tests/run_shiny_mobile_layout_smoke.R | Passed in final audit: mobile layout browser smoke passed. |
@@ -44,6 +45,10 @@ Generated at: 2026-05-26T07:40:00+0800
 
 | hash | subject |
 | --- | --- |
+| a23d75a | fix: polish data hub preview table |
+| 93c7805 | fix: stabilize visual lab preview |
+| b93ccd8 | docs: add visual qa polish plan |
+| cd87d89 | test: include startup in final audit |
 | c6a2221 | test: record final validation audit |
 | 5fda78b | test: add release evidence report |
 | bf1229e | test: record manual smoke coverage |
@@ -60,10 +65,6 @@ Generated at: 2026-05-26T07:40:00+0800
 | c672cac | feat: add environment interpretation summaries |
 | 636ab11 | feat: add direct mantel controls |
 | 3b1f597 | feat: add environment heatmap style controls |
-| 93dfd38 | feat: add parallel network topology path |
-| 0e6058a | feat: add stringdb graph builder |
-| cac175d | feat: add igraph graph builder |
-| 88d901a | feat: add node edge graph builder |
 
 ## Remaining Limits
 
