@@ -136,7 +136,7 @@ mod_data_hub_server <- function(id, registry) {
       )
     }
 
-    shiny::observeEvent(input$register, {
+    register_uploaded_file <- function() {
       shiny::req(input$file)
 
       result <- tryCatch(
@@ -157,6 +157,14 @@ mod_data_hub_server <- function(id, registry) {
       )
 
       invisible(result)
+    }
+
+    shiny::observeEvent(input$file, {
+      register_uploaded_file()
+    }, ignoreInit = TRUE)
+
+    shiny::observeEvent(input$register, {
+      register_uploaded_file()
     })
 
     shiny::observeEvent(input$load_example, {
