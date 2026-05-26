@@ -18,5 +18,22 @@ ui <- bslib::page_navbar(
   bslib::nav_panel("Visual Lab", mod_visual_lab_ui("visual_lab")),
   bslib::nav_panel("Topology", mod_topology_results_ui("topology_results")),
   bslib::nav_panel("Compare & Environment", mod_compare_environment_ui("compare_environment")),
-  bslib::nav_panel("Export", mod_export_center_ui("export_center"))
+  bslib::nav_panel("Export", mod_export_center_ui("export_center")),
+  bslib::nav_panel(
+    "Manual",
+    shiny::div(
+      class = "ggnv-manual-toolbar",
+      shiny::tags$a(
+        href = "manual/index.html",
+        target = "_blank",
+        rel = "noopener",
+        "Open manual in new tab"
+      )
+    ),
+    shiny::tags$iframe(
+      class = "ggnv-manual-frame",
+      src = "manual/index.html",
+      title = "ggNetView manual"
+    )
+  )
 )

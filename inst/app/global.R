@@ -21,6 +21,11 @@ if (exists("mem.maxVSize", mode = "function")) {
   mem.maxVSize(vector_limit_mb)
 }
 
+manual_docs_dir <- file.path(app_root, "package/ggNetView-manual/docs")
+if (dir.exists(manual_docs_dir)) {
+  shiny::addResourcePath("manual", manual_docs_dir)
+}
+
 app_helper_env <- new.env(parent = .GlobalEnv)
 app_helper_files <- file.path(app_root, "R", c(
   "app_validation.R",

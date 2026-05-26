@@ -22,6 +22,19 @@ test_that("Shiny UI exposes an Introduction tab backed by README markdown", {
   expect_match(ui_text, "README.md", fixed = TRUE)
 })
 
+test_that("Shiny UI exposes the bundled manual as a resource-backed tab", {
+  ui_text <- paste(readLines(test_path("../../inst/app/ui.R"), warn = FALSE), collapse = "\n")
+  global_text <- paste(readLines(test_path("../../inst/app/global.R"), warn = FALSE), collapse = "\n")
+
+  expect_true(file.exists(test_path("../../package/ggNetView-manual/docs/index.html")))
+  expect_match(global_text, "addResourcePath", fixed = TRUE)
+  expect_match(global_text, "\"manual\"", fixed = TRUE)
+  expect_match(global_text, "package/ggNetView-manual/docs", fixed = TRUE)
+  expect_match(ui_text, "Manual", fixed = TRUE)
+  expect_match(ui_text, "iframe", fixed = TRUE)
+  expect_match(ui_text, "manual/index.html", fixed = TRUE)
+})
+
 test_that("mobile layout browser smoke exists and checks overflow", {
   path <- test_path("../../tests/run_shiny_mobile_layout_smoke.R")
   expect_true(file.exists(path))
