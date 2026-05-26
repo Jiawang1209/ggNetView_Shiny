@@ -33,6 +33,21 @@ test_that("Shiny UI exposes the bundled manual as a resource-backed tab", {
   expect_match(ui_text, "Manual", fixed = TRUE)
   expect_match(ui_text, "iframe", fixed = TRUE)
   expect_match(ui_text, "manual/index.html", fixed = TRUE)
+
+  tab_positions <- vapply(
+    c(
+      'nav_panel(\n    "Introduction"',
+      'nav_panel(\n    "Manual"',
+      'nav_panel("Data Hub"',
+      'nav_panel("Export"'
+    ),
+    function(pattern) regexpr(pattern, ui_text, fixed = TRUE)[[1]],
+    integer(1)
+  )
+  expect_true(all(tab_positions > 0))
+  expect_true(tab_positions[[1]] < tab_positions[[2]])
+  expect_true(tab_positions[[2]] < tab_positions[[3]])
+  expect_true(tab_positions[[3]] < tab_positions[[4]])
 })
 
 test_that("mobile layout browser smoke exists and checks overflow", {
