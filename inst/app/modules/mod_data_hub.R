@@ -231,9 +231,29 @@ mod_data_hub_server <- function(id, registry) {
     output$preview <- DT::renderDT({
       table <- current_table()
       shiny::req(table)
-      preview_table(table)
-    }, rownames = FALSE)
+      DT::datatable(
+        preview_table(table),
+        rownames = FALSE,
+        class = "compact stripe hover",
+        options = list(
+          dom = "t",
+          paging = FALSE,
+          ordering = FALSE,
+          autoWidth = TRUE
+        )
+      )
+    })
 
-    output$objects <- DT::renderDT(registry_list(registry), rownames = FALSE)
+    output$objects <- DT::renderDT({
+      DT::datatable(
+        registry_list(registry),
+        rownames = FALSE,
+        class = "compact stripe hover",
+        options = list(
+          pageLength = 10,
+          autoWidth = TRUE
+        )
+      )
+    })
   })
 }

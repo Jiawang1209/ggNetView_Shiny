@@ -106,6 +106,15 @@ wait_for_text("Registered manual example workflow objects", timeout = 120000)
 wait_for_text("gallery_matrix_graph", timeout = 120000)
 assert_no_horizontal_overflow("Data Hub after manual examples")
 
+app$wait_for_js(
+  "(() => {
+    const preview = document.querySelector('#data_hub-preview .dataTables_wrapper');
+    if (!preview) return false;
+    return preview.scrollWidth <= preview.clientWidth + 1;
+  })();",
+  timeout = 60000
+)
+
 activate_tab("Visual Lab")
 click("#visual_lab-draw")
 wait_for_text("Registered plot:", timeout = 120000)

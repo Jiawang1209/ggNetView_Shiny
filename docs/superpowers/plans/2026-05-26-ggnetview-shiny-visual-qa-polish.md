@@ -316,7 +316,7 @@ git commit -m "fix: improve visual lab navigation layout"
 - Test: `tests/run_shiny_phase2_workflow_smoke.R`
 - Test: `tests/run_shiny_mobile_layout_smoke.R`
 
-- [ ] **Step 1: Find the DT render points**
+- [x] **Step 1: Find the DT render points**
 
 Run:
 
@@ -326,7 +326,7 @@ rg -n "DT::datatable|renderDT|datatable\\(" inst/app R app.R
 
 Expected: identify the Preview and Objects table renderers.
 
-- [ ] **Step 2: Keep horizontal scroll only where necessary**
+- [x] **Step 2: Keep horizontal scroll only where necessary**
 
 For small preview matrices, use `scrollX = FALSE` and compact display options:
 
@@ -360,7 +360,7 @@ DT::datatable(
 )
 ```
 
-- [ ] **Step 3: Run Data Hub and mobile smokes**
+- [x] **Step 3: Run Data Hub and mobile smokes**
 
 Run:
 
@@ -371,7 +371,7 @@ Run:
 
 Expected: both pass and no page-level horizontal overflow.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add inst/app/modules/mod_data_hub.R inst/app/www/app.css
@@ -411,7 +411,7 @@ Run:
 
 Expected: PASS; busy button states still appear and clear.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add inst/app/www/app.css

@@ -15,6 +15,14 @@ body {
   overflow-x: auto;
 }
 
+#data_hub-preview .dataTables_wrapper {
+  overflow-x: hidden;
+}
+
+#data_hub-preview table.dataTable {
+  width: 100% !important;
+}
+
 .ggnv-export-section {
   margin: 0.75rem 0 1rem;
 }
