@@ -50,6 +50,17 @@ test_that("Shiny UI exposes the bundled manual as a resource-backed tab", {
   expect_true(tab_positions[[3]] < tab_positions[[4]])
 })
 
+test_that("Graph Explorer gives subgraph controls enough layout space", {
+  ui_text <- paste(readLines(test_path("../../inst/app/modules/mod_graph_explorer.R"), warn = FALSE), collapse = "\n")
+
+  expect_match(ui_text, "layout_sidebar", fixed = TRUE)
+  expect_match(ui_text, "accordion_panel", fixed = TRUE)
+  expect_match(ui_text, "\"Module subgraph\"", fixed = TRUE)
+  expect_match(ui_text, "\"Sample subgraph\"", fixed = TRUE)
+  expect_match(ui_text, "col_widths = c(12, 12, 6, 6, 6, 6)", fixed = TRUE)
+  expect_false(grepl("col_widths = c(4, 8, 4, 4, 4, 4, 4)", ui_text, fixed = TRUE))
+})
+
 test_that("mobile layout browser smoke exists and checks overflow", {
   path <- test_path("../../tests/run_shiny_mobile_layout_smoke.R")
   expect_true(file.exists(path))
