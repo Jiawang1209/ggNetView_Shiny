@@ -105,10 +105,14 @@ if (!dir.exists(module_base) && dir.exists(file.path("inst", "app", "modules")))
 module_files <- file.path(module_base, c(
   "mod_data_hub.R",
   "mod_graph_builder.R",
+  "mod_rmt_builder.R",
   "mod_graph_explorer.R",
   "mod_visual_lab.R",
   "mod_topology_results.R",
+  "mod_zipi_results.R",
   "mod_compare_environment.R",
+  "mod_network_compare.R",
+  "mod_environment_links.R",
   "mod_export_center.R"
 ))
 invisible(lapply(module_files, source, local = FALSE))

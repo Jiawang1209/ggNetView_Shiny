@@ -2,9 +2,13 @@ test_that("first milestone Shiny module files exist", {
   files <- c(
     "inst/app/modules/mod_data_hub.R",
     "inst/app/modules/mod_graph_builder.R",
+    "inst/app/modules/mod_rmt_builder.R",
     "inst/app/modules/mod_graph_explorer.R",
     "inst/app/modules/mod_visual_lab.R",
     "inst/app/modules/mod_topology_results.R",
+    "inst/app/modules/mod_zipi_results.R",
+    "inst/app/modules/mod_network_compare.R",
+    "inst/app/modules/mod_environment_links.R",
     "inst/app/modules/mod_compare_environment.R",
     "inst/app/modules/mod_export_center.R",
     "inst/app/ui.R",
@@ -13,6 +17,70 @@ test_that("first milestone Shiny module files exist", {
   )
 
   expect_true(all(file.exists(test_path("../../", files))))
+})
+
+test_that("Shiny navigation separates optional RMT, network compare, and environment workflows", {
+  ui_text <- paste(readLines(test_path("../../inst/app/ui.R"), warn = FALSE), collapse = "\n")
+  global_text <- paste(readLines(test_path("../../inst/app/global.R"), warn = FALSE), collapse = "\n")
+  server_text <- paste(readLines(test_path("../../inst/app/server.R"), warn = FALSE), collapse = "\n")
+
+  labels <- c(
+    "Introduction",
+    "Manual",
+    "Data Hub",
+    "Graph Builder",
+    "RMT Builder",
+    "Graph Explorer",
+    "Visual Lab",
+    "Topology",
+    "Zi-Pi",
+    "Network Compare",
+    "Environment Links",
+    "Export"
+  )
+  positions <- vapply(labels, function(label) regexpr(label, ui_text, fixed = TRUE)[[1]], integer(1))
+
+  expect_true(all(positions > 0))
+  expect_true(all(diff(positions) > 0))
+  expect_match(ui_text, "mod_rmt_builder_ui", fixed = TRUE)
+  expect_match(ui_text, "mod_network_compare_ui", fixed = TRUE)
+  expect_match(ui_text, "mod_environment_links_ui", fixed = TRUE)
+  expect_match(global_text, "mod_rmt_builder.R", fixed = TRUE)
+  expect_match(global_text, "mod_network_compare.R", fixed = TRUE)
+  expect_match(global_text, "mod_environment_links.R", fixed = TRUE)
+  expect_match(global_text, "mod_zipi_results.R", fixed = TRUE)
+  expect_match(server_text, "mod_rmt_builder_server", fixed = TRUE)
+  expect_match(server_text, "mod_network_compare_server", fixed = TRUE)
+  expect_match(server_text, "mod_environment_links_server", fixed = TRUE)
+  expect_match(server_text, "mod_zipi_results_server", fixed = TRUE)
+})
+
+test_that("standard Graph Builder no longer exposes RMT-only controls", {
+  source_text <- paste(readLines(test_path("../../inst/app/modules/mod_graph_builder.R"), warn = FALSE), collapse = "\n")
+
+  expect_false(grepl("Matrix + RMT", source_text, fixed = TRUE))
+  expect_false(grepl("run_rmt", source_text, fixed = TRUE))
+  expect_false(grepl("\"matrix_rmt\"", source_text, fixed = TRUE))
+})
+
+test_that("Graph Builder arranges build parameters in two-column rows", {
+  source_text <- paste(readLines(test_path("../../inst/app/modules/mod_graph_builder.R"), warn = FALSE), collapse = "\n")
+  css_text <- paste(readLines(test_path("../../inst/app/www/styles.css"), warn = FALSE), collapse = "\n")
+
+  expect_match(source_text, "class = \"graph-builder-params\"", fixed = TRUE)
+  expect_match(source_text, "class = \"graph-builder-actions\"", fixed = TRUE)
+  expect_match(source_text, "class = \"graph-builder-two-column\"", fixed = TRUE)
+  expect_match(source_text, "class = \"graph-builder-card\"", fixed = TRUE)
+  expect_false(grepl("col_widths = c(8, 4)", source_text, fixed = TRUE))
+  expect_false(grepl("col_widths = c(6, 6", source_text, fixed = TRUE))
+  expect_match(css_text, ".graph-builder-two-column", fixed = TRUE)
+  expect_match(css_text, "grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);", fixed = TRUE)
+  expect_match(css_text, ".graph-builder-params", fixed = TRUE)
+  expect_match(css_text, "grid-template-columns: repeat(2, minmax(280px, 1fr));", fixed = TRUE)
+  expect_match(css_text, ".graph-builder-card > .card-body", fixed = TRUE)
+  expect_match(css_text, "overflow: visible !important;", fixed = TRUE)
+  expect_match(css_text, ".graph-builder-params .shiny-input-container", fixed = TRUE)
+  expect_match(css_text, "width: 100% !important;", fixed = TRUE)
 })
 
 test_that("Shiny UI exposes an Introduction tab backed by README markdown", {
@@ -50,15 +118,82 @@ test_that("Shiny UI exposes the bundled manual as a resource-backed tab", {
   expect_true(tab_positions[[3]] < tab_positions[[4]])
 })
 
-test_that("Graph Explorer gives subgraph controls enough layout space", {
+test_that("Graph Explorer keeps parameter-heavy subgraph controls in the sidebar", {
   ui_text <- paste(readLines(test_path("../../inst/app/modules/mod_graph_explorer.R"), warn = FALSE), collapse = "\n")
 
   expect_match(ui_text, "layout_sidebar", fixed = TRUE)
+  expect_match(ui_text, "title = \"Graph Controls\"", fixed = TRUE)
+  expect_match(ui_text, "width = 400", fixed = TRUE)
+  expect_match(ui_text, "bslib::card_header(\"Summary\")", fixed = TRUE)
   expect_match(ui_text, "accordion_panel", fixed = TRUE)
   expect_match(ui_text, "\"Module subgraph\"", fixed = TRUE)
   expect_match(ui_text, "\"Sample subgraph\"", fixed = TRUE)
-  expect_match(ui_text, "col_widths = c(12, 12, 6, 6, 6, 6)", fixed = TRUE)
+  expect_match(ui_text, "col_widths = c(12, 6, 6, 6, 6)", fixed = TRUE)
+  expect_false(grepl("bslib::card_header(\"Subgraph\")", ui_text, fixed = TRUE))
   expect_false(grepl("col_widths = c(4, 8, 4, 4, 4, 4, 4)", ui_text, fixed = TRUE))
+})
+
+test_that("Topology keeps calculate controls readable in a sidebar accordion", {
+  ui_text <- paste(readLines(test_path("../../inst/app/modules/mod_topology_results.R"), warn = FALSE), collapse = "\n")
+  css_text <- paste(readLines(test_path("../../inst/app/www/styles.css"), warn = FALSE), collapse = "\n")
+
+  expect_match(ui_text, "layout_sidebar", fixed = TRUE)
+  expect_match(ui_text, "title = \"Calculate\"", fixed = TRUE)
+  expect_match(ui_text, "width = 420", fixed = TRUE)
+  expect_match(ui_text, "accordion", fixed = TRUE)
+  expect_match(ui_text, "\"Network topology\"", fixed = TRUE)
+  expect_match(ui_text, "\"Sample topology\"", fixed = TRUE)
+  expect_match(ui_text, "\"Node centrality\"", fixed = TRUE)
+  expect_match(ui_text, "\"IVI\"", fixed = TRUE)
+  expect_match(ui_text, "class = \"topology-control-grid\"", fixed = TRUE)
+  expect_match(css_text, ".topology-control-grid", fixed = TRUE)
+  expect_match(css_text, "grid-template-columns: repeat(2, minmax(0, 1fr));", fixed = TRUE)
+  expect_false(grepl("\"Zi-Pi\"", ui_text, fixed = TRUE))
+  expect_false(grepl("zi_threshold", ui_text, fixed = TRUE))
+  expect_false(grepl("pi_threshold", ui_text, fixed = TRUE))
+  expect_false(grepl("calculate_zipi", ui_text, fixed = TRUE))
+  expect_false(grepl("safe_zipi", ui_text, fixed = TRUE))
+  expect_false(grepl("col_widths = c(4, 8, 6, 6, 6, 6, 6)", ui_text, fixed = TRUE))
+})
+
+test_that("Zi-Pi has a dedicated results page", {
+  ui_text <- paste(readLines(test_path("../../inst/app/ui.R"), warn = FALSE), collapse = "\n")
+  global_text <- paste(readLines(test_path("../../inst/app/global.R"), warn = FALSE), collapse = "\n")
+  server_text <- paste(readLines(test_path("../../inst/app/server.R"), warn = FALSE), collapse = "\n")
+  source_text <- paste(readLines(test_path("../../inst/app/modules/mod_zipi_results.R"), warn = FALSE), collapse = "\n")
+  css_text <- paste(readLines(test_path("../../inst/app/www/styles.css"), warn = FALSE), collapse = "\n")
+
+  expect_match(ui_text, "nav_panel(\"Zi-Pi\", mod_zipi_results_ui(\"zipi_results\"))", fixed = TRUE)
+  expect_match(global_text, "mod_zipi_results.R", fixed = TRUE)
+  expect_match(server_text, "mod_zipi_results_server(\"zipi_results\", registry)", fixed = TRUE)
+
+  expect_match(source_text, "mod_zipi_results_ui", fixed = TRUE)
+  expect_match(source_text, "mod_zipi_results_server", fixed = TRUE)
+  expect_match(source_text, "Calculate Zi-Pi", fixed = TRUE)
+  expect_match(source_text, "class = \"zipi-page\"", fixed = TRUE)
+  expect_match(source_text, "class = \"zipi-control-grid\"", fixed = TRUE)
+  expect_match(source_text, "DT::DTOutput(ns(\"zipi\"))", fixed = TRUE)
+  expect_match(source_text, "download_zipi", fixed = TRUE)
+  expect_match(source_text, "safe_zipi", fixed = TRUE)
+  expect_match(css_text, ".zipi-page", fixed = TRUE)
+  expect_match(css_text, ".zipi-control-grid", fixed = TRUE)
+})
+
+test_that("split comparison pages provide every shared server output binding", {
+  network_text <- paste(readLines(test_path("../../inst/app/modules/mod_network_compare.R"), warn = FALSE), collapse = "\n")
+  environment_text <- paste(readLines(test_path("../../inst/app/modules/mod_environment_links.R"), warn = FALSE), collapse = "\n")
+  server_text <- paste(readLines(test_path("../../inst/app/modules/mod_compare_environment.R"), warn = FALSE), collapse = "\n")
+
+  shared_outputs <- unique(sub(
+    ".*output\\$([A-Za-z0-9_]+).*",
+    "\\1",
+    regmatches(server_text, gregexpr("output\\$[A-Za-z0-9_]+", server_text))[[1]]
+  ))
+
+  for (output_id in shared_outputs) {
+    expect_match(network_text, sprintf('ns("%s")', output_id), fixed = TRUE)
+    expect_match(environment_text, sprintf('ns("%s")', output_id), fixed = TRUE)
+  }
 })
 
 test_that("mobile layout browser smoke exists and checks overflow", {

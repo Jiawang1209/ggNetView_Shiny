@@ -36,6 +36,7 @@ test_that("validated upload values reject invalid matrix previews", {
 
 source(test_path("../../R/app_graph_builders.R"))
 source(test_path("../../inst/app/modules/mod_graph_builder.R"))
+source(test_path("../../inst/app/modules/mod_rmt_builder.R"))
 
 test_that("graph builder params match ggNetView matrix workflow", {
   params <- graph_builder_params(
@@ -91,7 +92,7 @@ test_that("graph builder validates source type matches", {
     unname(graph_builder_modes())
   )
   expect_true(builder_matches_source_type("matrix", "matrix"))
-  expect_true(builder_matches_source_type("matrix_rmt", "matrix"))
+  expect_false(builder_matches_source_type("matrix_rmt", "matrix"))
   expect_true(builder_matches_source_type("double_matrix", "matrix"))
   expect_true(builder_matches_source_type("multi_matrix", "matrix"))
   expect_true(builder_matches_source_type("adjacency", "adjacency"))
@@ -101,6 +102,26 @@ test_that("graph builder validates source type matches", {
   expect_false(builder_matches_source_type("matrix", "edge_table"))
   expect_false(builder_matches_source_type("edge_table", "matrix"))
   expect_false(builder_matches_source_type("Louvain", "matrix"))
+})
+
+test_that("RMT builder owns RMT graph parameters", {
+  params <- rmt_builder_params(
+    method = "WGCNA",
+    cor_method = "spearman",
+    proc = "BH",
+    r_threshold = 0.7,
+    p_threshold = 0.05,
+    module_method = "Walktrap",
+    transform_method = "scale"
+  )
+
+  expect_equal(params$method, "WGCNA")
+  expect_equal(params$cor.method, "spearman")
+  expect_equal(params$proc, "BH")
+  expect_equal(params$r.threshold, 0.7)
+  expect_equal(params$p.threshold, 0.05)
+  expect_equal(params$module.method, "Walktrap")
+  expect_equal(params$transfrom.method, "scale")
 })
 
 source(test_path("../../inst/app/modules/mod_topology_results.R"))

@@ -2,41 +2,36 @@ mod_graph_explorer_ui <- function(id) {
   ns <- shiny::NS(id)
   bslib::layout_sidebar(
     sidebar = bslib::sidebar(
-      title = "Select Graph",
-      width = 320,
+      title = "Graph Controls",
+      width = 400,
       shiny::selectInput(ns("graph_id"), "Graph object", choices = character()),
-      shiny::actionButton(ns("register_info"), "Register graph info", class = "w-100")
+      shiny::actionButton(ns("register_info"), "Register graph info", class = "w-100"),
+      shiny::hr(),
+      bslib::accordion(
+        open = c("Module subgraph", "Sample subgraph"),
+        bslib::accordion_panel(
+          "Module subgraph",
+          shiny::selectInput(ns("module"), "Module", choices = character()),
+          shiny::actionButton(ns("register_module_subgraph"), "Register module subgraph", class = "w-100")
+        ),
+        bslib::accordion_panel(
+          "Sample subgraph",
+          shiny::selectInput(ns("matrix_id"), "Sample matrix", choices = character()),
+          shiny::selectizeInput(ns("sample_ids"), "Samples", choices = character(), multiple = TRUE),
+          bslib::layout_columns(
+            shiny::numericInput(ns("min_abundance"), "Min abundance", value = 0, min = 0, step = 0.001),
+            shiny::selectInput(ns("combine"), "Combine samples", choices = c("union", "intersect")),
+            col_widths = c(6, 6)
+          ),
+          shiny::actionButton(ns("register_sample_subgraph"), "Register sample subgraph", class = "w-100")
+        )
+      ),
+      shiny::verbatimTextOutput(ns("status"))
     ),
     bslib::layout_columns(
       bslib::card(
         bslib::card_header("Summary"),
         shiny::verbatimTextOutput(ns("summary"))
-      ),
-      bslib::card(
-        bslib::card_header("Subgraph"),
-        bslib::accordion(
-          open = c("Module subgraph", "Sample subgraph"),
-          bslib::accordion_panel(
-            "Module subgraph",
-            bslib::layout_columns(
-              shiny::selectInput(ns("module"), "Module", choices = character()),
-              shiny::actionButton(ns("register_module_subgraph"), "Register module subgraph", class = "w-100"),
-              col_widths = c(8, 4)
-            )
-          ),
-          bslib::accordion_panel(
-            "Sample subgraph",
-            bslib::layout_columns(
-              shiny::selectInput(ns("matrix_id"), "Sample matrix", choices = character()),
-              shiny::selectizeInput(ns("sample_ids"), "Samples", choices = character(), multiple = TRUE),
-              shiny::numericInput(ns("min_abundance"), "Min abundance", value = 0, min = 0, step = 0.001),
-              shiny::selectInput(ns("combine"), "Combine samples", choices = c("union", "intersect")),
-              shiny::actionButton(ns("register_sample_subgraph"), "Register sample subgraph", class = "w-100"),
-              col_widths = c(6, 6, 4, 4, 4)
-            )
-          )
-        ),
-        shiny::verbatimTextOutput(ns("status"))
       ),
       bslib::card(
         bslib::card_header("Nodes"),
@@ -54,7 +49,7 @@ mod_graph_explorer_ui <- function(id) {
         bslib::card_header("Sample Stats"),
         DT::DTOutput(ns("sample_stats"))
       ),
-      col_widths = c(12, 12, 6, 6, 6, 6)
+      col_widths = c(12, 6, 6, 6, 6)
     )
   )
 }

@@ -129,7 +129,8 @@ tab_checks <- c(
   "Graph Explorer" = "graph_explorer-register_info",
   "Visual Lab" = "visual_lab-status",
   "Topology" = "topology_results-calculate",
-  "Compare & Environment" = "compare_environment-run_compare",
+  "Network Compare" = "network_compare-run_compare",
+  "Environment Links" = "environment_links-run_environment",
   "Export" = "export_center-replay_status"
 )
 for (tab in names(tab_checks)) {

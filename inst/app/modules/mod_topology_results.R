@@ -1,61 +1,80 @@
 mod_topology_results_ui <- function(id) {
   ns <- shiny::NS(id)
-  bslib::layout_columns(
-    bslib::card(
-      bslib::card_header("Calculate"),
-      shiny::selectInput(ns("graph_id"), "Graph object", choices = character()),
-      shiny::checkboxInput(ns("topology_parallel_api"), "Use topology parallel API", value = FALSE),
-      shiny::numericInput(ns("topology_bootstrap"), "Topology bootstrap", value = 0, min = 0, step = 1),
-      shiny::checkboxInput(ns("topology_parallel"), "Run topology workers in parallel", value = FALSE),
-      shiny::numericInput(ns("topology_workers"), "Topology workers", value = 1, min = 1, step = 1),
-      shiny::actionButton(ns("calculate"), "Calculate topology"),
-      shiny::hr(),
-      shiny::selectInput(ns("matrix_id"), "Matrix for sample topology", choices = character()),
-      shiny::numericInput(ns("sample_bootstrap"), "Sample topology bootstrap", value = 0, min = 0, step = 1),
-      shiny::checkboxInput(ns("sample_parallel"), "Use sample topology parallel API", value = FALSE),
-      shiny::numericInput(ns("sample_workers"), "Sample topology workers", value = 1, min = 1, step = 1),
-      shiny::actionButton(ns("calculate_sample_topology"), "Calculate sample topology"),
-      shiny::hr(),
-      shiny::checkboxInput(ns("weighted_centrality"), "Weighted centrality", value = FALSE),
-      shiny::actionButton(ns("calculate_centrality"), "Calculate centrality"),
-      shiny::selectInput(ns("ivi_scale"), "IVI scale", choices = c("range", "z-scale", "none")),
-      shiny::actionButton(ns("calculate_ivi"), "Calculate IVI"),
-      shiny::numericInput(ns("zi_threshold"), "Zi threshold", value = 2.5, min = 0, step = 0.1),
-      shiny::numericInput(ns("pi_threshold"), "Pi threshold", value = 0.62, min = 0, max = 1, step = 0.01),
-      shiny::actionButton(ns("calculate_zipi"), "Calculate Zi-Pi")
+  bslib::layout_sidebar(
+    sidebar = bslib::sidebar(
+      title = "Calculate",
+      width = 420,
+      bslib::accordion(
+        bslib::accordion_panel(
+          "Network topology",
+          shiny::selectInput(ns("graph_id"), "Graph object", choices = character()),
+          shiny::div(
+            class = "topology-control-grid",
+            shiny::numericInput(ns("topology_bootstrap"), "Topology bootstrap", value = 0, min = 0, step = 1),
+            shiny::numericInput(ns("topology_workers"), "Topology workers", value = 1, min = 1, step = 1)
+          ),
+          shiny::checkboxInput(ns("topology_parallel_api"), "Use topology parallel API", value = FALSE),
+          shiny::checkboxInput(ns("topology_parallel"), "Run topology workers in parallel", value = FALSE),
+          shiny::actionButton(ns("calculate"), "Calculate topology", class = "w-100")
+        ),
+        bslib::accordion_panel(
+          "Sample topology",
+          shiny::selectInput(ns("matrix_id"), "Matrix for sample topology", choices = character()),
+          shiny::div(
+            class = "topology-control-grid",
+            shiny::numericInput(ns("sample_bootstrap"), "Sample topology bootstrap", value = 0, min = 0, step = 1),
+            shiny::numericInput(ns("sample_workers"), "Sample topology workers", value = 1, min = 1, step = 1)
+          ),
+          shiny::checkboxInput(ns("sample_parallel"), "Use sample topology parallel API", value = FALSE),
+          shiny::actionButton(ns("calculate_sample_topology"), "Calculate sample topology", class = "w-100")
+        ),
+        bslib::accordion_panel(
+          "Node centrality",
+          shiny::checkboxInput(ns("weighted_centrality"), "Weighted centrality", value = FALSE),
+          shiny::actionButton(ns("calculate_centrality"), "Calculate centrality", class = "w-100")
+        ),
+        bslib::accordion_panel(
+          "IVI",
+          shiny::selectInput(ns("ivi_scale"), "IVI scale", choices = c("range", "z-scale", "none")),
+          shiny::actionButton(ns("calculate_ivi"), "Calculate IVI", class = "w-100")
+        ),
+        open = "Network topology"
+      )
     ),
-    bslib::card(
-      bslib::card_header("Topology"),
-      DT::DTOutput(ns("topology")),
-      shiny::downloadButton(ns("download_topology"), "Download Topology CSV"),
-      shiny::verbatimTextOutput(ns("status"))
-    ),
-    bslib::card(
-      bslib::card_header("Robustness"),
-      DT::DTOutput(ns("robustness")),
-      shiny::downloadButton(ns("download_robustness"), "Download Robustness CSV")
-    ),
-    bslib::card(
-      bslib::card_header("Node Metrics"),
-      DT::DTOutput(ns("node_metrics")),
-      shiny::downloadButton(ns("download_node_metrics"), "Download Node Metrics CSV")
-    ),
-    bslib::card(
-      bslib::card_header("Sample Topology"),
-      DT::DTOutput(ns("sample_topology")),
-      shiny::downloadButton(ns("download_sample_topology"), "Download Sample Topology CSV")
-    ),
-    bslib::card(
-      bslib::card_header("Sample Stats"),
-      DT::DTOutput(ns("sample_stats")),
-      shiny::downloadButton(ns("download_sample_stats"), "Download Sample Stats CSV")
-    ),
-    bslib::card(
-      bslib::card_header("Sample Robustness"),
-      DT::DTOutput(ns("sample_robustness")),
-      shiny::downloadButton(ns("download_sample_robustness"), "Download Sample Robustness CSV")
-    ),
-    col_widths = c(4, 8, 6, 6, 6, 6, 6)
+    bslib::layout_columns(
+      bslib::card(
+        bslib::card_header("Topology"),
+        DT::DTOutput(ns("topology")),
+        shiny::downloadButton(ns("download_topology"), "Download Topology CSV"),
+        shiny::verbatimTextOutput(ns("status"))
+      ),
+      bslib::card(
+        bslib::card_header("Robustness"),
+        DT::DTOutput(ns("robustness")),
+        shiny::downloadButton(ns("download_robustness"), "Download Robustness CSV")
+      ),
+      bslib::card(
+        bslib::card_header("Node Metrics"),
+        DT::DTOutput(ns("node_metrics")),
+        shiny::downloadButton(ns("download_node_metrics"), "Download Node Metrics CSV")
+      ),
+      bslib::card(
+        bslib::card_header("Sample Topology"),
+        DT::DTOutput(ns("sample_topology")),
+        shiny::downloadButton(ns("download_sample_topology"), "Download Sample Topology CSV")
+      ),
+      bslib::card(
+        bslib::card_header("Sample Stats"),
+        DT::DTOutput(ns("sample_stats")),
+        shiny::downloadButton(ns("download_sample_stats"), "Download Sample Stats CSV")
+      ),
+      bslib::card(
+        bslib::card_header("Sample Robustness"),
+        DT::DTOutput(ns("sample_robustness")),
+        shiny::downloadButton(ns("download_sample_robustness"), "Download Sample Robustness CSV")
+      ),
+      col_widths = c(12, 6, 6, 6, 6, 6)
+    )
   )
 }
 
@@ -309,30 +328,6 @@ mod_topology_results_server <- function(id, registry) {
         result,
         graph_item,
         params = list(scale = input$ivi_scale, ncores = 1L)
-      )
-    })
-
-    shiny::observeEvent(input$calculate_zipi, {
-      shiny::req(input$graph_id)
-      graph_item <- registry_get(registry, input$graph_id)
-      shiny::req(graph_item)
-
-      status(task_feedback_message("Zi-Pi classification", "running"))
-      result <- with_task_feedback(
-        session,
-        "Zi-Pi classification",
-        session$ns("calculate_zipi"),
-        safe_zipi(
-          graph_item$data,
-          zi_threshold = input$zi_threshold,
-          pi_threshold = input$pi_threshold
-        )
-      )
-      register_node_metric(
-        "zipi",
-        result,
-        graph_item,
-        params = list(zi_threshold = input$zi_threshold, pi_threshold = input$pi_threshold)
       )
     })
 

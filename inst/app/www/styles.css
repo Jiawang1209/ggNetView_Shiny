@@ -74,6 +74,97 @@ body {
   border: 0;
 }
 
+.graph-builder-two-column {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.graph-builder-params,
+.graph-builder-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 1rem 1.25rem;
+  align-items: end;
+}
+
+.graph-builder-card,
+.graph-builder-card > .card-body {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.graph-builder-params .shiny-input-container,
+.graph-builder-actions .shiny-input-container {
+  width: 100% !important;
+  margin-bottom: 0;
+}
+
+.graph-builder-build-action {
+  width: 100%;
+}
+
+.graph-builder-build-action .btn {
+  min-height: 38px;
+}
+
+.topology-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.topology-control-grid .shiny-input-container {
+  width: 100% !important;
+  margin-bottom: 0;
+}
+
+.zipi-page {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.4fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.zipi-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.zipi-control-card,
+.zipi-result-card,
+.zipi-control-card > .card-body,
+.zipi-result-card > .card-body {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.zipi-control-grid .shiny-input-container {
+  width: 100% !important;
+  margin-bottom: 0;
+}
+
+.ggnv-hidden-output-binding {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .graph-builder-two-column,
+  .graph-builder-params,
+  .graph-builder-actions,
+  .topology-control-grid,
+  .zipi-page,
+  .zipi-control-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .visual-lab-preview-card .card-body {
   min-height: 720px;
 }

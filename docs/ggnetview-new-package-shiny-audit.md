@@ -55,7 +55,7 @@ New dependencies relative to the old root package:
 | Function | Notable new arguments / behavior | Current Shiny state |
 | --- | --- | --- |
 | `ggNetView()` | Adds `label_layout`, `label_wrap_width`, `label_outer_pad`, and `bandwidth_scale`. | Visual Lab exposes the main layout families and common visual controls; exhaustive per-argument coverage still needs broader visual regression. |
-| `gglink_heatmaps()` | Adds Mantel/correlation distance choices, collapse modes, significance mapping, group angle, and line styling. | Compare & Environment exposes the main heatmap, Mantel path, multi-core geometry, point/label sizing, and significant-line styling controls. |
+| `gglink_heatmaps()` | Adds Mantel/correlation distance choices, collapse modes, significance mapping, group angle, and line styling. | Environment Links exposes the main heatmap, Mantel path, multi-core geometry, point/label sizing, and significant-line styling controls. |
 | `ggnetview_modularity_heatmaps()` | Adds module-level Mantel heatmap behavior. | Covered as a direct module-level environment heatmap path. |
 | `ggNetView_multi()` | Adds `bandwidth_scale`. | Covered as grouped multi-network plot path with room for richer group controls. |
 | `ggNetView_multi_link()` | Adds `bandwidth_scale`; manual chapter 07 relies on it. | Covered as a multi-network comparison path with remaining display-depth work. |
@@ -65,7 +65,7 @@ New dependencies relative to the old root package:
 | Manual chapter | Core workflow | Current Shiny coverage |
 | --- | --- | --- |
 | `01-create_graph_object.Rmd` | Build graphs from matrix, edge list, node+edge tables, STRINGDB/PPI tables, module annotation, adjacency, double matrix, igraph, WGCNA, consensus | Covered for matrix, RMT-fed matrix, edge table, node+edge table, STRINGDB/PPI table import, igraph object, adjacency, double matrix, multi matrix, WGCNA/TOM, and consensus. Direct STRING REST/API querying remains out of scope. |
-| `02-RMT.Rmd` | RMT threshold scan, then build graph with chosen threshold | Covered in Graph Builder and smoke-tested through the graph builder modes workflow. |
+| `02-RMT.Rmd` | RMT threshold scan, then build graph with chosen threshold | Covered in RMT Builder as an optional, separate graph-building workflow. |
 | `03-graph_info.Rmd` | Node/edge info, module subgraph info, sample subgraph info | Covered in Graph Explorer with graph info plus module/sample subgraph registration. |
 | `04-subgraph.Rmd` | Extract module and sample subgraphs | Covered through module/sample subgraph workflows, registry handoff, plotting, topology, and export. |
 | `05-layout.Rmd` | Full graph and subgraph visual layout gallery | Covered for major layout families and every current Visual Lab layout preset in browser smoke. |
@@ -108,15 +108,15 @@ Status definitions:
 | `get_sample_subgraph_topology` | covered_shiny | Direct Topology runner supports serial and parallel sample-level topology with matrix input. |
 | `get_subgraph` | covered_shiny | Chapters 03, 04, 05; module subgraph extraction and visualization. |
 | `gglink_heatmaps` | covered_shiny | `08-network_environment.Rmd`; environment linkage workflow. |
-| `gglink_heatmaps_2` | covered_shiny | Advanced Compare & Environment path. |
+| `gglink_heatmaps_2` | covered_shiny | Advanced Environment Links path. |
 | `gglink_heatmap_triple` | covered_shiny | Advanced environment/statistics path. |
 | `ggNetView` | covered_shiny | Chapters 01, 05, 10; Visual Lab and Gallery. |
 | `ggNetView_multi` | covered_shiny | Multi-network grouped plot path. |
 | `ggNetView_multi_link` | covered_shiny | `07-network_compare.Rmd`; comparison path. |
 | `ggNetView_RMT` | covered_shiny | `02-RMT.Rmd`; RMT graph builder path. |
-| `ggnetview_modularity_heatmaps` | covered_shiny | Module-level environment heatmap workflow in Compare & Environment. |
+| `ggnetview_modularity_heatmaps` | covered_shiny | Module-level environment heatmap workflow in Environment Links. |
 | `ggnetview_zipi` | covered_shiny | `06-network_topology.Rmd`; Zi-Pi workflow. |
-| `mantel_pairwise`, `mantel_between_blocks`, `mantel_block_vs_col` | covered_shiny | Compare & Environment exposes Mantel table output plus heatmap Mantel method, distance, alternative, and permutation controls. |
+| `mantel_pairwise`, `mantel_between_blocks`, `mantel_block_vs_col` | covered_shiny | Environment Links exposes Mantel table output plus heatmap Mantel method, distance, alternative, and permutation controls. |
 | `trans_TOM_in_WGCNA` | covered_shiny | Chapters 01, 10; WGCNA/TOM builder path. |
 
 ## Current Evidence
@@ -163,13 +163,15 @@ Recent focused checks and browser smokes cover the rebuilt workflow surface:
 Keep the current workflow-level information architecture:
 
 1. `Data Hub`: datasets, uploads, examples, and shared object registry.
-2. `Graph Builder`: typed API-backed graph construction modes.
-3. `Graph Explorer`: graph info, module subgraphs, sample subgraphs, and object handoff.
-4. `Visual Lab`: `ggNetView()` layouts and publication-oriented visual controls.
-5. `Topology and Keystone`: topology, robustness, centrality, IVI, and Zi-Pi.
-6. `Compare and Environment`: multi-network, environment linkage, statistics, and Mantel helpers.
-7. `Export Center`: object-aware downloads and workflow replay metadata.
-8. `Gallery`: manual-derived recipes and guarded rerun paths.
+2. `Graph Builder`: typed API-backed standard graph construction modes.
+3. `RMT Builder`: optional RMT threshold scans and RMT-assisted graph builds.
+4. `Graph Explorer`: graph info, module subgraphs, sample subgraphs, and object handoff.
+5. `Visual Lab`: `ggNetView()` layouts and publication-oriented visual controls.
+6. `Topology and Keystone`: topology, robustness, centrality, IVI, and Zi-Pi.
+7. `Network Compare`: multi-network comparison, link summaries, topology comparison, and report presets.
+8. `Environment Links`: environment linkage, statistics, module heatmaps, triple heatmaps, and Mantel helpers.
+9. `Export Center`: object-aware downloads and workflow replay metadata.
+10. `Gallery`: manual-derived recipes and guarded rerun paths.
 
 Do not turn the remaining APIs into one tab per function. Add them as advanced
 builder modes, advanced analysis panels, or gallery recipes when they support a

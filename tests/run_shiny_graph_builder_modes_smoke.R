@@ -83,12 +83,14 @@ click_tab("Data Hub")
 click("#data_hub-load_gallery")
 wait_for_text("gallery_sample_metadata")
 wait_for_text("gallery_matrix_graph")
-click("a[data-value='Graph Builder']")
+click("a[data-value='RMT Builder']")
 
-set_input("graph_builder-source_id", "obj_0011")
+set_input("rmt_builder-source_id", "obj_0011")
 Sys.sleep(0.5)
-click("#graph_builder-run_rmt")
+click("#rmt_builder-run_rmt")
 wait_for_text("Registered RMT result:")
+
+click("a[data-value='Graph Builder']")
 
 build_graph("browser_matrix", "obj_0001", "matrix")
 build_graph("browser_edge_module", "obj_0003", "edge_table", module = "obj_0004")

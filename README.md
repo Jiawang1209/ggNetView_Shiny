@@ -55,10 +55,13 @@ The Makefile defaults to `/usr/local/bin/R` and `/usr/local/bin/Rscript`.
 
 1. Load the bundled example matrix or upload a CSV/TSV/TXT table in Data Hub.
 2. Build a graph from a matrix, adjacency matrix, or edge table in Graph Builder.
-3. Inspect graph summary, nodes, and edges in Graph Explorer.
-4. Draw and register a ggNetView plot in Visual Lab.
-5. Calculate topology and robustness outputs in Topology Results.
-6. Export objects, parameters, tables, plots, and the object manifest in Export Center.
+3. Run optional RMT threshold scans and RMT-assisted graph builds in RMT Builder.
+4. Inspect graph summary, nodes, and edges in Graph Explorer.
+5. Draw and register a ggNetView plot in Visual Lab.
+6. Calculate topology and robustness outputs in Topology Results.
+7. Compare multiple graph objects in Network Compare.
+8. Run environment-link, Mantel, module heatmap, and triple-heatmap workflows in Environment Links.
+9. Export objects, parameters, tables, plots, and the object manifest in Export Center.
 
 ## Example1
 
