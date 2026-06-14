@@ -308,7 +308,7 @@ mod_visual_lab_ui <- function(id) {
       bslib::card_header("Preview"),
       shiny::div(
         class = "visual-lab-plot-frame",
-        shiny::plotOutput(ns("plot"), height = "620px")
+        shinycssloaders::withSpinner(shiny::plotOutput(ns("plot"), height = "620px"), color = "#AE017E", type = 6)
       ),
       shiny::div(
         class = "visual-lab-status",

@@ -45,7 +45,7 @@ mod_topology_results_ui <- function(id) {
       bslib::card(
         bslib::card_header("Topology"),
         shiny::uiOutput(ns("topology_metrics")),
-        DT::DTOutput(ns("topology")),
+        shinycssloaders::withSpinner(DT::DTOutput(ns("topology")), color = "#AE017E", type = 6),
         shiny::downloadButton(ns("download_topology"), "Download Topology CSV"),
         shiny::verbatimTextOutput(ns("status"))
       ),

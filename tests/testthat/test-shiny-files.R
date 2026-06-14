@@ -310,3 +310,11 @@ test_that("key panels expose value_box metric cards", {
     expect_match(txt, "ggnv_value_box", fixed = TRUE)
   }
 })
+
+test_that("long-running outputs are wrapped in spinners", {
+  for (f in c("mod_visual_lab.R", "mod_topology_results.R",
+              "mod_perturbation.R", "mod_network_compare.R")) {
+    txt <- paste(readLines(test_path(file.path("../../inst/app/modules", f)), warn = FALSE), collapse = "\n")
+    expect_match(txt, "withSpinner", fixed = TRUE)
+  }
+})

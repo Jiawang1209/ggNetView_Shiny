@@ -45,7 +45,7 @@ mod_network_compare_ui <- function(id) {
       bslib::card(
         bslib::card_header("Preview"),
         shiny::uiOutput(ns("compare_metrics")),
-        shiny::plotOutput(ns("plot"), height = 650),
+        shinycssloaders::withSpinner(shiny::plotOutput(ns("plot"), height = 650), color = "#AE017E", type = 6),
         shiny::verbatimTextOutput(ns("status"))
       ),
       bslib::card(

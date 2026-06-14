@@ -87,7 +87,7 @@ mod_perturbation_ui <- function(id) {
       bslib::card(
         bslib::card_header("Attack curve"),
         shiny::selectInput(ns("curve_metric"), "Curve metric", choices = perturbation_curve_metrics()),
-        shiny::plotOutput(ns("attack_plot"), height = "360px"),
+        shinycssloaders::withSpinner(shiny::plotOutput(ns("attack_plot"), height = "360px"), color = "#AE017E", type = 6),
         shiny::downloadButton(ns("download_attack_plot"), "Download curve PNG"),
         shiny::verbatimTextOutput(ns("status"))
       ),
