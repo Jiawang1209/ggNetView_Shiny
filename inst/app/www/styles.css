@@ -214,3 +214,17 @@ body {
 .ggnv-empty-state-hint { font-size: .9rem; margin-top: .25rem; }
 .ggnv-empty-state-action { margin-top: .75rem; }
 .ggnv-value-box .value-box-showcase { color: #AE017E; }
+
+/* On narrow viewports, let the Export object-summary table wrap long values
+   so it fits the screen instead of spilling past the viewport edge. */
+@media (max-width: 768px) {
+  #export_center-object_summary table.shiny-table {
+    width: 100%;
+    table-layout: fixed;
+  }
+  #export_center-object_summary table.shiny-table th,
+  #export_center-object_summary table.shiny-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
