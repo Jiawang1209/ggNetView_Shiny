@@ -348,3 +348,12 @@ test_that("failure paths surface unified toasts via notify()", {
     expect_match(txt, "notify(", fixed = TRUE)
   }
 })
+
+test_that("UI polish browser smoke exists and checks landing CTA + value boxes", {
+  path <- test_path("../../tests/run_shiny_ui_polish_smoke.R")
+  expect_true(file.exists(path))
+  txt <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  expect_match(txt, "Load example data", fixed = TRUE)
+  expect_match(txt, "Graph Builder", fixed = TRUE)
+  expect_match(txt, "value-box", fixed = TRUE)
+})
