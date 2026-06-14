@@ -7,6 +7,7 @@ test_that("first milestone Shiny module files exist", {
     "inst/app/modules/mod_visual_lab.R",
     "inst/app/modules/mod_topology_results.R",
     "inst/app/modules/mod_zipi_results.R",
+    "inst/app/modules/mod_perturbation.R",
     "inst/app/modules/mod_network_compare.R",
     "inst/app/modules/mod_environment_links.R",
     "inst/app/modules/mod_compare_environment.R",
@@ -32,8 +33,10 @@ test_that("Shiny navigation separates optional RMT, network compare, and environ
     "RMT Builder",
     "Graph Explorer",
     "Visual Lab",
+    "Analysis",
     "Topology",
     "Zi-Pi",
+    "Perturbation",
     "Network Compare",
     "Environment Links",
     "Export"
@@ -49,6 +52,12 @@ test_that("Shiny navigation separates optional RMT, network compare, and environ
   expect_match(global_text, "mod_network_compare.R", fixed = TRUE)
   expect_match(global_text, "mod_environment_links.R", fixed = TRUE)
   expect_match(global_text, "mod_zipi_results.R", fixed = TRUE)
+  expect_match(ui_text, "mod_perturbation_ui", fixed = TRUE)
+  expect_match(global_text, "mod_perturbation.R", fixed = TRUE)
+  expect_match(server_text, "mod_perturbation_server", fixed = TRUE)
+  # Analysis pages are consolidated under a single nav_menu.
+  expect_match(ui_text, "nav_menu(", fixed = TRUE)
+  expect_match(ui_text, "\"Analysis\"", fixed = TRUE)
   expect_match(server_text, "mod_rmt_builder_server", fixed = TRUE)
   expect_match(server_text, "mod_network_compare_server", fixed = TRUE)
   expect_match(server_text, "mod_environment_links_server", fixed = TRUE)
@@ -61,6 +70,25 @@ test_that("standard Graph Builder no longer exposes RMT-only controls", {
   expect_false(grepl("Matrix + RMT", source_text, fixed = TRUE))
   expect_false(grepl("run_rmt", source_text, fixed = TRUE))
   expect_false(grepl("\"matrix_rmt\"", source_text, fixed = TRUE))
+})
+
+test_that("Visual Lab groups parameters into Basics/Appearance/Advanced tiers with layout-aware visibility", {
+  source_text <- paste(readLines(test_path("../../inst/app/modules/mod_visual_lab.R"), warn = FALSE), collapse = "\n")
+
+  expect_match(source_text, "\"Basics\"", fixed = TRUE)
+  expect_match(source_text, "\"Appearance\"", fixed = TRUE)
+  expect_match(source_text, "\"Advanced layout\"", fixed = TRUE)
+  # Module/ring controls are gated behind a layout-aware conditionalPanel.
+  expect_match(source_text, "conditionalPanel", fixed = TRUE)
+  expect_match(source_text, "module_layout_js", fixed = TRUE)
+  expect_match(source_text, "adjacent_module_js", fixed = TRUE)
+  # Parameter help is surfaced via tooltips.
+  expect_match(source_text, "visual_lab_tip", fixed = TRUE)
+  # All original parameter inputs are still present after the reorganization.
+  for (input_id in c("shrink", "inner_shrink", "k_nn", "push_others_delta", "ring_n",
+                     "node_add", "plot_width", "plot_height", "seed", "linecolor")) {
+    expect_match(source_text, sprintf("ns(\"%s\")", input_id), fixed = TRUE)
+  }
 })
 
 test_that("Graph Builder arranges build parameters in two-column rows", {

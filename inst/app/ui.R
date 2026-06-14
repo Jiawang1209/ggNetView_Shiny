@@ -1,5 +1,6 @@
 ui <- bslib::page_navbar(
   title = "ggNetView",
+  id = "main_nav",
   theme = bslib::bs_theme(version = 5, bootswatch = "flatly"),
   header = shiny::tagList(
     shiny::tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
@@ -34,9 +35,13 @@ ui <- bslib::page_navbar(
   bslib::nav_panel("RMT Builder", mod_rmt_builder_ui("rmt_builder")),
   bslib::nav_panel("Graph Explorer", mod_graph_explorer_ui("graph_explorer")),
   bslib::nav_panel("Visual Lab", mod_visual_lab_ui("visual_lab")),
-  bslib::nav_panel("Topology", mod_topology_results_ui("topology_results")),
-  bslib::nav_panel("Zi-Pi", mod_zipi_results_ui("zipi_results")),
-  bslib::nav_panel("Network Compare", mod_network_compare_ui("network_compare")),
-  bslib::nav_panel("Environment Links", mod_environment_links_ui("environment_links")),
+  bslib::nav_menu(
+    "Analysis",
+    bslib::nav_panel("Topology", mod_topology_results_ui("topology_results")),
+    bslib::nav_panel("Zi-Pi", mod_zipi_results_ui("zipi_results")),
+    bslib::nav_panel("Perturbation", mod_perturbation_ui("perturbation")),
+    bslib::nav_panel("Network Compare", mod_network_compare_ui("network_compare")),
+    bslib::nav_panel("Environment Links", mod_environment_links_ui("environment_links"))
+  ),
   bslib::nav_panel("Export", mod_export_center_ui("export_center"))
 )
