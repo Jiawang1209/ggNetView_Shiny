@@ -29,6 +29,7 @@ if (dir.exists(manual_docs_dir)) {
 app_helper_env <- new.env(parent = .GlobalEnv)
 app_helper_files <- file.path(app_root, "R", c(
   "app_theme.R",
+  "app_ui_helpers.R",
   "app_validation.R",
   "app_registry.R",
   "app_task_feedback.R",
@@ -69,6 +70,7 @@ load_app_helper <- function(name) {
 
 invisible(lapply(c(
   "app_bs_theme", "app_module_palette",
+  "ui_empty_state", "ggnv_value_box", "dt_table", "notify",
   "app_result", "app_success", "app_failure",
   "task_feedback_message", "task_busy_payload", "app_task_feedback_script", "send_task_busy",
   "task_feedback_test_delay", "with_task_feedback",
