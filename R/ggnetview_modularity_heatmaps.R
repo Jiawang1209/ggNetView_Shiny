@@ -706,20 +706,7 @@ ggnetview_modularity_heatmaps <- function(
   env_cor_self_list <- list()
   for (i in seq_along(orientation)) {
     ori <- orientation[i]
-    if (base::ncol(env_list[[i]]) == 1L) {
-      env_col <- base::colnames(env_list[[i]])
-      if (is.null(env_col) || !nzchar(env_col[[1]])) {
-        env_col <- "env_1"
-      }
-      cor_out_self <- list(
-        r = stats::setNames(data.frame(1), env_col),
-        p = stats::setNames(data.frame(0), env_col)
-      )
-      rownames(cor_out_self$r) <- env_col
-      rownames(cor_out_self$p) <- env_col
-    } else {
-      cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
-    }
+    cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
     cor_self_r <- cor_out_self$r %>% as.data.frame()
     cor_self_p <- cor_out_self$p %>% as.data.frame()
 

@@ -39,7 +39,7 @@ utils::globalVariables(c(
   "Closeness", "Coreness",
   "Eigenvector",
   "Harmonic", "Hub_score",
-  "IVI",
+  "Influence", "IVI",
   "PageRank",
   "cluster",
   "corr_direction", "correlation", "Correlation", "Count",
@@ -74,6 +74,9 @@ utils::globalVariables(c(
   "y", "y_A", "y_B", "y_diag", "y_id", "y_lab", "y_rank",
   "y_target", "y_tile", "y_to", "y_type",
   "yend", "ymax", "ymid", "ymin", "ymind", "yr",
+  ## label-geometry / mask helpers used in ggNetView() and link plots
+  "mx", "my", "elbow_x", "elbow_y", "y_anchor",
+  "theta_actual", "theta_target", "polygon_id",
   ## dataset names referenced as bare symbols in defaults / examples
   "Envdf_4st", "Spedf"
 ))

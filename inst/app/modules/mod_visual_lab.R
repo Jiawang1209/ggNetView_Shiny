@@ -198,54 +198,110 @@ visual_lab_plot_dimension <- function(value, default, min = 1, max = 30) {
   min(value, max)
 }
 
+visual_lab_tip <- function(input_tag, text) {
+  bslib::tooltip(input_tag, text, placement = "right")
+}
+
 mod_visual_lab_ui <- function(id) {
   ns <- shiny::NS(id)
+
+  # JS conditions for layout-aware parameter visibility. Module/ring controls
+  # only apply to circular-module, consensus-module, multipartite, and
+  # multirings layouts; nearest-neighbour placement only applies to the
+  # "adjacent" module-placement method.
+  module_layout_js <- sprintf(
+    paste0(
+      "(function(v){return v && (",
+      "v.indexOf('circular_modules')>=0 || v.indexOf('consensus_module')>=0 || ",
+      "v.indexOf('partite')>=0 || v.indexOf('multirings')>=0);})(input['%s'])"
+    ),
+    ns("layout")
+  )
+  adjacent_module_js <- sprintf("input['%s'] == 'adjacent'", ns("layout_module"))
+
   bslib::layout_sidebar(
     sidebar = bslib::sidebar(
       open = TRUE,
-      shiny::selectInput(ns("graph_id"), "Graph object", choices = character()),
-      shiny::selectInput(ns("layout"), "Layout", choices = visual_lab_layout_choices()),
-      shiny::selectInput(ns("layout_module"), "Module placement", choices = c("adjacent", "random", "order")),
-      shiny::selectInput(
-        ns("label_layout"),
-        "Label layout",
-        choices = c("two_column", "two_column_follow", "label_circle")
-      ),
-      shiny::checkboxInput(ns("show_labels"), "Show labels", value = FALSE),
-      shiny::numericInput(ns("label_wrap_width"), "Label wrap width", value = 18, min = 4, max = 80),
-      shiny::numericInput(ns("label_outer_pad"), "Label outer padding", value = 0.4, min = 0, max = 5, step = 0.05),
-      shiny::numericInput(ns("bandwidth_scale"), "Bandwidth scale", value = 1, min = 0.1, max = 5, step = 0.1),
-      shiny::numericInput(ns("point_size_min"), "Point size min", value = 1, min = 0.1, max = 50, step = 0.5),
-      shiny::numericInput(ns("point_size_max"), "Point size max", value = 10, min = 0.1, max = 50, step = 0.5),
-      shiny::checkboxInput(ns("add_group_outer"), "Add group outer", value = FALSE),
-      shiny::checkboxInput(ns("drop_others"), "Drop Others", value = FALSE),
+      width = 320,
       bslib::accordion(
-        open = FALSE,
+        open = "Basics",
         bslib::accordion_panel(
-          "Advanced",
-          shiny::numericInput(ns("node_add"), "Node add", value = 7, min = 1, max = 100, step = 1),
-          shiny::numericInput(ns("ring_n"), "Ring count", value = NA, min = 1, max = 100, step = 1),
-          shiny::numericInput(ns("layout_r"), "Layout radius", value = 1, min = 0.01, max = 50, step = 0.1),
-          shiny::checkboxInput(ns("center"), "Center node", value = TRUE),
-          shiny::numericInput(ns("shrink"), "Shrink", value = 1, min = 0.01, max = 10, step = 0.05),
-          shiny::numericInput(ns("inner_shrink"), "Inner shrink", value = 1, min = 0.01, max = 10, step = 0.05),
-          shiny::numericInput(ns("k_nn"), "Nearest neighbors", value = 8, min = 1, max = 100, step = 1),
-          shiny::numericInput(ns("push_others_delta"), "Others offset", value = 0, min = 0, max = 50, step = 0.05),
-          shiny::checkboxInput(ns("jitter"), "Jitter points", value = FALSE),
-          shiny::numericInput(ns("jitter_sd"), "Jitter SD", value = 0.1, min = 0.001, max = 5, step = 0.01),
+          "Basics",
+          shiny::selectInput(ns("graph_id"), "Graph object", choices = character()),
+          shiny::selectInput(ns("layout"), "Layout", choices = visual_lab_layout_choices()),
+          shiny::selectInput(ns("layout_module"), "Module placement", choices = c("adjacent", "random", "order")),
+          shiny::checkboxInput(ns("show_labels"), "Show labels", value = FALSE),
+          shiny::numericInput(ns("point_size_min"), "Point size min", value = 1, min = 0.1, max = 50, step = 0.5),
+          shiny::numericInput(ns("point_size_max"), "Point size max", value = 10, min = 0.1, max = 50, step = 0.5),
+          shiny::numericInput(ns("seed"), "Seed", value = 1115, min = 1, step = 1)
+        ),
+        bslib::accordion_panel(
+          "Appearance",
+          shiny::selectInput(
+            ns("label_layout"),
+            "Label layout",
+            choices = c("two_column", "two_column_follow", "label_circle")
+          ),
+          shiny::numericInput(ns("label_wrap_width"), "Label wrap width", value = 18, min = 4, max = 80),
+          visual_lab_tip(
+            shiny::numericInput(ns("label_outer_pad"), "Label outer padding", value = 0.4, min = 0, max = 5, step = 0.05),
+            "Extra radial gap between the outermost ring of points and their labels."
+          ),
+          visual_lab_tip(
+            shiny::numericInput(ns("bandwidth_scale"), "Bandwidth scale", value = 1, min = 0.1, max = 5, step = 0.1),
+            "Scales the smoothing bandwidth used when drawing group hulls/outlines. Higher = looser, smoother outlines."
+          ),
+          shiny::checkboxInput(ns("add_group_outer"), "Add group outer", value = FALSE),
+          shiny::checkboxInput(ns("drop_others"), "Drop Others", value = FALSE),
           shiny::checkboxInput(ns("plot_line"), "Plot edges", value = TRUE),
           shiny::checkboxInput(ns("curve"), "Curve edges", value = FALSE),
           shiny::numericInput(ns("curvature"), "Edge curvature", value = 0.25, min = 0, max = 1, step = 0.05),
           shiny::numericInput(ns("linealpha"), "Edge alpha", value = 0.25, min = 0, max = 1, step = 0.05),
           shiny::textInput(ns("linecolor"), "Edge color", value = "grey70"),
           shiny::textInput(ns("pointlabel"), "Point labels", value = ""),
-          shiny::numericInput(ns("pointlabelsize"), "Point label size", value = 5, min = 0.1, max = 50, step = 0.5)
+          shiny::numericInput(ns("pointlabelsize"), "Point label size", value = 5, min = 0.1, max = 50, step = 0.5),
+          shiny::numericInput(ns("plot_width"), "Plot width", value = 9, min = 1, max = 30, step = 0.5),
+          shiny::numericInput(ns("plot_height"), "Plot height", value = 6, min = 1, max = 30, step = 0.5)
+        ),
+        bslib::accordion_panel(
+          "Advanced layout",
+          shiny::checkboxInput(ns("jitter"), "Jitter points", value = FALSE),
+          visual_lab_tip(
+            shiny::numericInput(ns("jitter_sd"), "Jitter SD", value = 0.1, min = 0.001, max = 5, step = 0.01),
+            "Standard deviation of random point jitter; only applied when 'Jitter points' is on."
+          ),
+          shiny::conditionalPanel(
+            condition = adjacent_module_js,
+            visual_lab_tip(
+              shiny::numericInput(ns("k_nn"), "Nearest neighbors", value = 8, min = 1, max = 100, step = 1),
+              "Number of nearest neighbours used to place modules next to each other under the 'adjacent' placement method."
+            )
+          ),
+          shiny::conditionalPanel(
+            condition = module_layout_js,
+            visual_lab_tip(
+              shiny::numericInput(ns("node_add"), "Node add", value = 7, min = 1, max = 100, step = 1),
+              "Extra spacing budget added per module when arranging module rings."
+            ),
+            shiny::numericInput(ns("ring_n"), "Ring count", value = NA, min = 1, max = 100, step = 1),
+            shiny::numericInput(ns("layout_r"), "Layout radius", value = 1, min = 0.01, max = 50, step = 0.1),
+            shiny::checkboxInput(ns("center"), "Center node", value = TRUE),
+            visual_lab_tip(
+              shiny::numericInput(ns("shrink"), "Shrink", value = 1, min = 0.01, max = 10, step = 0.05),
+              "Scales the overall module ring outward/inward. <1 pulls modules toward the centre."
+            ),
+            visual_lab_tip(
+              shiny::numericInput(ns("inner_shrink"), "Inner shrink", value = 1, min = 0.01, max = 10, step = 0.05),
+              "Scales spacing of nodes WITHIN each module independently of the module ring."
+            ),
+            visual_lab_tip(
+              shiny::numericInput(ns("push_others_delta"), "Others offset", value = 0, min = 0, max = 50, step = 0.05),
+              "Pushes the 'Others' / unassigned group outward by this offset to separate it from real modules."
+            )
+          )
         )
       ),
-      shiny::numericInput(ns("seed"), "Seed", value = 1115, min = 1, step = 1),
-      shiny::numericInput(ns("plot_width"), "Plot width", value = 9, min = 1, max = 30, step = 0.5),
-      shiny::numericInput(ns("plot_height"), "Plot height", value = 6, min = 1, max = 30, step = 0.5),
-      shiny::actionButton(ns("draw"), "Draw")
+      shiny::actionButton(ns("draw"), "Draw", class = "w-100")
     ),
     bslib::card(
       class = "visual-lab-preview-card",

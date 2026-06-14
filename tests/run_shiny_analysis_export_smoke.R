@@ -41,7 +41,24 @@ click <- function(selector) {
 }
 
 click_tab <- function(label) {
-  click(sprintf("a[data-value='%s']", label))
+  # Dropdown-safe: activate the tab via Bootstrap so panels nested in the
+  # "Analysis" nav_menu (hidden until the menu opens) stay reachable.
+  script <- sprintf(
+    "(() => {
+      const label = %s;
+      const link = document.querySelector(`a[data-value='${label}']`);
+      if (!link) throw new Error(`Cannot find tab: ${label}`);
+      if (window.bootstrap && window.bootstrap.Tab) {
+        window.bootstrap.Tab.getOrCreateInstance(link).show();
+      } else {
+        link.click();
+      }
+      return true;
+    })();",
+    jsonlite::toJSON(label, auto_unbox = TRUE)
+  )
+  app$run_js(script)
+  app$wait_for_idle(timeout = 30000)
 }
 
 wait_for_text <- function(text, timeout = 120000) {

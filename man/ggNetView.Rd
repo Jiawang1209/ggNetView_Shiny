@@ -40,6 +40,9 @@ ggNetView(
   labelsize = 10,
   labelsegmentsize = 1,
   labelsegmentalpha = 1,
+  label_layout = c("two_column", "two_column_follow", "label_circle"),
+  label_wrap_width = NULL,
+  label_outer_pad = 0.25,
   add_group_outer = FALSE,
   add_group_outer_expand = 2,
   add_group_outer_color = "grey50",
@@ -50,8 +53,9 @@ ggNetView(
   add_outer = FALSE,
   q_outer = 0.88,
   expand_outer = 1.02,
-  outerwidth = 1.25,
-  outerlinetype = 2,
+  bandwidth_scale = 2,
+  outerwidth = 1,
+  outerlinetype = 1,
   outeralpha = 0.5,
   nodelabsize = 5,
   remove = FALSE,
@@ -196,6 +200,64 @@ Change  label segment size.}
 \item{labelsegmentalpha}{Integer  (default = 1).
 Change  label segment alpha.}
 
+\item{label_layout}{Character (default = \code{"two_column"}).
+Strategy used to place module text labels when \code{label} is not
+\code{FALSE}. One of:
+\itemize{
+  \item \code{"two_column"} (default; backward compatible): modules whose
+    centroid \code{x} is left of the network median go to a fixed left
+    column at \code{x = xr[1] - dx}, the rest to a fixed right column at
+    \code{x = xr[2] + dx}, with labels evenly distributed along \code{y}.
+    Best for very crowded networks or layouts that read left-to-right
+    (bipartite, grid).
+  \item \code{"two_column_follow"}: 360-degree ring layout with
+    two-segment "L-shape" leaders. Modules are sorted by their
+    actual angle from the network centroid and assigned angularly
+    equispaced target angles around the full \code{2*pi}, so
+    labels are evenly distributed around the network while
+    preserving the angular neighbour order. Each label is
+    projected onto an outer ellipse whose semi-axes are
+    \code{(1 + label_outer_pad)} times the network's half-width /
+    half-height. The leader has two segments: the first leg is
+    drawn manually via \code{geom_segment} from the module
+    centroid to an elbow on the network boundary at the module's
+    actual angle; the second leg is drawn by \code{ggrepel} from
+    the label (which it may push tangentially with \code{force = 1}
+    to avoid overlaps) back to that elbow. Use this when you need
+    the L bend to be clearly visible and labels to never overlap.
+  \item \code{"label_circle"}: 360-degree ring layout drawn
+    entirely by \code{ggrepel}. Same equispacing as
+    \code{"two_column_follow"} (so labels track module angular
+    order around the outer ellipse), but no manual first leg --
+    \code{ggrepel} handles both placement and the connecting
+    segment, with \code{segment.square = TRUE} and
+    \code{segment.squareShape = 0} so the leader is an L-shape
+    between label and module centroid. Code is much simpler than
+    \code{"two_column_follow"} and works well when modules are
+    roughly evenly distributed around the network; the trade-off
+    is that the L bend can visually collapse when a label happens
+    to sit on its module's radial line (rare with full
+    equispacing). Requires \code{ggrepel >= 0.9.4}.
+}}
+
+\item{label_wrap_width}{Integer or NULL (default = \code{NULL}).
+If a positive integer, module text labels are wrapped to roughly that
+many characters per line via \code{stringr::str_wrap()} before
+rendering. Useful for long pathway / taxonomy names. Applies to every
+\code{label_layout}.}
+
+\item{label_outer_pad}{Numeric (default = \code{0.25}).
+Fractional outward push of the label anchors, expressed as a multiple
+of the network's \code{x}-range (for \code{"two_column"}) or as the
+fractional enlargement of the outer label-anchor ellipse (for
+\code{"two_column_follow"}). Larger values move labels further
+away from the network and make the slanted second leg of the
+\code{"two_column_follow"} L-shape leader more pronounced. Try
+\code{0.20} for a tight layout that almost hugs the network,
+\code{0.40} for the default breathing room, \code{0.55+} when
+modules sit inside a thick \code{add_group_outer} ring or labels
+are long.}
+
 \item{add_group_outer}{Logical (default = FALSE).
 Whether to add a circle boundary around the entire network (mimics \code{ggforce::geom_mark_circle}).}
 
@@ -218,15 +280,37 @@ Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).}
 Line width of the group outer circle.}
 
 \item{add_outer}{Logical (default = FALSE).
-Whether to add an outer circle/border around each module.}
+Whether to draw a smooth outer boundary around each module. The boundary is
+computed by 2D kernel density estimation followed by a Highest-Density-Region
+(HDR) contour: it encloses the densest portion of each module rather than
+all of its points. As a side effect, a single module whose points fall into
+two well-separated clouds may produce two disconnected polygons (this is by
+design and matches the behaviour of e.g. `mascarade`).}
 
 \item{q_outer}{Numeric (default = 0.88).
-Quantile of radial distance used to construct the smooth outer boundary for each module.
-Higher values make the boundary more expanded; lower values make it tighter.}
+HDR coverage of the outer boundary: the contour is drawn at the density
+level whose iso-density region contains a fraction `q_outer` of the module's
+empirical probability mass. Higher values make the boundary more inclusive
+(closer to the convex hull of the module); lower values make it tighter
+around the densest core. Sparse outliers/satellites typically fall outside
+the contour and remain visible as bare nodes.
+Note: modules with fewer than 10 nodes bypass the KDE path entirely and are
+enclosed by a convex hull, so `q_outer` (and `bandwidth_scale`) have no
+effect on them.}
 
 \item{expand_outer}{Numeric (default = 1.02).
-Global scaling factor applied to the smoothed radial distances when drawing the outer boundary.
-Values > 1 slightly expand the boundary; values < 1 slightly shrink it.}
+Multiplicative scaling applied to each polygon from its own centroid after
+the HDR contour is drawn. Values > 1 slightly expand the boundary, values
+< 1 slightly shrink it. Useful for adding a small visual breathing room
+between the boundary and the nodes.}
+
+\item{bandwidth_scale}{Numeric (default = 2.0).
+Multiplier on the robust normal-reference 2D KDE bandwidth used to build the
+outer boundary. Values > 1 produce smoother, wider contours (and may merge
+nearby sub-clusters of a module into a single component); values < 1
+produce tighter, more wiggly contours that follow local point density more
+closely. Has no effect when \code{add_outer = FALSE} or when a module falls
+back to the convex-hull path (very small clusters).}
 
 \item{outerwidth}{Integer  (default = 1.25).
 Change  outer linewidth.}

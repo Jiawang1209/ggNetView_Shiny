@@ -25,6 +25,25 @@
 #'   If \code{TRUE}, remove rows with NA in Zi or Pi from the output.
 #'   If \code{FALSE}, keep all rows; NA in Zi/Pi results in \code{type = NA}.
 #'
+#' @param point_colors Named character vector (or \code{NULL}).
+#'   Point/legend colours for the four node roles. Defaults to
+#'   \code{c("Peripherals" = "#377eb8", "Connectors" = "#4daf4a",
+#'   "Module hubs" = "#e41a1c", "Network hubs" = "#ff7f00")}.
+#'   You may override all four, a subset (by role name), or pass a single
+#'   colour to apply to every role.
+#' @param bg_colors Named character vector (or \code{NULL}).
+#'   Background fill colours for the four quadrants, keyed by role. Defaults to
+#'   \code{c("Peripherals" = "#b3cde3", "Connectors" = "#ccebc5",
+#'   "Module hubs" = "#fbb4ae", "Network hubs" = "#fed9a6")}. Same override
+#'   rules as \code{point_colors}.
+#' @param label_colors Named character vector or single colour (or \code{NULL}).
+#'   Colours for the four quadrant text labels, keyed by role. Defaults to
+#'   black for all four. Same override rules as \code{point_colors}.
+#' @param label_size Numeric (default = 5.5).
+#'   Text size of the four quadrant labels.
+#' @param bg_alpha Numeric (default = 0.25).
+#'   Opacity of the quadrant background shading (0 = transparent, 1 = opaque).
+#'
 #' @returns A list with two elements:
 #'   \itemize{
 #'     \item \code{data}: Data frame merging \code{nodes_bulk} with
@@ -74,7 +93,27 @@
 
 #' }
 ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
-                          zi_threshold = 2.5, pi_threshold = 0.62, na.rm = FALSE) {
+                          zi_threshold = 2.5, pi_threshold = 0.62, na.rm = FALSE,
+                          point_colors = c(
+                            "Peripherals"  = "#377eb8",
+                            "Connectors"   = "#4daf4a",
+                            "Module hubs"  = "#e41a1c",
+                            "Network hubs" = "#ff7f00"
+                          ),
+                          bg_colors = c(
+                            "Peripherals"  = "#b3cde3",
+                            "Connectors"   = "#ccebc5",
+                            "Module hubs"  = "#fbb4ae",
+                            "Network hubs" = "#fed9a6"
+                          ),
+                          label_colors = c(
+                            "Peripherals"  = "black",
+                            "Connectors"   = "black",
+                            "Module hubs"  = "black",
+                            "Network hubs" = "black"
+                          ),
+                          label_size = 5.5,
+                          bg_alpha = 0.25) {
   if (!is.data.frame(nodes_bulk)) {
     stop("`nodes_bulk` must be a data frame or tibble.", call. = FALSE)
   }
@@ -210,13 +249,25 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
     x_range_pre <- diff(x_lim)
     x_lim[2L] <- max(x_lim[2L], pi_threshold + 0.15 * x_range_pre)
 
-    type_colors <- c(
+    point_colors <- .resolve_zipi_colors(point_colors, c(
       "Peripherals"   = "#377eb8",
       "Connectors"    = "#4daf4a",
       "Module hubs"   = "#e41a1c",
       "Network hubs"  = "#ff7f00"
-    )
-    zi_pi$type <- factor(zi_pi$type, levels = names(type_colors))
+    ))
+    bg_colors <- .resolve_zipi_colors(bg_colors, c(
+      "Peripherals"   = "#b3cde3",
+      "Connectors"    = "#ccebc5",
+      "Module hubs"   = "#fbb4ae",
+      "Network hubs"  = "#fed9a6"
+    ))
+    label_colors <- .resolve_zipi_colors(label_colors, c(
+      "Peripherals"   = "black",
+      "Connectors"    = "black",
+      "Module hubs"   = "black",
+      "Network hubs"  = "black"
+    ))
+    zi_pi$type <- factor(zi_pi$type, levels = names(point_colors))
 
 
     p0 <- ggplot2::ggplot(
@@ -226,51 +277,61 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
         y = .data$within_module_connectivities
       )
     ) +
-      ggplot2::scale_x_continuous(limits = x_lim, expand = c(0.001, 0.1)) +
-      ggplot2::scale_y_continuous(limits = y_lim, expand = c(0.1, 0.1))
+      # oob = oob_keep: the right-hand quadrant labels are anchored in the
+      # expansion margin (just outside x_lim); without this the default
+      # `censor` would drop them as out-of-range (the "Removed 1 row" warning).
+      # coord_cartesian(clip = "off") below then lets them render in the margin.
+      ggplot2::scale_x_continuous(limits = x_lim, expand = c(0.001, 0.1),
+                                  oob = scales::oob_keep) +
+      ggplot2::scale_y_continuous(limits = y_lim, expand = c(0.1, 0.1),
+                                  oob = scales::oob_keep)
 
 
     built0 <- ggplot2::ggplot_build(p0)
     lay0 <- built0$layout
     x_range <- lay0$panel_scales_x[[1L]]$limits
     y_range <- lay0$panel_scales_y[[1L]]$limits
-    lab_size <- 5.5
+    lab_size <- label_size
     x_range_diff <- diff(x_range)
     y_range_diff <- diff(y_range)
 
-    left_half <- pi_threshold - x_range[1L]
-    x_left <- pi_threshold - 0.015 * left_half
-
-    right_half <- x_range[2L] - pi_threshold
-    x_right <- x_range[2L] - 0.02 * x_range_diff
-    x_right <- max(x_right, pi_threshold + 0.1 * right_half)
-    y_top   <- y_range[2L] - 0.02 * y_range_diff
-    y_bot   <- y_range[1L] + 0.02 * y_range_diff
+    # Anchor labels to the panel corners. The right quadrant (Pi > pi_threshold)
+    # is usually narrow, so anchoring the right-hand labels to the data max
+    # pulls "Network hubs"/"Connectors" left across the divider. Anchoring them
+    # to the *expanded* right edge instead keeps them in the far-right corners.
+    # x scale uses expand = c(0.001, 0.1) -> additive right padding:
+    x_exp <- 0.001 * x_range_diff + 0.1
+    x_pad <- 0.02 * x_range_diff
+    y_pad <- 0.02 * y_range_diff
+    x_left  <- x_range[1L] + x_pad             # left labels: hug left data edge
+    x_right <- x_range[2L] + x_exp - x_pad     # right labels: hug expanded right edge
+    y_top   <- y_range[2L] - y_pad
+    y_bot   <- y_range[1L] + y_pad
 
 
     p_zipi <- p0 +
       ggplot2::aes(color = .data$type) +
-      ggplot2::annotate("rect", fill = "#b3cde3", xmin = -Inf, xmax = pi_threshold,
-                       ymin = -Inf, ymax = zi_threshold, alpha = 0.25) +
-      ggplot2::annotate("rect", fill = "#fbb4ae", xmin = -Inf, xmax = pi_threshold,
-                       ymin = zi_threshold, ymax = Inf, alpha = 0.25) +
-      ggplot2::annotate("rect", fill = "#ccebc5", xmin = pi_threshold, xmax = Inf,
-                       ymin = -Inf, ymax = zi_threshold, alpha = 0.25) +
-      ggplot2::annotate("rect", fill = "#fed9a6", xmin = pi_threshold, xmax = Inf,
-                       ymin = zi_threshold, ymax = Inf, alpha = 0.25) +
+      ggplot2::annotate("rect", fill = bg_colors[["Peripherals"]], xmin = -Inf, xmax = pi_threshold,
+                       ymin = -Inf, ymax = zi_threshold, alpha = bg_alpha) +
+      ggplot2::annotate("rect", fill = bg_colors[["Module hubs"]], xmin = -Inf, xmax = pi_threshold,
+                       ymin = zi_threshold, ymax = Inf, alpha = bg_alpha) +
+      ggplot2::annotate("rect", fill = bg_colors[["Connectors"]], xmin = pi_threshold, xmax = Inf,
+                       ymin = -Inf, ymax = zi_threshold, alpha = bg_alpha) +
+      ggplot2::annotate("rect", fill = bg_colors[["Network hubs"]], xmin = pi_threshold, xmax = Inf,
+                       ymin = zi_threshold, ymax = Inf, alpha = bg_alpha) +
       ggplot2::annotate("text", label = "Module hubs", x = x_left, y = y_top,
-                       size = lab_size, hjust = 0, vjust = 0.5) +
+                       size = lab_size, hjust = 0, vjust = 1, colour = label_colors[["Module hubs"]]) +
       ggplot2::annotate("text", label = "Peripherals", x = x_left, y = y_bot,
-                       size = lab_size, hjust = 0, vjust = 0.5) +
+                       size = lab_size, hjust = 0, vjust = 0, colour = label_colors[["Peripherals"]]) +
       ggplot2::annotate("text", label = "Network hubs", x = x_right, y = y_top,
-                       size = lab_size, hjust = 1, vjust = 0.5) +
+                       size = lab_size, hjust = 1, vjust = 1, colour = label_colors[["Network hubs"]]) +
       ggplot2::annotate("text", label = "Connectors", x = x_right, y = y_bot,
-                       size = lab_size, hjust = 1, vjust = 0.5) +
+                       size = lab_size, hjust = 1, vjust = 0, colour = label_colors[["Connectors"]]) +
       ggplot2::geom_vline(xintercept = pi_threshold, linetype = 1) +
       ggplot2::geom_hline(yintercept = zi_threshold, linetype = 1) +
       ggplot2::geom_point(alpha = 0.8, na.rm = TRUE, size = 3) +
       ggplot2::scale_color_manual(
-        values = type_colors,
+        values = point_colors,
         na.value = "grey50",
         name = "Node role",
         drop = FALSE,
@@ -295,4 +356,37 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
   }
 
   list(data = zi_pi, plot = p_zipi)
+}
+
+
+# Resolve a user-supplied colour argument against a named default vector.
+# Accepts: NULL (use default); a single colour (recycled to every role);
+# an unnamed vector matching the default length (assigned in default order);
+# or a named vector (merged over the defaults, so partial overrides work).
+.resolve_zipi_colors <- function(user, default) {
+  if (is.null(user)) {
+    return(default)
+  }
+  if (length(user) == 1L && is.null(names(user))) {
+    return(stats::setNames(rep(unname(user), length(default)), names(default)))
+  }
+  if (is.null(names(user)) || any(names(user) == "")) {
+    if (length(user) != length(default)) {
+      stop(sprintf(
+        "Unnamed colour vector must have length %d (one per role).",
+        length(default)
+      ), call. = FALSE)
+    }
+    return(stats::setNames(user, names(default)))
+  }
+  unknown <- setdiff(names(user), names(default))
+  if (length(unknown) > 0L) {
+    stop(sprintf(
+      "Unknown role name(s) in colour argument: %s. Valid names: %s.",
+      paste(unknown, collapse = ", "),
+      paste(names(default), collapse = ", ")
+    ), call. = FALSE)
+  }
+  default[names(user)] <- user
+  default
 }

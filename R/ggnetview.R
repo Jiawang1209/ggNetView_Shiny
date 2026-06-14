@@ -138,7 +138,7 @@
 #' many characters per line via \code{stringr::str_wrap()} before
 #' rendering. Useful for long pathway / taxonomy names. Applies to every
 #' \code{label_layout}.
-#' @param label_outer_pad Numeric (default = \code{0.40}).
+#' @param label_outer_pad Numeric (default = \code{0.25}).
 #' Fractional outward push of the label anchors, expressed as a multiple
 #' of the network's \code{x}-range (for \code{"two_column"}) or as the
 #' fractional enlargement of the outer label-anchor ellipse (for
@@ -185,7 +185,7 @@
 #' the HDR contour is drawn. Values > 1 slightly expand the boundary, values
 #' < 1 slightly shrink it. Useful for adding a small visual breathing room
 #' between the boundary and the nodes.
-#' @param bandwidth_scale Numeric (default = 1.0).
+#' @param bandwidth_scale Numeric (default = 2.0).
 #' Multiplier on the robust normal-reference 2D KDE bandwidth used to build the
 #' outer boundary. Values > 1 produce smoother, wider contours (and may merge
 #' nearby sub-clusters of a module into a single component); values < 1
@@ -297,7 +297,7 @@ ggNetView <- function(graph_obj,
                       labelsegmentalpha = 1,
                       label_layout = c("two_column", "two_column_follow", "label_circle"),
                       label_wrap_width = NULL,
-                      label_outer_pad = 0.40,
+                      label_outer_pad = 0.25,
                       add_group_outer = FALSE,
                       add_group_outer_expand = 2,
                       add_group_outer_color = "grey50",
@@ -308,7 +308,7 @@ ggNetView <- function(graph_obj,
                       add_outer = FALSE,
                       q_outer = 0.88,
                       expand_outer = 1.02,
-                      bandwidth_scale = 1.0,
+                      bandwidth_scale = 2,
                       outerwidth = 1,
                       outerlinetype = 1,
                       outeralpha = 0.5,

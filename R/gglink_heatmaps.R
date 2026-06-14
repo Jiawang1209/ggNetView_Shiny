@@ -1573,6 +1573,17 @@ gglink_heatmaps <- function(
     ), call. = FALSE)
   }
 
+  # Guard against non-finite link widths. Expressions such as
+  # `-log10(Pvalue)` become Inf when a P value is exactly 0 (floating-point
+  # underflow for very strong correlations), which breaks the continuous
+  # linewidth scale. Replace any non-finite width with the largest finite
+  # width so the strongest links simply render at the maximum thickness.
+  if (any(!is.finite(link_df$link_width_value))) {
+    finite_widths <- link_df$link_width_value[is.finite(link_df$link_width_value)]
+    finite_max <- if (length(finite_widths)) max(finite_widths) else 1
+    link_df$link_width_value[!is.finite(link_df$link_width_value)] <- finite_max
+  }
+
   # Filter only at plotting stage to avoid dropping central nodes
   if (isTRUE(drop_nonsig)) {
     link_df <- link_df %>% dplyr::filter(.data$Pvalue <= sig_threshold)

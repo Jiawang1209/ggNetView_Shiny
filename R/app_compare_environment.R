@@ -1054,9 +1054,9 @@ filter_function_call_args <- function(fn, call_args) {
 }
 
 safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, env_spec_pairs = NULL, params = list()) {
-  fn <- resolve_ggnetview_function("gglink_heatmaps_2")
+  fn <- resolve_ggnetview_function("gglink_heatmaps")
   if (is.null(fn)) {
-    return(app_failure("Cannot find ggNetView function: gglink_heatmaps_2"))
+    return(app_failure("Cannot find ggNetView function: gglink_heatmaps"))
   }
 
   env <- as.data.frame(env, check.names = FALSE)

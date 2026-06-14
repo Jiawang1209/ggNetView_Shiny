@@ -67,7 +67,6 @@ reference:
       - ggNetView_multi
       - ggNetView_multi_link
       - gglink_heatmaps
-      - gglink_heatmaps_2
       - gglink_heatmap_triple
       - ggnetview_modularity_heatmaps
       - ggnetview_zipi
