@@ -44,6 +44,7 @@ mod_topology_results_ui <- function(id) {
     bslib::layout_columns(
       bslib::card(
         bslib::card_header("Topology"),
+        shiny::uiOutput(ns("placeholder")),
         shiny::uiOutput(ns("topology_metrics")),
         shinycssloaders::withSpinner(DT::DTOutput(ns("topology")), color = "#AE017E", type = 6),
         shiny::downloadButton(ns("download_topology"), "Download Topology CSV"),
@@ -329,6 +330,16 @@ mod_topology_results_server <- function(id, registry) {
         result,
         graph_item,
         params = list(scale = input$ivi_scale, ncores = 1L)
+      )
+    })
+
+    output$placeholder <- shiny::renderUI({
+      tb <- topology_table()
+      if (is.data.frame(tb) && nrow(tb) > 0) return(NULL)
+      ui_empty_state(
+        icon = "diagram-3",
+        title = "No graph selected",
+        hint = "Build or pick a graph object to see results here."
       )
     })
 

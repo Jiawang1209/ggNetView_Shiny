@@ -31,6 +31,7 @@ mod_graph_explorer_ui <- function(id) {
     bslib::layout_columns(
       bslib::card(
         bslib::card_header("Summary"),
+        shiny::uiOutput(ns("placeholder")),
         shiny::uiOutput(ns("metrics")),
         shiny::verbatimTextOutput(ns("summary"))
       ),
@@ -233,6 +234,15 @@ mod_graph_explorer_server <- function(id, registry) {
       )
       status(paste("Registered sample subgraph:", sub_item$name))
       shiny::showNotification(paste("Registered sample subgraph:", sub_item$name), type = "message")
+    })
+
+    output$placeholder <- shiny::renderUI({
+      if (!is.null(selected_graph())) return(NULL)
+      ui_empty_state(
+        icon = "diagram-3",
+        title = "No graph selected",
+        hint = "Build or pick a graph object to see results here."
+      )
     })
 
     output$metrics <- shiny::renderUI({

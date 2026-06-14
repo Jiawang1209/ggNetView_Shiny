@@ -86,6 +86,7 @@ mod_perturbation_ui <- function(id) {
     bslib::layout_columns(
       bslib::card(
         bslib::card_header("Attack curve"),
+        shiny::uiOutput(ns("placeholder")),
         shiny::selectInput(ns("curve_metric"), "Curve metric", choices = perturbation_curve_metrics()),
         shinycssloaders::withSpinner(shiny::plotOutput(ns("attack_plot"), height = "360px"), color = "#AE017E", type = 6),
         shiny::downloadButton(ns("download_attack_plot"), "Download curve PNG"),
@@ -362,6 +363,21 @@ mod_perturbation_server <- function(id, registry) {
     })
 
     # ---- Outputs ----
+    output$placeholder <- shiny::renderUI({
+      ct <- curve_table()
+      inf <- influence_table()
+      pr <- press_response_table()
+      has_results <- (is.data.frame(ct) && nrow(ct) > 0) ||
+                     (is.data.frame(inf) && nrow(inf) > 0) ||
+                     (is.data.frame(pr) && nrow(pr) > 0)
+      if (has_results) return(NULL)
+      ui_empty_state(
+        icon = "diagram-3",
+        title = "No graph selected",
+        hint = "Build or pick a graph object to run perturbation analyses."
+      )
+    })
+
     output$attack_metrics <- shiny::renderUI({
       rb <- robustness_table()
       if (is.null(rb) || !is.data.frame(rb) || !nrow(rb)) return(NULL)

@@ -318,3 +318,10 @@ test_that("long-running outputs are wrapped in spinners", {
     expect_match(txt, "withSpinner", fixed = TRUE)
   }
 })
+
+test_that("result panels show empty-state guidance when nothing is selected", {
+  for (f in c("mod_graph_explorer.R", "mod_topology_results.R", "mod_perturbation.R")) {
+    txt <- paste(readLines(test_path(file.path("../../inst/app/modules", f)), warn = FALSE), collapse = "\n")
+    expect_match(txt, "ui_empty_state", fixed = TRUE)
+  }
+})
