@@ -21,6 +21,7 @@ LinkingTo:
     RcppArmadillo
 Imports:
     boot,
+    bsicons,
     bslib,
     dplyr,
     DT,
@@ -52,6 +53,7 @@ Imports:
     scales,
     scatterpie,
     shiny,
+    shinycssloaders,
     stats,
     stringr,
     tibble,
