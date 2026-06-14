@@ -1,6 +1,13 @@
 server <- function(input, output, session) {
   registry <- registry_new()
 
+  landing_start <- mod_landing_server("landing", registry)
+  shiny::observeEvent(landing_start(), {
+    register_gallery_examples(registry)
+    notify("Example data loaded — opening Graph Builder.", type = "message")
+    bslib::nav_select("main_nav", "Graph Builder")
+  }, ignoreInit = TRUE)
+
   mod_data_hub_server("data_hub", registry)
   mod_graph_builder_server("graph_builder", registry)
   mod_rmt_builder_server("rmt_builder", registry)

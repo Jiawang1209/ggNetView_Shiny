@@ -113,9 +113,10 @@ test_that("Graph Builder arranges build parameters in two-column rows", {
 
 test_that("Shiny UI exposes an Introduction tab backed by README markdown", {
   ui_text <- paste(readLines(test_path("../../inst/app/ui.R"), warn = FALSE), collapse = "\n")
+  mod_text <- paste(readLines(test_path("../../inst/app/modules/mod_landing.R"), warn = FALSE), collapse = "\n")
   expect_match(ui_text, "Introduction", fixed = TRUE)
-  expect_match(ui_text, "includeMarkdown", fixed = TRUE)
-  expect_match(ui_text, "README.md", fixed = TRUE)
+  expect_match(mod_text, "includeMarkdown", fixed = TRUE)
+  expect_match(mod_text, "README.md", fixed = TRUE)
 })
 
 test_that("Shiny UI exposes the bundled manual as a resource-backed tab", {
@@ -132,7 +133,7 @@ test_that("Shiny UI exposes the bundled manual as a resource-backed tab", {
 
   tab_positions <- vapply(
     c(
-      'nav_panel(\n    "Introduction"',
+      'nav_panel("Introduction"',
       'nav_panel(\n    "Manual"',
       'nav_panel("Data Hub"',
       'nav_panel("Export"'
@@ -283,4 +284,21 @@ test_that("Shiny UI applies the brand theme, logo, and dark mode toggle", {
   expect_match(ui_text, "logo.png", fixed = TRUE)
   expect_true(file.exists(test_path("../../inst/app/www/logo.png")))
   expect_true(file.exists(test_path("../../inst/app/www/favicon.png")))
+})
+
+test_that("Introduction is an onboarding landing module with example CTA and README accordion", {
+  expect_true(file.exists(test_path("../../inst/app/modules/mod_landing.R")))
+  ui_text <- paste(readLines(test_path("../../inst/app/ui.R"), warn = FALSE), collapse = "\n")
+  server_text <- paste(readLines(test_path("../../inst/app/server.R"), warn = FALSE), collapse = "\n")
+  global_text <- paste(readLines(test_path("../../inst/app/global.R"), warn = FALSE), collapse = "\n")
+  mod_text <- paste(readLines(test_path("../../inst/app/modules/mod_landing.R"), warn = FALSE), collapse = "\n")
+
+  expect_match(ui_text, "mod_landing_ui(\"landing\")", fixed = TRUE)
+  expect_match(server_text, "mod_landing_server(\"landing\", registry)", fixed = TRUE)
+  expect_match(server_text, "nav_select", fixed = TRUE)
+  expect_match(global_text, "mod_landing.R", fixed = TRUE)
+  expect_match(mod_text, "start_example", fixed = TRUE)
+  expect_match(mod_text, "register_gallery_examples", fixed = TRUE)
+  expect_match(mod_text, "includeMarkdown", fixed = TRUE)
+  expect_match(mod_text, "Quick start", fixed = TRUE)
 })

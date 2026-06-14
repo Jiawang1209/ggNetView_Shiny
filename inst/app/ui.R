@@ -11,13 +11,7 @@ ui <- bslib::page_navbar(
     shiny::tags$link(rel = "icon", type = "image/png", href = "favicon.png"),
     app_task_feedback_script()
   ),
-  bslib::nav_panel(
-    "Introduction",
-    bslib::card(
-      class = "ggnv-introduction",
-      shiny::includeMarkdown(file.path(app_root, "README.md"))
-    )
-  ),
+  bslib::nav_panel("Introduction", mod_landing_ui("landing")),
   bslib::nav_panel(
     "Manual",
     shiny::div(

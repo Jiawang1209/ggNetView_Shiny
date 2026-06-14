@@ -110,6 +110,7 @@ if (!dir.exists(module_base) && dir.exists(file.path("inst", "app", "modules")))
 }
 
 module_files <- file.path(module_base, c(
+  "mod_landing.R",
   "mod_data_hub.R",
   "mod_graph_builder.R",
   "mod_rmt_builder.R",
