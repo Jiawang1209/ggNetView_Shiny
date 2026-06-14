@@ -59,8 +59,10 @@ activate_tab <- function(label, timeout = 60000) {
     label
   )
   app$wait_for_js(script, timeout = timeout)
+  # Tabs live either as top-level nav-links or as items inside the Analysis
+  # nav_menu dropdown, so accept an active nav-link OR an active dropdown item.
   app$wait_for_js(sprintf(
-    "Array.from(document.querySelectorAll('a.nav-link.active')).some(el => (el.innerText || el.textContent || '').trim() === %s)",
+    "Array.from(document.querySelectorAll('a.nav-link.active, a.dropdown-item.active')).some(el => (el.innerText || el.textContent || '').trim() === %s)",
     jsonlite::toJSON(label, auto_unbox = TRUE)
   ), timeout = timeout)
 }
