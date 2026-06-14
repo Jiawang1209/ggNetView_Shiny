@@ -360,7 +360,12 @@ mod_topology_results_server <- function(id, registry) {
       )
     })
 
-    output$topology <- DT::renderDT(topology_table(), rownames = FALSE)
+    output$topology <- DT::renderDT({
+      shiny::validate(
+        shiny::need(isTruthy(input$graph_id), "Select a graph object first.")
+      )
+      topology_table()
+    }, rownames = FALSE)
     output$robustness <- DT::renderDT(robustness_table(), rownames = FALSE)
     output$node_metrics <- DT::renderDT(node_metrics_table(), rownames = FALSE)
     output$sample_topology <- DT::renderDT(sample_topology_table(), rownames = FALSE)

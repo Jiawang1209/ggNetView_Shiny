@@ -238,6 +238,9 @@ mod_perturbation_server <- function(id, registry) {
     })
 
     output$attack_plot <- shiny::renderPlot({
+      shiny::validate(
+        shiny::need(isTruthy(input$attack_graph_id), "Select a graph object first.")
+      )
       curve <- curve_table()
       shiny::req(is.data.frame(curve), nrow(curve) > 0)
       plot_result <- safe_perturbation_curve_plot(curve, metric = input$curve_metric %||% "LCC_fraction")

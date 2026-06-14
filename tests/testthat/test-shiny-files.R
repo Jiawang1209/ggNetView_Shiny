@@ -325,3 +325,11 @@ test_that("result panels show empty-state guidance when nothing is selected", {
     expect_match(txt, "ui_empty_state", fixed = TRUE)
   }
 })
+
+test_that("long-task panels validate inputs before running", {
+  for (f in c("mod_visual_lab.R", "mod_topology_results.R", "mod_perturbation.R")) {
+    txt <- paste(readLines(test_path(file.path("../../inst/app/modules", f)), warn = FALSE), collapse = "\n")
+    expect_match(txt, "validate(", fixed = TRUE)
+    expect_match(txt, "need(", fixed = TRUE)
+  }
+})

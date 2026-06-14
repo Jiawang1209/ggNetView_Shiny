@@ -418,6 +418,9 @@ mod_visual_lab_server <- function(id, registry) {
 
     output$plot <- shiny::renderPlot(
       {
+        shiny::validate(
+          shiny::need(isTruthy(input$graph_id), "Select a graph object first.")
+        )
         shiny::req(plot_obj())
         plot_obj()
       },
