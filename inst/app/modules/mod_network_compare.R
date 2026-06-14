@@ -70,11 +70,5 @@ mod_network_compare_ui <- function(id) {
 }
 
 mod_network_compare_server <- function(id, registry) {
-  # compare_metrics output (using ggnv_value_box) is rendered inside mod_compare_environment_server,
-  # which this module delegates to entirely.  The uiOutput binding is declared in mod_network_compare_ui
-  # above and the renderUI calling ggnv_value_box lives in mod_compare_environment.R.
-  #
-  # Local reference so static analysis / text search can confirm ggnv_value_box is used here:
-  #   ggnv_value_box("Networks", n, icon = "diagram-3")
   mod_compare_environment_server(id, registry)
 }
