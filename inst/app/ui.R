@@ -1,9 +1,14 @@
 ui <- bslib::page_navbar(
-  title = "ggNetView",
+  title = shiny::tags$span(
+    class = "ggnv-brand",
+    shiny::tags$img(src = "logo.png", class = "ggnv-brand-logo", alt = "ggNetView"),
+    "ggNetView"
+  ),
   id = "main_nav",
-  theme = bslib::bs_theme(version = 5, bootswatch = "flatly"),
+  theme = app_bs_theme(),
   header = shiny::tagList(
     shiny::tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
+    shiny::tags$link(rel = "icon", type = "image/png", href = "favicon.png"),
     app_task_feedback_script()
   ),
   bslib::nav_panel(
@@ -43,5 +48,7 @@ ui <- bslib::page_navbar(
     bslib::nav_panel("Network Compare", mod_network_compare_ui("network_compare")),
     bslib::nav_panel("Environment Links", mod_environment_links_ui("environment_links"))
   ),
-  bslib::nav_panel("Export", mod_export_center_ui("export_center"))
+  bslib::nav_panel("Export", mod_export_center_ui("export_center")),
+  bslib::nav_spacer(),
+  bslib::nav_item(bslib::input_dark_mode(id = "color_mode", mode = "light"))
 )

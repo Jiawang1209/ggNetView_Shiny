@@ -275,3 +275,12 @@ test_that("package/manual audit reflects the current Shiny coverage", {
   expect_false(grepl("| `02-RMT.Rmd` | RMT threshold scan, then build graph with chosen threshold | Missing |", source_text, fixed = TRUE))
   expect_false(grepl("| `10-Gallery_of_Reproducible_Examples.Rmd` | Publication recipes and reusable parameter presets | Missing |", source_text, fixed = TRUE))
 })
+
+test_that("Shiny UI applies the brand theme, logo, and dark mode toggle", {
+  ui_text <- paste(readLines(test_path("../../inst/app/ui.R"), warn = FALSE), collapse = "\n")
+  expect_match(ui_text, "app_bs_theme()", fixed = TRUE)
+  expect_match(ui_text, "input_dark_mode", fixed = TRUE)
+  expect_match(ui_text, "logo.png", fixed = TRUE)
+  expect_true(file.exists(test_path("../../inst/app/www/logo.png")))
+  expect_true(file.exists(test_path("../../inst/app/www/favicon.png")))
+})
