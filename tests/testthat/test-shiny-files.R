@@ -302,3 +302,11 @@ test_that("Introduction is an onboarding landing module with example CTA and REA
   expect_match(mod_text, "includeMarkdown", fixed = TRUE)
   expect_match(mod_text, "Quick start", fixed = TRUE)
 })
+
+test_that("key panels expose value_box metric cards", {
+  for (f in c("mod_graph_explorer.R", "mod_perturbation.R",
+              "mod_topology_results.R", "mod_network_compare.R")) {
+    txt <- paste(readLines(test_path(file.path("../../inst/app/modules", f)), warn = FALSE), collapse = "\n")
+    expect_match(txt, "ggnv_value_box", fixed = TRUE)
+  }
+})

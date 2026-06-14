@@ -31,6 +31,7 @@ mod_graph_explorer_ui <- function(id) {
     bslib::layout_columns(
       bslib::card(
         bslib::card_header("Summary"),
+        shiny::uiOutput(ns("metrics")),
         shiny::verbatimTextOutput(ns("summary"))
       ),
       bslib::card(
@@ -232,6 +233,24 @@ mod_graph_explorer_server <- function(id, registry) {
       )
       status(paste("Registered sample subgraph:", sub_item$name))
       shiny::showNotification(paste("Registered sample subgraph:", sub_item$name), type = "message")
+    })
+
+    output$metrics <- shiny::renderUI({
+      item <- selected_graph()
+      if (is.null(item)) return(NULL)
+      ig <- tryCatch(coerce_tbl_graph(item$data), error = function(e) NULL)
+      if (is.null(ig)) return(NULL)
+      n_nodes <- tryCatch(igraph::gorder(ig), error = function(e) NA_integer_)
+      n_edges <- tryCatch(igraph::gsize(ig), error = function(e) NA_integer_)
+      n_mod <- tryCatch(length(unique(igraph::V(ig)$Modularity)), error = function(e) NA_integer_)
+      dens <- tryCatch(round(igraph::edge_density(ig), 3), error = function(e) NA_real_)
+      bslib::layout_columns(
+        col_widths = c(3, 3, 3, 3),
+        ggnv_value_box("Nodes", n_nodes, icon = "diagram-3"),
+        ggnv_value_box("Edges", n_edges, icon = "share"),
+        ggnv_value_box("Modules", n_mod, icon = "grid-3x3-gap"),
+        ggnv_value_box("Density", dens, icon = "bounding-box")
+      )
     })
 
     output$summary <- shiny::renderPrint({

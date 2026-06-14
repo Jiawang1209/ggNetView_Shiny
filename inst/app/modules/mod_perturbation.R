@@ -93,6 +93,7 @@ mod_perturbation_ui <- function(id) {
       ),
       bslib::card(
         bslib::card_header("Robustness (Schneider R)"),
+        shiny::uiOutput(ns("attack_metrics")),
         DT::DTOutput(ns("robustness_index")),
         shiny::downloadButton(ns("download_curve"), "Download curve CSV")
       ),
@@ -361,6 +362,20 @@ mod_perturbation_server <- function(id, registry) {
     })
 
     # ---- Outputs ----
+    output$attack_metrics <- shiny::renderUI({
+      rb <- robustness_table()
+      if (is.null(rb) || !is.data.frame(rb) || !nrow(rb)) return(NULL)
+      schneider_col <- intersect(c("Schneider_R", "schneider_R", "R", "robustness"), names(rb))
+      schneider_val <- if (length(schneider_col)) round(rb[[schneider_col[[1]]]][[1]], 3) else nrow(rb)
+      strategy_col <- intersect(c("strategy", "Strategy", "attack"), names(rb))
+      strategy_val <- if (length(strategy_col)) as.character(rb[[strategy_col[[1]]]][[1]]) else "—"
+      bslib::layout_columns(
+        col_widths = c(6, 6),
+        ggnv_value_box("Schneider R", schneider_val, icon = "shield-check"),
+        ggnv_value_box("Strategy", strategy_val, icon = "bullseye")
+      )
+    })
+
     output$robustness_index <- DT::renderDT(robustness_table(), rownames = FALSE)
     output$influence <- DT::renderDT(influence_table(), rownames = FALSE)
     output$press_response <- DT::renderDT(press_response_table(), rownames = FALSE)

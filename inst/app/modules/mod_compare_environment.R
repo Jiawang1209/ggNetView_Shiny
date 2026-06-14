@@ -1009,6 +1009,20 @@ mod_compare_environment_server <- function(id, registry) {
       plot_obj()
     })
 
+    output$compare_metrics <- shiny::renderUI({
+      n_selected <- tryCatch(length(input$compare_graph_ids), error = function(e) 0L)
+      n_links <- tryCatch({
+        tb <- compare_link_summary_table()
+        if (is.data.frame(tb) && nrow(tb)) nrow(tb) else "—"
+      }, error = function(e) "—")
+      if (n_selected < 2L) return(NULL)
+      bslib::layout_columns(
+        col_widths = c(6, 6),
+        ggnv_value_box("Networks", n_selected, icon = "diagram-3"),
+        ggnv_value_box("Shared links", n_links, icon = "share")
+      )
+    })
+
     output$stats <- DT::renderDT(stats_table(), rownames = FALSE)
     output$compare_links <- DT::renderDT(compare_link_summary_table(), rownames = FALSE)
     output$report_presets <- DT::renderDT(report_preset_table(), rownames = FALSE)

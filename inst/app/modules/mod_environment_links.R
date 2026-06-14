@@ -101,6 +101,7 @@ mod_environment_links_ui <- function(id) {
     bslib::layout_columns(
       bslib::card(
         bslib::card_header("Preview"),
+        shiny::uiOutput(ns("compare_metrics")),
         shiny::plotOutput(ns("plot"), height = 650),
         shiny::verbatimTextOutput(ns("status"))
       ),

@@ -44,6 +44,7 @@ mod_topology_results_ui <- function(id) {
     bslib::layout_columns(
       bslib::card(
         bslib::card_header("Topology"),
+        shiny::uiOutput(ns("topology_metrics")),
         DT::DTOutput(ns("topology")),
         shiny::downloadButton(ns("download_topology"), "Download Topology CSV"),
         shiny::verbatimTextOutput(ns("status"))
@@ -328,6 +329,23 @@ mod_topology_results_server <- function(id, registry) {
         result,
         graph_item,
         params = list(scale = input$ivi_scale, ncores = 1L)
+      )
+    })
+
+    output$topology_metrics <- shiny::renderUI({
+      tb <- topology_table()
+      if (is.null(tb) || !is.data.frame(tb) || !nrow(tb)) return(NULL)
+      pick <- function(nm) {
+        v <- tb[[nm]]
+        if (is.null(v)) return("—")
+        tryCatch(round(v[[1]], 3), error = function(e) "—")
+      }
+      bslib::layout_columns(
+        col_widths = c(3, 3, 3, 3),
+        ggnv_value_box("Nodes", pick("Nodes_number"), icon = "diagram-3"),
+        ggnv_value_box("Edges", pick("Edges_number"), icon = "share"),
+        ggnv_value_box("Avg degree", pick("Average_degree"), icon = "graph-up"),
+        ggnv_value_box("Modules", pick("Module_number"), icon = "grid-3x3-gap")
       )
     })
 
