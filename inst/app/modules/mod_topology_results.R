@@ -364,8 +364,8 @@ mod_topology_results_server <- function(id, registry) {
       shiny::validate(
         shiny::need(isTruthy(input$graph_id), "Select a graph object first.")
       )
-      topology_table()
-    }, rownames = FALSE)
+      dt_table(topology_table())
+    })
     output$robustness <- DT::renderDT(robustness_table(), rownames = FALSE)
     output$node_metrics <- DT::renderDT(node_metrics_table(), rownames = FALSE)
     output$sample_topology <- DT::renderDT(sample_topology_table(), rownames = FALSE)

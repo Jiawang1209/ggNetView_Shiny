@@ -235,17 +235,7 @@ mod_data_hub_server <- function(id, registry) {
     output$preview <- DT::renderDT({
       table <- current_table()
       shiny::req(table)
-      DT::datatable(
-        preview_table(table),
-        rownames = FALSE,
-        class = "compact stripe hover",
-        options = list(
-          dom = "t",
-          paging = FALSE,
-          ordering = FALSE,
-          autoWidth = TRUE
-        )
-      )
+      dt_table(preview_table(table), page_length = 5)
     })
 
     output$objects <- DT::renderDT({

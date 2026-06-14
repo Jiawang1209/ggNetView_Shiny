@@ -395,7 +395,7 @@ mod_perturbation_server <- function(id, registry) {
       )
     })
 
-    output$robustness_index <- DT::renderDT(robustness_table(), rownames = FALSE)
+    output$robustness_index <- DT::renderDT(dt_table(robustness_table()))
     output$influence <- DT::renderDT(influence_table(), rownames = FALSE)
     output$press_response <- DT::renderDT(press_response_table(), rownames = FALSE)
     output$press_meta <- shiny::renderText(press_meta_text())

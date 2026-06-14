@@ -333,3 +333,11 @@ test_that("long-task panels validate inputs before running", {
     expect_match(txt, "need(", fixed = TRUE)
   }
 })
+
+test_that("primary tables route through the dt_table wrapper", {
+  for (f in c("mod_topology_results.R", "mod_zipi_results.R",
+              "mod_perturbation.R", "mod_data_hub.R")) {
+    txt <- paste(readLines(test_path(file.path("../../inst/app/modules", f)), warn = FALSE), collapse = "\n")
+    expect_match(txt, "dt_table(", fixed = TRUE)
+  }
+})

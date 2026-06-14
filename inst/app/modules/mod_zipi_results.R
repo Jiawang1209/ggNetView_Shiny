@@ -92,7 +92,7 @@ mod_zipi_results_server <- function(id, registry) {
       shiny::showNotification(paste("Registered Zi-Pi:", result_name), type = "message")
     })
 
-    output$zipi <- DT::renderDT(zipi_table(), rownames = FALSE)
+    output$zipi <- DT::renderDT(dt_table(zipi_table()))
     output$status <- shiny::renderText(status())
     output$download_zipi <- zipi_download_handler(zipi_table, "ggnetview_zipi.csv")
   })
