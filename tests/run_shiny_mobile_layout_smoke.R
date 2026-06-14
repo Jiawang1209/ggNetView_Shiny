@@ -53,6 +53,26 @@ wait_for_visible_id <- function(id, timeout = 60000) {
   app$wait_for_js(script, timeout = timeout)
 }
 
+open_active_sidebar <- function(timeout = 30000) {
+  # On mobile widths bslib::layout_sidebar renders collapsed by default, giving
+  # its controls zero size. Open the active tab's collapsed sidebar so its
+  # controls become visible (mirrors the real mobile interaction).
+  app$run_js(
+    "(() => {
+      const layouts = Array.from(document.querySelectorAll('.bslib-sidebar-layout'));
+      for (const l of layouts) {
+        if (l.offsetParent === null) continue; // skip hidden (inactive tab) layouts
+        if (l.classList.contains('sidebar-collapsed')) {
+          const toggle = l.querySelector('.collapse-toggle');
+          if (toggle) toggle.click();
+        }
+      }
+      return true;
+    })();"
+  )
+  app$wait_for_idle(timeout = timeout)
+}
+
 activate_tab <- function(label) {
   script <- sprintf(
     "(() => {
@@ -135,6 +155,7 @@ tab_checks <- c(
 )
 for (tab in names(tab_checks)) {
   activate_tab(tab)
+  open_active_sidebar()
   wait_for_visible_id(tab_checks[[tab]])
   assert_no_horizontal_overflow(tab)
 }
