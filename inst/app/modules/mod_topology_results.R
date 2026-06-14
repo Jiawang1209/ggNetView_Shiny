@@ -164,7 +164,7 @@ mod_topology_results_server <- function(id, registry) {
         robustness_table(empty_result_table())
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
-        shiny::showNotification(result$message, type = "error")
+        notify(result$message, type = "error")
         return()
       }
 
@@ -224,7 +224,7 @@ mod_topology_results_server <- function(id, registry) {
         sample_stats_table(empty_result_table())
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
-        shiny::showNotification(result$message, type = "error")
+        notify(result$message, type = "error")
         return()
       }
 
@@ -274,7 +274,7 @@ mod_topology_results_server <- function(id, registry) {
         node_metrics_table(empty_result_table())
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
-        shiny::showNotification(result$message, type = "error")
+        notify(result$message, type = "error")
         return(NULL)
       }
 

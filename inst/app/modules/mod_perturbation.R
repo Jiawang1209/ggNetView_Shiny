@@ -210,7 +210,7 @@ mod_perturbation_server <- function(id, registry) {
         robustness_table(data.frame())
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
-        shiny::showNotification(result$message, type = "error")
+        notify(result$message, type = "error")
         return()
       }
 
@@ -271,7 +271,7 @@ mod_perturbation_server <- function(id, registry) {
         influence_table(data.frame())
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
-        shiny::showNotification(result$message, type = "error")
+        notify(result$message, type = "error")
         return()
       }
 
@@ -329,7 +329,7 @@ mod_perturbation_server <- function(id, registry) {
         press_meta_text("Press perturbation failed.")
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
-        shiny::showNotification(result$message, type = "error")
+        notify(result$message, type = "error")
         return()
       }
 

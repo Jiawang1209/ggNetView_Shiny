@@ -274,14 +274,14 @@ mod_graph_builder_server <- function(id, registry) {
       if (!result$ok) {
         detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
         status(detail)
-        shiny::showNotification(result$message, type = "error")
+        notify(result$message, type = "error")
         return()
       }
 
       if (!inherits(result$value, "igraph")) {
         message <- "Graph builder did not return an igraph object."
         status(message)
-        shiny::showNotification(message, type = "error")
+        notify(message, type = "error")
         return()
       }
 

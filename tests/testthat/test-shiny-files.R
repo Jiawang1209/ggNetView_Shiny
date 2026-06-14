@@ -341,3 +341,10 @@ test_that("primary tables route through the dt_table wrapper", {
     expect_match(txt, "dt_table(", fixed = TRUE)
   }
 })
+
+test_that("failure paths surface unified toasts via notify()", {
+  for (f in c("mod_graph_builder.R", "mod_topology_results.R", "mod_perturbation.R")) {
+    txt <- paste(readLines(test_path(file.path("../../inst/app/modules", f)), warn = FALSE), collapse = "\n")
+    expect_match(txt, "notify(", fixed = TRUE)
+  }
+})
