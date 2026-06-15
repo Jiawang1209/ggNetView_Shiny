@@ -503,6 +503,7 @@ gglink_heatmaps <- function(
     env_dist_method = "euclidean",
     mantel_kind = c("block_vs_col", "col_vs_col"),
     permutations = 999L,
+    seed = 1115L,
     spec_collapse = FALSE,
     drop_nonsig = FALSE,
     comparisons = TRUE,
@@ -1090,7 +1091,8 @@ gglink_heatmaps <- function(
           spec_dist_method = spec_dist_method,
           env_dist_method  = env_dist_method,
           permutations     = permutations,
-          na_omit          = TRUE
+          na_omit          = TRUE,
+          seed             = seed
         )
       } else {
         mout <- mantel_pairwise(
@@ -1098,7 +1100,8 @@ gglink_heatmaps <- function(
           env_df       = env_list[[p]],
           method       = mantel.method2,
           permutations = permutations,
-          na_omit      = TRUE
+          na_omit      = TRUE,
+          seed         = seed
         )
       }
 

@@ -454,6 +454,7 @@ ggnetview_modularity_heatmaps <- function(
     spec_dist_method = "bray",
     env_dist_method = "euclidean",
     permutations = 999L,
+    seed = 1115L,
     drop_nonsig = FALSE,
     layout = "gephi",
     layout.module = c("random", "adjacent", "order"),
@@ -650,7 +651,8 @@ ggnetview_modularity_heatmaps <- function(
             spec_dist_method = spec_dist_method,
             env_dist_method  = env_dist_method,
             permutations     = permutations,
-            na_omit          = TRUE
+            na_omit          = TRUE,
+            seed             = seed
           )
           if (base::nrow(mout) == 0L) next
           mout <- mout %>%
@@ -675,7 +677,8 @@ ggnetview_modularity_heatmaps <- function(
           env_df       = env_block_df,
           method       = mantel.method2,
           permutations = permutations,
-          na_omit      = TRUE
+          na_omit      = TRUE,
+          seed         = seed
         )
         if (base::nrow(mout) == 0L) next
         mout <- mout %>%

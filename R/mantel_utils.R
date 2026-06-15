@@ -52,7 +52,8 @@ mantel_pairwise <- function(spec_df,
                             method = c("pearson", "spearman", "kendall"),
                             alternative = c("two.sided", "less", "greater"),
                             permutations = 999L,
-                            na_omit = TRUE) {
+                            na_omit = TRUE,
+                            seed = 1115L) {
   method <- match.arg(method)
   alternative <- match.arg(alternative)
   spec_df <- as.data.frame(spec_df)
@@ -76,9 +77,17 @@ mantel_pairwise <- function(spec_df,
       s <- s[ok]
       e <- e[ok]
     }
-    if (length(s) < 3L) next
+    if (length(s) < 4L) {
+      warning(sprintf(
+        "mantel_pairwise: pair (%s, %s) has only %d complete observations; ",
+        grid$ID[i], grid$Type[i], length(s)
+      ), "need >= 4 for a meaningful permutation test (skipping).",
+      call. = FALSE)
+      next
+    }
     d_s <- stats::dist(as.matrix(s))
     d_e <- stats::dist(as.matrix(e))
+    if (!is.null(seed)) set.seed(as.integer(seed) + i - 1L)
     m <- vegan::mantel(
       d_s, d_e,
       method = method,
@@ -273,7 +282,8 @@ mantel_block_vs_col <- function(spec_df,
                                 spec_dist_method = "bray",
                                 env_dist_method = "euclidean",
                                 permutations = 999L,
-                                na_omit = TRUE) {
+                                na_omit = TRUE,
+                                seed = 1115L) {
   method <- match.arg(method)
   spec_df <- as.data.frame(spec_df)
   env_df  <- as.data.frame(env_df)
@@ -289,7 +299,15 @@ mantel_block_vs_col <- function(spec_df,
   }
 
   env_cols <- colnames(env_df)
-  if (nrow(spec_df) < 3L || length(env_cols) < 1L) {
+  n_obs <- nrow(spec_df)
+  if (n_obs < 4L || length(env_cols) < 1L) {
+    if (n_obs < 4L && length(env_cols) >= 1L) {
+      warning(sprintf(
+        "mantel_block_vs_col: only %d complete observations for block '%s'; ",
+        n_obs, block_name
+      ), "need >= 4 for a meaningful permutation test (returning empty result).",
+      call. = FALSE)
+    }
     return(data.frame(
       ID = character(0), Type = character(0),
       Correlation = numeric(0), Pvalue = numeric(0),
@@ -308,6 +326,7 @@ mantel_block_vs_col <- function(spec_df,
       error = function(e) NULL
     )
     if (is.null(d_env)) next
+    if (!is.null(seed)) set.seed(as.integer(seed) + k - 1L)
     m <- vegan::mantel(
       d_spec, d_env,
       method = method,

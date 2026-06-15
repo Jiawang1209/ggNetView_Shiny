@@ -1118,7 +1118,8 @@ safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NU
     relation_method = "correlation",
     cor.method = "pearson",
     orientation = "top_right",
-    group_layout = "circle"
+    group_layout = "circle",
+    seed = 1115L
   )
   call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
   call_args <- filter_function_call_args(fn, call_args)
@@ -1194,6 +1195,7 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
     cor.use = "pairwise",
     mantel_kind = "block_vs_col",
     permutations = 99L,
+    seed = 1115L,
     spec_collapse = FALSE,
     drop_nonsig = FALSE,
     orientation = "top_right",
@@ -1291,6 +1293,7 @@ safe_module_environment_heatmap <- function(graph, env, otu_mat, env_blocks = NU
     cor.use = "pairwise",
     mantel_kind = "block_vs_col",
     permutations = 99L,
+    seed = 1115L,
     drop_nonsig = FALSE,
     layout = "circle",
     layout.module = "adjacent",
@@ -1445,7 +1448,8 @@ safe_mantel_pairwise <- function(spec, env, params = list()) {
     spec_df = as.data.frame(spec, check.names = FALSE),
     env_df = as.data.frame(env, check.names = FALSE),
     method = "pearson",
-    permutations = 99L
+    permutations = 99L,
+    seed = 1115L
   )
   call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
   call_args <- filter_function_call_args(fn, call_args)
@@ -1484,7 +1488,8 @@ safe_mantel_table <- function(spec, env, params = list()) {
     method = "pearson",
     spec_dist_method = "bray",
     env_dist_method = "euclidean",
-    permutations = 99L
+    permutations = 99L,
+    seed = 1115L
   )
   call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
   call_args <- filter_function_call_args(fn, call_args)
