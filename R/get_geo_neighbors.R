@@ -252,6 +252,9 @@ module_layout2 <- function(graph_obj,
 
   # set.seed(seed)
 
+  # Clamp k_nn to at most n-1 to avoid FNN::get.knn C-level ANN error on
+  # small networks (audit H1).  This is a no-op when k_nn <= nrow(layout)-1.
+  k_nn <- max(1L, min(as.integer(k_nn), nrow(layout) - 1L))
 
   xy <- as.matrix(layout[, c("x","y")])
   nn  <- FNN::get.knn(xy, k = k_nn)$nn.index
@@ -482,6 +485,9 @@ module_layout3 <- function(graph_obj,
   stopifnot(all(c("x","y") %in% names(layout)))
   # set.seed(seed)
 
+  # Clamp k_nn to at most n-1 to avoid FNN::get.knn C-level ANN error on
+  # small networks (audit H1).  This is a no-op when k_nn <= nrow(layout)-1.
+  k_nn <- max(1L, min(as.integer(k_nn), nrow(layout) - 1L))
 
   # shrink_rings_global <- function(df, shrink){
   #   cx <- mean(df$x); cy <- mean(df$y)

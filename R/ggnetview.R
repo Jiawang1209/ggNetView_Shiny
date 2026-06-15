@@ -481,8 +481,8 @@ ggNetView <- function(graph_obj,
   }
 
   if (layout.module == "adjacent") {
-    k_nn_try <- k_nn
     k_nn_cap <- max(1, nrow(ly1) - 1)
+    k_nn_try <- min(k_nn, k_nn_cap)   # clamp first attempt to n-1 (audit H1)
     ly1_1 <- NULL
     while (is.null(ly1_1)) {
       ly_try <- tryCatch(
