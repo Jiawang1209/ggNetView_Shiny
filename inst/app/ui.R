@@ -7,7 +7,7 @@ ui <- bslib::page_navbar(
   id = "main_nav",
   theme = app_bs_theme(),
   header = shiny::tagList(
-    shiny::tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
+    shiny::tags$link(rel = "stylesheet", type = "text/css", href = "styles.css?v=3"),
     shiny::tags$link(rel = "icon", type = "image/png", href = "favicon.png"),
     app_task_feedback_script()
   ),
