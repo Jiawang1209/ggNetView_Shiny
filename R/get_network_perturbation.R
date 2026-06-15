@@ -139,9 +139,11 @@ get_network_perturbation <- function(
     ncomp <- comps$no
 
     # natural connectivity: log(mean(exp(eigenvalues of adjacency)))
+    # Use numerically stable log-sum-exp to avoid Inf when max(ev) > ~709.
     A  <- as.matrix(igraph::as_adjacency_matrix(sub, sparse = FALSE))
     ev <- eigen(A, symmetric = TRUE, only.values = TRUE)$values
-    nat <- log(mean(exp(ev)))
+    lam <- max(ev)
+    nat <- lam + log(mean(exp(ev - lam)))
 
     dd <- 1 / igraph::distances(sub)
     diag(dd) <- NA
@@ -260,9 +262,19 @@ get_network_perturbation <- function(
   }
 
   # ---- Schneider R-index (area under LCC_fraction curve) ------------------
-  lcc <- curve[curve$metric == "LCC_fraction", c("fraction", "value")]
-  lcc <- lcc[order(lcc$fraction), ]
-  r_index <- mean(lcc$value)  # 1/N * sum s(Q), approximated on the grid
+  # Defined only for random/targeted: area under the LCC-fraction attack curve
+  # over [0, 1] computed via the trapezoidal rule (grid-spacing invariant).
+  # For module/manual strategies there is no monotone removal-fraction axis,
+  # so R_index is set to NA.
+  if (strategy %in% c("random", "targeted")) {
+    lcc <- curve[curve$metric == "LCC_fraction", c("fraction", "value")]
+    lcc <- lcc[order(lcc$fraction), ]
+    # Trapezoidal AUC: sum of trapezoid areas between consecutive points.
+    r_index <- sum(diff(lcc$fraction) *
+                     (head(lcc$value, -1) + tail(lcc$value, -1)) / 2)
+  } else {
+    r_index <- NA_real_
+  }
   robustness_index <- data.frame(strategy = strategy, R_index = r_index,
                                   stringsAsFactors = FALSE)
 

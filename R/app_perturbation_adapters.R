@@ -83,6 +83,11 @@ safe_network_perturbation <- function(graph, params = list()) {
     seed <- 123L
   }
 
+  # Ensure fraction grid always terminates at exactly 1.0 regardless of
+  # whether `step` divides 1 evenly (e.g. step=0.3 → 0.3,0.6,0.9 would miss
+  # 1.0 without this guard).  L9 fix.
+  fractions <- unique(c(seq(step, 1, by = step), 1))
+
   result <- safe_call(
     fn(
       graph,
@@ -90,7 +95,7 @@ safe_network_perturbation <- function(graph, params = list()) {
       centrality = centrality,
       target = target,
       module_col = params$module_col %||% "Modularity",
-      fractions = seq(step, 1, by = step),
+      fractions = fractions,
       bootstrap = bootstrap,
       seed = seed,
       plot = TRUE
