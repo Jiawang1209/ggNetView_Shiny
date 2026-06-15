@@ -21,7 +21,9 @@
 #' adj[1:3, 1:3]
 get_graph_adjacency <- function(graph_obj) {
   nodes <- tidygraph::as_tibble(graph_obj)
-  adj_mat <- as.matrix(igraph::as_adjacency_matrix(tidygraph::as.igraph(graph_obj)))
+  ig <- tidygraph::as.igraph(graph_obj)
+  weight_attr <- if ("weight" %in% igraph::edge_attr_names(ig)) "weight" else NULL
+  adj_mat <- as.matrix(igraph::as_adjacency_matrix(ig, attr = weight_attr, sparse = FALSE))
   rownames(adj_mat) <- colnames(adj_mat) <- nodes$name
   adj_mat
 }
