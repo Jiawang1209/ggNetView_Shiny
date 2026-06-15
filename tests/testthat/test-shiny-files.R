@@ -357,3 +357,9 @@ test_that("UI polish browser smoke exists and checks landing CTA + value boxes",
   expect_match(txt, "Graph Builder", fixed = TRUE)
   expect_match(txt, "value-box", fixed = TRUE)
 })
+
+test_that("Zi-Pi registry naming is deterministic (no RNG)", {
+  txt <- paste(readLines(test_path("../../inst/app/modules/mod_zipi_results.R"), warn = FALSE), collapse = "\n")
+  expect_false(grepl("sample.int", txt, fixed = TRUE))
+  expect_match(txt, "unique_registry_name(registry", fixed = TRUE)
+})

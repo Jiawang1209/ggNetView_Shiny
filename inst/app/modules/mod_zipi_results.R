@@ -32,9 +32,10 @@ zipi_download_handler <- function(table_fn, filename) {
 
 mod_zipi_results_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
+    # Deterministic, registry-aware disambiguation (no RNG) to honor the
+    # package's reproducible-output claim (audit L7).
     unique_output_name <- function(base) {
-      suffix <- paste0(format(Sys.time(), "%Y%m%d_%H%M%S"), "_", sprintf("%04d", sample.int(9999, 1)))
-      paste0(base, "_", suffix)
+      unique_registry_name(registry, base)
     }
 
     zipi_table <- shiny::reactiveVal(data.frame())
