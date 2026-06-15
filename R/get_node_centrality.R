@@ -119,24 +119,34 @@ get_node_centrality <- function(
     stop("`graph_obj` has zero vertices.", call. = FALSE)
   }
 
-  # Edge-weight handling.  igraph treats edge weights as DISTANCES
-  # (higher weight = farther apart), but ggNetView's build_graph_from_*()
-  # family stores |correlation| as `weight` (higher = closer).  Inverting
-  # to `1 / weight` makes strongly correlated pairs count as short paths,
-  # which is the semantic users expect for "weighted centrality" on a
-  # correlation network.
-  w <- NULL
+  # Edge-weight handling.
+  #
+  # ggNetView's build_graph_from_*() family stores |correlation| as `weight`
+  # (higher = closer / stronger).  igraph's distance-semantic measures
+  # (Betweenness, Closeness, Harmonic) expect weights as DISTANCES, so we
+  # invert: w_dist = 1 / weight.  Strength-semantic measures (Eigenvector,
+  # PageRank, Hub/Authority) expect raw strengths, so we pass w_str = weight
+  # directly.  The two weight vectors are computed once and routed to the
+  # appropriate igraph call below.
+  #
+  # M2 guard: non-finite (NA, NaN, Inf) weights bypass the <= 0 check and
+  # cause a raw C-level igraph crash.  Catch them here alongside non-positive
+  # weights and fall back to unweighted in either case.
+  w_dist <- NULL   # distance weights  (1/raw)  for Betweenness/Closeness/Harmonic
+  w_str  <- NULL   # strength weights  (raw)     for Eigenvector/PageRank/HITS
   if (isTRUE(weighted)) {
     if ("weight" %in% igraph::edge_attr_names(ig) && igraph::ecount(ig) > 0L) {
       raw_w <- igraph::E(ig)$weight
-      if (any(raw_w <= 0, na.rm = TRUE)) {
+      if (any(!is.finite(raw_w)) || any(raw_w <= 0, na.rm = TRUE)) {
         warning(
-          "`weighted = TRUE` but the graph has non-positive edge weights; ",
-          "falling back to the unweighted computation.",
+          "`weighted = TRUE` but the graph has non-finite or non-positive ",
+          "edge weights; falling back to the unweighted computation.",
           call. = FALSE
         )
+        # w_dist and w_str remain NULL → unweighted path below
       } else {
-        w <- 1 / raw_w
+        w_dist <- 1 / raw_w
+        w_str  <- raw_w
       }
     } else {
       warning(
@@ -155,24 +165,41 @@ get_node_centrality <- function(
 
   values <- list()
 
+  # Distance-semantic measures: use w_dist (= 1/weight), so strongly-correlated
+  # pairs count as short paths.
   if ("Betweenness" %in% measures) {
     values$Betweenness <- as.numeric(
-      igraph::betweenness(ig, directed = FALSE, weights = w)
+      igraph::betweenness(ig, directed = FALSE, weights = w_dist)
     )
   }
   if ("Closeness" %in% measures) {
-    values$Closeness <- as.numeric(
-      igraph::closeness(ig, mode = "all", weights = w)
+    closeness_vals <- as.numeric(
+      igraph::closeness(ig, mode = "all", weights = w_dist)
     )
+    # L4: isolated / singleton-component nodes produce NaN from igraph.
+    # Coerce to NA so downstream code can use is.na() reliably.
+    if (any(!is.finite(closeness_vals))) {
+      warning(
+        "The graph is disconnected; Closeness is undefined for nodes that ",
+        "cannot reach all others. Non-finite values are coerced to NA.",
+        call. = FALSE
+      )
+      closeness_vals[!is.finite(closeness_vals)] <- NA_real_
+    }
+    values$Closeness <- closeness_vals
   }
+
+  # Strength-semantic measures: use w_str (= raw |correlation|), so stronger
+  # edges confer higher centrality — the correct direction for Eigenvector,
+  # PageRank, and HITS on correlation networks.
   if ("Eigenvector" %in% measures) {
     values$Eigenvector <- as.numeric(
-      igraph::eigen_centrality(ig, weights = w, directed = FALSE)$vector
+      igraph::eigen_centrality(ig, weights = w_str, directed = FALSE)$vector
     )
   }
   if ("PageRank" %in% measures) {
     values$PageRank <- as.numeric(
-      igraph::page_rank(ig, weights = w, directed = FALSE)$vector
+      igraph::page_rank(ig, weights = w_str, directed = FALSE)$vector
     )
   }
   # ---- HITS scores (Hub + Authority) ---------------------------------------
@@ -185,18 +212,18 @@ get_node_centrality <- function(
   if (need_hub || need_auth) {
     has_hits <- "hits_scores" %in% getNamespaceExports("igraph")
     if (has_hits) {
-      hits <- igraph::hits_scores(ig, weights = w)
+      hits <- igraph::hits_scores(ig, weights = w_str)
       if (need_hub)  values$Hub_score       <- as.numeric(hits$hub)
       if (need_auth) values$Authority_score <- as.numeric(hits$authority)
     } else {
       if (need_hub) {
         values$Hub_score <- as.numeric(
-          igraph::hub_score(ig, weights = w)$vector
+          igraph::hub_score(ig, weights = w_str)$vector
         )
       }
       if (need_auth) {
         values$Authority_score <- as.numeric(
-          igraph::authority_score(ig, weights = w)$vector
+          igraph::authority_score(ig, weights = w_str)$vector
         )
       }
     }
@@ -207,8 +234,9 @@ get_node_centrality <- function(
     values$Coreness <- as.numeric(igraph::coreness(ig))
   }
   if ("Harmonic" %in% measures) {
+    # Distance-semantic: use w_dist so harmonic mean of path lengths is correct.
     values$Harmonic <- as.numeric(
-      igraph::harmonic_centrality(ig, weights = w)
+      igraph::harmonic_centrality(ig, weights = w_dist)
     )
   }
 
