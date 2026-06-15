@@ -5,7 +5,13 @@ node_table_from_graph <- function(graph) {
 
   fn <- resolve_ggnetview_function("get_graph_nodes")
   if (!is.null(fn)) {
-    return(as.data.frame(fn(graph), check.names = FALSE))
+    result <- tryCatch(
+      as.data.frame(fn(graph), check.names = FALSE),
+      error = function(e) NULL
+    )
+    if (!is.null(result)) {
+      return(result)
+    }
   }
 
   igraph::as_data_frame(graph, what = "vertices")
@@ -14,9 +20,13 @@ node_table_from_graph <- function(graph) {
 adjacency_from_graph <- function(graph) {
   fn <- resolve_ggnetview_function("get_graph_adjacency")
   if (!is.null(fn)) {
-    return(fn(graph))
+    result <- tryCatch(fn(graph), error = function(e) NULL)
+    if (!is.null(result)) {
+      return(result)
+    }
   }
-  as.matrix(igraph::as_adjacency_matrix(graph, attr = "weight", sparse = FALSE))
+  attr <- if ("weight" %in% igraph::edge_attr_names(graph)) "weight" else NULL
+  as.matrix(igraph::as_adjacency_matrix(graph, attr = attr, sparse = FALSE))
 }
 
 safe_node_centrality <- function(graph, measures = "all", weighted = FALSE) {
@@ -122,6 +132,16 @@ safe_node_ivi <- function(graph, scale = "range", ncores = 1L) {
 safe_zipi <- function(graph, zi_threshold = 2.5, pi_threshold = 0.62) {
   if (!inherits(graph, "igraph")) {
     return(app_failure("Zi-Pi requires an igraph graph object."))
+  }
+  if (!is.finite(zi_threshold)) {
+    return(app_failure(
+      paste0("zi_threshold must be a finite number (got: ", zi_threshold, ").")
+    ))
+  }
+  if (!is.finite(pi_threshold) || pi_threshold < 0 || pi_threshold > 1) {
+    return(app_failure(
+      paste0("pi_threshold must be a finite number in [0, 1] (got: ", pi_threshold, ").")
+    ))
   }
 
   fn <- resolve_ggnetview_function("ggnetview_zipi")

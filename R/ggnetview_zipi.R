@@ -201,7 +201,10 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
   kis_mat[kis_mat < 0] <- 0
 
   sum_kis2 <- rowSums(kis_mat^2)
-  k_tot    <- as.numeric(deg)
+  # Derive k_tot from the same binarized matrix A used for k_is, so both
+  # quantities are consistent.  diag(A) == 1 (set above), so rowSums(A) - 1
+  # gives the number of actual neighbours (self excluded).
+  k_tot    <- rowSums(A) - 1L
   P <- numeric(length(k_tot))
   P[k_tot == 0] <- 0
   nz <- (k_tot > 0)
