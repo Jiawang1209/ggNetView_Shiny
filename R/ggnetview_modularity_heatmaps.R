@@ -578,7 +578,14 @@ ggnetview_modularity_heatmaps <- function(
       j <- which(spec_block_names == spec_blk)
       p <- which(env_block_names == env_blk)
       if (length(j) != 1 || length(p) != 1) next
-      cor_out <- psych::corr.test(spec_list[[j]], env_list[[p]], use = cor.use, method = cor.method)
+      # L13 guard: validate before psych::corr.test (use/method already correct)
+      cor_out <- .safe_corr_test(
+        spec_list[[j]], env_list[[p]],
+        use    = cor.use,
+        method = cor.method,
+        label  = paste0("module-env '", spec_blk, "' x '", env_blk, "'")
+      )
+      if (is.null(cor_out)) next
       cor_r <- cor_out$r %>%
         as.data.frame() %>%
         tibble::rownames_to_column(var = "ID") %>%
@@ -706,10 +713,64 @@ ggnetview_modularity_heatmaps <- function(
     }
   }
 
+  # ── L13 guard: validate block before psych::corr.test ────────────────────
+  # psych::corr.test emits a warning and returns NaN correlations when:
+  #   (a) the block has fewer than 4 complete-case rows, or
+  #   (b) any column has zero variance (sd == 0).
+  # This helper checks both conditions, emits ONE clean message, and
+  # returns NULL when the block is degenerate.  Callers skip NULL results.
+  .safe_corr_test <- function(x, y = NULL, use = "everything", method = "pearson",
+                              label = "block") {
+    mat <- if (is.null(y)) x else {
+      tryCatch(
+        data.frame(x, y, check.names = FALSE),
+        error = function(e) cbind(as.data.frame(x), as.data.frame(y))
+      )
+    }
+    cc <- stats::complete.cases(mat)
+    n_cc <- sum(cc)
+    if (n_cc < 4L) {
+      message(sprintf(
+        "[ggNetView] Skipping correlation for %s: only %d complete-case row(s) (need >= 4).",
+        label, n_cc
+      ))
+      return(NULL)
+    }
+    sd_vals <- vapply(as.data.frame(mat[cc, , drop = FALSE]),
+                      function(col) stats::sd(col, na.rm = TRUE), numeric(1))
+    zero_var <- names(sd_vals)[!is.na(sd_vals) & sd_vals == 0]
+    if (length(zero_var) > 0L) {
+      message(sprintf(
+        "[ggNetView] Skipping correlation for %s: constant column(s) with zero variance: %s.",
+        label, paste(zero_var, collapse = ", ")
+      ))
+      return(NULL)
+    }
+    if (is.null(y)) {
+      psych::corr.test(x, use = use, method = method)
+    } else {
+      psych::corr.test(x, y, use = use, method = method)
+    }
+  }
+
   env_cor_self_list <- list()
   for (i in seq_along(orientation)) {
     ori <- orientation[i]
-    cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
+
+    # L13 guard: validate env block before calling psych::corr.test
+    cor_out_self <- .safe_corr_test(
+      env_list[[i]],
+      use    = cor.use,
+      method = cor.method,
+      label  = paste0("env-env block '", names(env_list)[i], "'")
+    )
+    if (is.null(cor_out_self)) {
+      # Use single-bracket list assignment to preserve the slot as NULL
+      # (double-bracket [[i]] <- NULL removes the element in R)
+      env_cor_self_list[i] <- list(NULL)
+      next
+    }
+
     cor_self_r <- cor_out_self$r %>% as.data.frame()
     cor_self_p <- cor_out_self$p %>% as.data.frame()
 
@@ -756,6 +817,15 @@ ggnetview_modularity_heatmaps <- function(
     )
   }
   names(env_cor_self_list) <- orientation
+
+  # L13: drop any NULL slots (quadrants skipped due to tiny/constant blocks)
+  # and update orientation to only include valid quadrants.
+  valid_quad <- !vapply(env_cor_self_list, is.null, logical(1))
+  if (!all(valid_quad)) {
+    env_cor_self_list <- env_cor_self_list[valid_quad]
+    orientation       <- orientation[valid_quad]
+    env_list          <- env_list[valid_quad]
+  }
 
   .diag_xy <- function(id_idx, type_idx, ori, k_gap, length_dist, side_anchor, heatmap_step) {
     x_anchor <- if (ori %in% c("top_right", "bottom_right")) side_anchor[["right"]] else side_anchor[["left"]]

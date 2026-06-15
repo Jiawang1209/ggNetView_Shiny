@@ -760,16 +760,72 @@ gglink_heatmaps <- function(
   #   cor_out_self <- psych::corr.test(x)
   # })
 
+  # ── L13 guard: validate block before psych::corr.test ────────────────────
+  # psych::corr.test emits a warning and returns NaN correlations when:
+  #   (a) the block has fewer than 4 complete-case rows, or
+  #   (b) any column has zero variance (sd == 0).
+  # This helper checks both conditions, emits ONE clean message, and
+  # returns NULL when the block is degenerate.  Callers skip NULL results.
+  .safe_corr_test <- function(x, y = NULL, use = "everything", method = "pearson",
+                              label = "block") {
+    mat <- if (is.null(y)) x else {
+      tryCatch(
+        data.frame(x, y, check.names = FALSE),
+        error = function(e) cbind(as.data.frame(x), as.data.frame(y))
+      )
+    }
+    # Complete cases (rows without any NA)
+    cc <- stats::complete.cases(mat)
+    n_cc <- sum(cc)
+    if (n_cc < 4L) {
+      message(sprintf(
+        "[ggNetView] Skipping correlation for %s: only %d complete-case row(s) (need >= 4).",
+        label, n_cc
+      ))
+      return(NULL)
+    }
+    # Zero-variance columns
+    sd_vals <- vapply(as.data.frame(mat[cc, , drop = FALSE]),
+                      function(col) stats::sd(col, na.rm = TRUE), numeric(1))
+    zero_var <- names(sd_vals)[!is.na(sd_vals) & sd_vals == 0]
+    if (length(zero_var) > 0L) {
+      message(sprintf(
+        "[ggNetView] Skipping correlation for %s: constant column(s) with zero variance: %s.",
+        label, paste(zero_var, collapse = ", ")
+      ))
+      return(NULL)
+    }
+    if (is.null(y)) {
+      psych::corr.test(x, use = use, method = method)
+    } else {
+      psych::corr.test(x, y, use = use, method = method)
+    }
+  }
 
   env_cor_self_list <- list()
 
 
   for (i in seq_along(orientation)) {
+    ori_i <- orientation[i]
+
+    # L13 guard: validate env block before calling psych::corr.test.
+    # .safe_corr_test returns NULL for tiny (<4 rows) or constant-column blocks;
+    # we skip that quadrant and leave a NULL slot (handled downstream).
+    cor_out_self <- .safe_corr_test(
+      env_list[[i]],
+      use    = cor.use,
+      method = cor.method,
+      label  = paste0("env-env block '", names(env_list)[i], "'")
+    )
+    if (is.null(cor_out_self)) {
+      # Use single-bracket list assignment to preserve the slot as NULL
+      # (double-bracket [[i]] <- NULL removes the element in R)
+      env_cor_self_list[i] <- list(NULL)
+      next
+    }
+
     # top_right
-    if (orientation[i] == "top_right") {
-
-
-      cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
+    if (ori_i == "top_right") {
 
       # correlation
       cor_self_r <- cor_out_self$r %>% as.data.frame()
@@ -817,10 +873,7 @@ gglink_heatmaps <- function(
     }
 
     # bottom_right
-    if (orientation[i] == "bottom_right") {
-
-      cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
-
+    if (ori_i == "bottom_right") {
 
       # correlation
       cor_self_r <- cor_out_self$r %>% as.data.frame()
@@ -867,9 +920,7 @@ gglink_heatmaps <- function(
     }
 
     # top_left
-    if (orientation[i] == "top_left") {
-
-      cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
+    if (ori_i == "top_left") {
 
       # correlation
       cor_self_r <- cor_out_self$r %>% as.data.frame()
@@ -918,9 +969,7 @@ gglink_heatmaps <- function(
     }
 
     # bottom_left
-    if (orientation[i] == "bottom_left") {
-
-      cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
+    if (ori_i == "bottom_left") {
 
       # correlation
       cor_self_r <- cor_out_self$r %>% as.data.frame()
@@ -972,8 +1021,17 @@ gglink_heatmaps <- function(
   # rename list based on orientation
   names(env_cor_self_list) <- orientation
 
+  # L13: drop any NULL slots (quadrants skipped due to tiny/constant blocks)
+  # and update orientation + k_gap to only include valid quadrants.
+  valid_quad <- !vapply(env_cor_self_list, is.null, logical(1))
+  if (!all(valid_quad)) {
+    env_cor_self_list <- env_cor_self_list[valid_quad]
+    orientation       <- orientation[valid_quad]
+    env_list          <- env_list[valid_quad]
+  }
+
   # rename k_gap based on orientation
-  names(k_gap) <- orientation
+  names(k_gap) <- names(env_cor_self_list)
 
 
 
@@ -1032,7 +1090,15 @@ gglink_heatmaps <- function(
       j <- which(spec_block_names == spec_blk)
       p <- which(env_block_names == env_blk)
       if (length(j) != 1 || length(p) != 1) next
-      cor_env_list_tmp <- psych::corr.test(spec_list[[j]], env_list[[p]])
+      # H5 fix: pass user-selected cor.use and cor.method (previously used defaults)
+      # L13 guard: .safe_corr_test checks n>=4 and no zero-variance columns
+      cor_env_list_tmp <- .safe_corr_test(
+        spec_list[[j]], env_list[[p]],
+        use    = cor.use,
+        method = cor.method,
+        label  = paste0("spec-env '", spec_blk, "' x '", env_blk, "'")
+      )
+      if (is.null(cor_env_list_tmp)) next
         cor_env_list_tmp_r <- cor_env_list_tmp$r %>%
           as.data.frame() %>%
           tibble::rownames_to_column(var = "ID") %>%
@@ -1171,37 +1237,49 @@ gglink_heatmaps <- function(
     spec_relation_df <- spec_list[[j]]
     n_spec_cols <- ncol(spec_relation_df)
     if (isTRUE(spec_relation) && n_spec_cols >= 2L) {
-      spec_cor_out_self <- psych::corr.test(spec_relation_df, use = cor.use, method = cor.method)
-      spec_cor_self_r <- spec_cor_out_self$r %>% as.data.frame()
-      spec_cor_self_r[lower.tri(spec_cor_self_r)] <- NA
-      spec_cor_self_p <- spec_cor_out_self$p %>% as.data.frame()
-      spec_cor_self_p[lower.tri(spec_cor_self_p)] <- NA
-      spec_cor_self_r <- spec_cor_self_r %>%
-        tibble::rownames_to_column(var = "ID") %>%
-        tidyr::pivot_longer(cols = -ID, names_to = "Type", values_to = "Correlation") %>%
-        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
-                      Type = factor(Type, levels = unique(Type), ordered = TRUE),
-                      ID2 = as.numeric(ID), Type2 = as.numeric(Type)) %>%
-        stats::na.omit()
-      spec_cor_self_p <- spec_cor_self_p %>%
-        tibble::rownames_to_column(var = "ID") %>%
-        tidyr::pivot_longer(cols = -ID, names_to = "Type", values_to = "Pvalue") %>%
-        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
-                      Type = factor(Type, levels = unique(Type), ordered = TRUE),
-                      ID2 = as.numeric(ID), Type2 = as.numeric(Type)) %>%
-        stats::na.omit() %>%
-        dplyr::mutate(p_signif = dplyr::case_when(
-          Pvalue > 0.05 ~ "", Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-          Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**", Pvalue < 0.001 ~ "***"
-        ))
-      spec_cor_self_r_p <- cbind(spec_cor_self_r %>% dplyr::select(1, 2, 4, 5, 3),
-                                 spec_cor_self_p %>% dplyr::select(3, 6)) %>%
-        dplyr::filter(ID != Type) %>%
-        dplyr::mutate(tmp = ifelse(ID > Type, paste0(ID, Type), paste0(Type, ID))) %>%
-        dplyr::distinct(tmp, .keep_all = TRUE) %>%
-        dplyr::select(-tmp) %>%
-        dplyr::select(ID, Type, Correlation, p_signif) %>%
-        purrr::set_names(c("from", "to", "weight", "sig"))
+      # L13 guard: skip within-block spec layout correlation on tiny/constant blocks
+      spec_cor_out_self <- .safe_corr_test(
+        spec_relation_df,
+        use    = cor.use,
+        method = cor.method,
+        label  = paste0("spec-spec block '", spec_block_names[j], "'")
+      )
+      if (is.null(spec_cor_out_self)) {
+        spec_cor_self_r_p <- data.frame(
+          from = character(0), to = character(0), weight = numeric(0), sig = character(0)
+        )
+      } else {
+        spec_cor_self_r <- spec_cor_out_self$r %>% as.data.frame()
+        spec_cor_self_r[lower.tri(spec_cor_self_r)] <- NA
+        spec_cor_self_p <- spec_cor_out_self$p %>% as.data.frame()
+        spec_cor_self_p[lower.tri(spec_cor_self_p)] <- NA
+        spec_cor_self_r <- spec_cor_self_r %>%
+          tibble::rownames_to_column(var = "ID") %>%
+          tidyr::pivot_longer(cols = -ID, names_to = "Type", values_to = "Correlation") %>%
+          dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                        Type = factor(Type, levels = unique(Type), ordered = TRUE),
+                        ID2 = as.numeric(ID), Type2 = as.numeric(Type)) %>%
+          stats::na.omit()
+        spec_cor_self_p <- spec_cor_self_p %>%
+          tibble::rownames_to_column(var = "ID") %>%
+          tidyr::pivot_longer(cols = -ID, names_to = "Type", values_to = "Pvalue") %>%
+          dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                        Type = factor(Type, levels = unique(Type), ordered = TRUE),
+                        ID2 = as.numeric(ID), Type2 = as.numeric(Type)) %>%
+          stats::na.omit() %>%
+          dplyr::mutate(p_signif = dplyr::case_when(
+            Pvalue > 0.05 ~ "", Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
+            Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**", Pvalue < 0.001 ~ "***"
+          ))
+        spec_cor_self_r_p <- cbind(spec_cor_self_r %>% dplyr::select(1, 2, 4, 5, 3),
+                                   spec_cor_self_p %>% dplyr::select(3, 6)) %>%
+          dplyr::filter(ID != Type) %>%
+          dplyr::mutate(tmp = ifelse(ID > Type, paste0(ID, Type), paste0(Type, ID))) %>%
+          dplyr::distinct(tmp, .keep_all = TRUE) %>%
+          dplyr::select(-tmp) %>%
+          dplyr::select(ID, Type, Correlation, p_signif) %>%
+          purrr::set_names(c("from", "to", "weight", "sig"))
+      }
     } else {
       # spec_relation = FALSE or single-column spec (no within-block correlation)
       spec_cor_self_r_p <- data.frame(
@@ -1476,14 +1554,19 @@ gglink_heatmaps <- function(
       dplyr::transmute(ID, x_to = xy_diag$x, y_to = xy_diag$y)
   }
 
-  xy_targets <- purrr::imap_dfr(
-    .x = env_cor_self_list[orientation],
-    .f = .make_targets,
-    k_gap = k_gap,
-    length_dist = length_dist,
-    side_anchor = side_anchor,
-    heatmap_step = heatmap_step
-  )
+  xy_targets <- if (length(env_cor_self_list) > 0L && length(orientation) > 0L) {
+    purrr::imap_dfr(
+      .x = env_cor_self_list[orientation],
+      .f = .make_targets,
+      k_gap = k_gap,
+      length_dist = length_dist,
+      side_anchor = side_anchor,
+      heatmap_step = heatmap_step
+    )
+  } else {
+    # All env quadrants were skipped (L13 guard): supply empty frame with correct schema
+    tibble::tibble(ID = character(), x_to = numeric(), y_to = numeric())
+  }
 
   # Build the lookup table that translates each row's `ID` value into a link
   # source coordinate (x, y). Three cases:
@@ -1794,20 +1877,24 @@ gglink_heatmaps <- function(
     )
   }
 
-  y_ranges <- purrr::imap_dfr(
-    env_cor_self_list[orientation],
-    ~ .compute_y_range(.x, .y, k_gap, length_dist, side_anchor, heatmap_step)
-  )
+  if (length(env_cor_self_list) > 0L && length(orientation) > 0L) {
+    y_ranges <- purrr::imap_dfr(
+      env_cor_self_list[orientation],
+      ~ .compute_y_range(.x, .y, k_gap, length_dist, side_anchor, heatmap_step)
+    )
+  } else {
+    y_ranges <- tibble::tibble(orientation = character(), ymin = numeric(), ymax = numeric())
+  }
 
   y_top_all <- y_ranges %>%
     dplyr::filter(.data$orientation %in% c("top_right","top_left")) %>%
     dplyr::pull(.data$ymax) %>%
-    max(na.rm = TRUE)
+    { if (length(.) == 0L) NA_real_ else max(., na.rm = TRUE) }
 
   y_bottom_all <- y_ranges %>%
     dplyr::filter(.data$orientation %in% c("bottom_right","bottom_left")) %>%
     dplyr::pull(.data$ymin) %>%
-    min(na.rm = TRUE)
+    { if (length(.) == 0L) NA_real_ else min(., na.rm = TRUE) }
 
 
   packs <- purrr::imap(
