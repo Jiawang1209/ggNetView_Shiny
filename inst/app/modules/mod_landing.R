@@ -33,9 +33,12 @@ mod_landing_ui <- function(id) {
     shiny::div(
       class = "ggnv-quickstart",
       shiny::div(class = "ggnv-quickstart-label", "Quick start · 3 steps"),
-      step_card("1", "Load data", "Upload a matrix / edge table, or pick a bundled example."),
-      step_card("2", "Build graph", "Correlation, RMT-assisted, or WGCNA / TOM."),
-      step_card("3", "Visualize & analyze", "Layouts, topology, Zi-Pi, perturbation.")
+      shiny::div(
+        class = "ggnv-step-grid",
+        step_card("1", "Load data", "Upload a matrix / edge table, or pick a bundled example."),
+        step_card("2", "Build graph", "Correlation, RMT-assisted, or WGCNA / TOM."),
+        step_card("3", "Visualize & analyze", "Layouts, topology, Zi-Pi, perturbation.")
+      )
     ),
     bslib::accordion(
       open = FALSE,
