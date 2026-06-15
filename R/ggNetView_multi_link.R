@@ -376,6 +376,8 @@ ggNetView_multi_link <- function(mat = NULL,
 ){
   method <- match.arg(method)
 
+  # H3 — set seed once here before ANY stochastic call (layout, jitter)
+  set.seed(seed)
 
   color_v <- c('#1f78b4', '#e7298a', '#41ab5d', '#807dba',
                '#fb9a99', '#4eb3d3', '#bc80bd', '#e31a1c',
@@ -718,8 +720,7 @@ ggNetView_multi_link <- function(mat = NULL,
                              idx = idx,
                              shrink = shrink,
                              jitter,
-                             jitter_sd# ,
-                             # seed = seed
+                             jitter_sd
       )
     }
 
@@ -737,7 +738,6 @@ ggNetView_multi_link <- function(mat = NULL,
                          shrink = shrink,
                          jitter = jitter,
                          jitter_sd = jitter_sd
-                         # seed = seed
           ),
           error = function(e) e
         )
@@ -774,7 +774,6 @@ ggNetView_multi_link <- function(mat = NULL,
                               shrink = shrink,
                               jitter,
                               jitter_sd
-                              # seed = seed
       )
     }
 
@@ -787,7 +786,6 @@ ggNetView_multi_link <- function(mat = NULL,
                               shrink = shrink,
                               jitter,
                               jitter_sd
-                              # seed = seed
       )
     }
 
@@ -1147,8 +1145,8 @@ ggNetView_multi_link <- function(mat = NULL,
                          by = c("to_id" = "name")) %>%
         dplyr::rename(to_x = x,
                       to_y = y)
-
-    # jitter TRUE
+    }
+    # L10 fix: jitter applied ONCE after anchoring loop (was incorrectly nested inside it)
     if (isTRUE(jitter)) {
       for (i in seq_along(names(graph_info))) {
         graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
@@ -1169,8 +1167,7 @@ ggNetView_multi_link <- function(mat = NULL,
                            by = c("to_id" = "name")) %>%
           dplyr::rename(to_x = x,
                         to_y = y)
-       }
-     }
+      }
     }
   }
 
@@ -1732,8 +1729,8 @@ ggNetView_multi_link <- function(mat = NULL,
 
     module_targets <- character(0)
     if (link_level %in% c("module", "nodeinmodule", "module&node") && nrow(Module_information_plot) > 0) {
+      # L11 fix: match on exact GroupA/GroupB equality (not str_detect regex on Group string)
       module_targets <- Module_information_plot %>%
-        dplyr::filter(stringr::str_detect(Group, pattern = names(graph_list)[index])) %>%
         dplyr::filter(GroupA == names(graph_list)[index] | GroupB == names(graph_list)[index]) %>%
         dplyr::mutate(mod_target = dplyr::case_when(
           GroupA == names(graph_list)[index] ~ modA,

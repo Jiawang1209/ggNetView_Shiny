@@ -45,9 +45,28 @@ safe_multi_network_compare <- function(graphs, params = list()) {
   if (!is.list(graphs) || length(graphs) < 2L) {
     return(app_failure("Multi-network comparison requires at least two graph objects."))
   }
-  if (!all(vapply(graphs, inherits, logical(1), what = "igraph"))) {
-    return(app_failure("All comparison inputs must be graph objects."))
+  if (!all(vapply(graphs, function(g) inherits(g, "igraph") || inherits(g, "tbl_graph"), logical(1)))) {
+    return(app_failure("All comparison inputs must be graph objects (igraph or tbl_graph)."))
   }
+
+  # L12 fix: coerce plain igraph objects to tbl_graph so ggNetView_multi_link
+  # receives the class it requires (tbl_graph with Modularity/Degree/Strength).
+  # tbl_graph objects pass through unchanged; igraph objects are enriched via
+  # build_graph_from_igraph which adds the required node columns.
+  coerce_fn <- tryCatch(
+    utils::getFromNamespace("build_graph_from_igraph", "ggNetView"),
+    error = function(e) NULL
+  )
+  graphs <- lapply(graphs, function(g) {
+    if (inherits(g, "tbl_graph")) {
+      return(g)
+    }
+    if (!is.null(coerce_fn)) {
+      tryCatch(coerce_fn(g), error = function(e) tidygraph::as_tbl_graph(g))
+    } else {
+      tidygraph::as_tbl_graph(g)
+    }
+  })
 
   fn <- resolve_ggnetview_function("ggNetView_multi_link")
   if (is.null(fn)) {
