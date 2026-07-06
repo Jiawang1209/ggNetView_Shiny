@@ -178,3 +178,35 @@ safe_topology <- function(graph, params = list()) {
     "Failed to calculate network topology."
   )
 }
+
+#' Wrap ggnetview_subgraph: full network + magnified module panel.
+#' Returns a ggnetview_app_result whose $value is the composed patchwork plot.
+safe_magnified_subgraph <- function(graph, select_module = NULL, full_layout = "gephi", sub_layout = "same", params = list()) {
+  if (!inherits(graph, "igraph")) {
+    return(app_failure("Magnified subgraph requires an igraph graph object."))
+  }
+  fn <- resolve_ggnetview_function("ggnetview_subgraph")
+  if (is.null(fn)) {
+    return(app_failure("Cannot find ggNetView function: ggnetview_subgraph"))
+  }
+
+  mods <- tryCatch(igraph::vertex_attr(graph, "Modularity"), error = function(e) NULL)
+  if (is.null(mods)) {
+    return(app_failure("The graph has no Modularity column; rebuild it with a build_graph_from_* function."))
+  }
+  levels_present <- as.character(unique(mods))
+  requested <- as.character(select_module)
+  if (length(requested) == 0L || !all(requested %in% levels_present)) {
+    return(app_failure(paste0(
+      "Selected module(s) not found. Available modules: ",
+      paste(sort(levels_present), collapse = ", "), "."
+    )))
+  }
+
+  args <- utils::modifyList(
+    list(graph_obj = graph, select_module = select_module,
+         full_layout = full_layout, sub_layout = sub_layout),
+    params
+  )
+  safe_call(do.call(fn, args), "Failed to build magnified subgraph figure.")
+}
