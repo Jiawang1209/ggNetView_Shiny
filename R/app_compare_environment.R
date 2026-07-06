@@ -1147,10 +1147,10 @@ safe_environment_link <- function(env, spec, env_select = NULL, spec_select = NU
   ))
 }
 
-safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, env_spec_pairs = NULL, params = list()) {
-  fn <- resolve_ggnetview_function("gglink_heatmaps")
+safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, env_spec_pairs = NULL, params = list(), fn_name = "gglink_heatmaps") {
+  fn <- resolve_ggnetview_function(fn_name)
   if (is.null(fn)) {
-    return(app_failure("Cannot find ggNetView function: gglink_heatmaps"))
+    return(app_failure(paste0("Cannot find ggNetView function: ", fn_name)))
   }
 
   env <- as.data.frame(env, check.names = FALSE)
@@ -1205,6 +1205,7 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
   call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
   call_args <- filter_function_call_args(fn, call_args)
 
+  call_args <- call_args[names(call_args) %in% names(formals(fn))]
   result <- safe_call(
     do.call(fn, call_args),
     "Failed to calculate manual environment heatmap."
@@ -1497,5 +1498,16 @@ safe_mantel_table <- function(spec, env, params = list()) {
   safe_call(
     do.call(fn, call_args),
     "Failed to run block-vs-column Mantel test."
+  )
+}
+
+#' Adaptive-tile variant of safe_environment_heatmap (gglink_heatmaps_2).
+safe_link_heatmap_adaptive <- function(env, spec, env_select = NULL, spec_select = NULL, env_blocks = NULL, spec_blocks = NULL, env_spec_pairs = NULL, params = list()) {
+  safe_environment_heatmap(
+    env = env, spec = spec,
+    env_select = env_select, spec_select = spec_select,
+    env_blocks = env_blocks, spec_blocks = spec_blocks,
+    env_spec_pairs = env_spec_pairs, params = params,
+    fn_name = "gglink_heatmaps_2"
   )
 }
