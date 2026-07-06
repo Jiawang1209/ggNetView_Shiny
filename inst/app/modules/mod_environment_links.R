@@ -100,9 +100,13 @@ mod_environment_links_ui <- function(id) {
     ),
     bslib::layout_columns(
       bslib::card(
-        bslib::card_header("Preview"),
+        bslib::card_header("Preview — standard vs. adaptive tile sizing"),
         shiny::uiOutput(ns("compare_metrics")),
-        shiny::plotOutput(ns("plot"), height = 650),
+        bslib::layout_columns(
+          col_widths = c(6, 6),
+          shiny::plotOutput(ns("plot"), height = 650),
+          shiny::plotOutput(ns("plot_adaptive"), height = 650)
+        ),
         shiny::verbatimTextOutput(ns("status"))
       ),
       bslib::card(

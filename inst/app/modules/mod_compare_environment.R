@@ -248,6 +248,7 @@ mod_compare_environment_ui <- function(id) {
 mod_compare_environment_server <- function(id, registry) {
   shiny::moduleServer(id, function(input, output, session) {
     plot_obj <- shiny::reactiveVal(NULL)
+    plot_obj_adaptive <- shiny::reactiveVal(NULL)
     stats_table <- shiny::reactiveVal(data.frame())
     compare_link_summary_table <- shiny::reactiveVal(data.frame())
     report_preset_table <- shiny::reactiveVal(data.frame())
@@ -632,6 +633,12 @@ mod_compare_environment_server <- function(id, registry) {
       }
 
       plot_obj(result$value$plot)
+      adaptive <- safe_link_heatmap_adaptive(env = env, spec = spec, params = params)
+      if (adaptive$ok && !is.null(adaptive$value$plot)) {
+        plot_obj_adaptive(adaptive$value$plot)
+      } else {
+        plot_obj_adaptive(NULL)
+      }
       interpreted <- environment_interpretation(result$value$stats)
       stats_table(interpreted$details)
       compare_link_summary_table(interpreted$summary)
@@ -1007,6 +1014,11 @@ mod_compare_environment_server <- function(id, registry) {
     output$plot <- shiny::renderPlot({
       shiny::req(plot_obj())
       plot_obj()
+    })
+
+    output$plot_adaptive <- shiny::renderPlot({
+      shiny::req(plot_obj_adaptive())
+      plot_obj_adaptive()
     })
 
     output$compare_metrics <- shiny::renderUI({

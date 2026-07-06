@@ -64,6 +64,10 @@ mod_network_compare_ui <- function(id) {
         bslib::card_header("Statistics"),
         DT::DTOutput(ns("stats"))
       ),
+      shiny::div(
+        class = "ggnv-hidden-output-binding",
+        shiny::plotOutput(ns("plot_adaptive"))
+      ),
       col_widths = c(12, 6, 6, 6, 6)
     )
   )
