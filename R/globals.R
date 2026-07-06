@@ -31,7 +31,7 @@ utils::globalVariables(c(
   ".", ".data",
   ## internal helpers (leading dot)
   ".curve_bin", ".curve_id", ".edge_dist", ".group_outer",
-  ".label_text", ".node_index__",
+  ".label_text", ".mag_deg", ".mag_group", ".node_index__",
   ## generic data-frame columns
   "annotation", "ASV", "ASV_to", "auto_score",
   "Authority_score",
