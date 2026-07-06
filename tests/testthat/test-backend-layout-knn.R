@@ -39,3 +39,12 @@ test_that("H1: no 'k should be less than sample size' warning on small graphs (a
   # Confirm the call produced a non-NULL result
   expect_true(!is.null(result))
 })
+
+test_that("audit-H1 k_nn clamp survives the new-ggNetView merge", {
+  gg_src <- readLines(testthat::test_path("../../R/ggnetview.R"), warn = FALSE)
+  geo_src <- readLines(testthat::test_path("../../R/get_geo_neighbors.R"), warn = FALSE)
+
+  expect_true(any(grepl("min(k_nn, k_nn_cap)", gg_src, fixed = TRUE)),
+              info = "ggnetview.R must clamp k_nn_try to k_nn_cap (audit H1)")
+  expect_equal(sum(grepl("audit H1", geo_src, fixed = TRUE)), 2L)
+})
