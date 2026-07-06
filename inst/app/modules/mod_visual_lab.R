@@ -249,7 +249,7 @@ mod_visual_lab_ui <- function(id) {
           ),
           visual_lab_tip(
             shiny::numericInput(ns("bandwidth_scale"), "Bandwidth scale", value = 1, min = 0.1, max = 5, step = 0.1),
-            "Scales the smoothing bandwidth used when drawing group hulls/outlines. Higher = looser, smoother outlines."
+            "Group outlines are now drawn as 2D-KDE highest-density-region (HDR) contours. This scales the KDE smoothing bandwidth: higher = looser, smoother outlines. Sparse satellite/outlier nodes may fall outside the contour rather than pulling the boundary toward them."
           ),
           shiny::checkboxInput(ns("add_group_outer"), "Add group outer", value = FALSE),
           shiny::checkboxInput(ns("drop_others"), "Drop Others", value = FALSE),

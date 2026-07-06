@@ -37,3 +37,18 @@ test_that("safe_magnified_subgraph fails gracefully when select_module is not a 
   expect_false(result$ok)
   expect_match(result$message, "module", ignore.case = TRUE)
 })
+
+test_that("safe_magnified_subgraph rejects a wrong module count for a multipartite sub_layout", {
+  library(igraph)
+  nodes <- data.frame(name = c("A","B","C","D"),
+                      Modularity = factor(c("1","1","2","2")),
+                      stringsAsFactors = FALSE)
+  edges <- data.frame(from = c("A","B","C"), to = c("B","C","D"), stringsAsFactors = FALSE)
+  g <- igraph::graph_from_data_frame(edges, directed = FALSE, vertices = nodes)
+
+  # tripartite needs 3 modules; selecting 2 must fail gracefully, not crash.
+  result <- safe_magnified_subgraph(g, select_module = c("1","2"),
+                                    sub_layout = "tripartite_gephi_layout")
+  expect_false(result$ok)
+  expect_true(nzchar(result$message))
+})
