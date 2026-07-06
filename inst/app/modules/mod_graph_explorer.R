@@ -12,7 +12,8 @@ mod_graph_explorer_ui <- function(id) {
         bslib::accordion_panel(
           "Module subgraph",
           shiny::selectInput(ns("module"), "Module", choices = character()),
-          shiny::actionButton(ns("register_module_subgraph"), "Register module subgraph", class = "w-100")
+          shiny::actionButton(ns("register_module_subgraph"), "Register module subgraph", class = "w-100"),
+          shiny::actionButton(ns("render_magnified"), "Show magnified subgraph", class = "w-100 mt-2")
         ),
         bslib::accordion_panel(
           "Sample subgraph",
@@ -51,7 +52,11 @@ mod_graph_explorer_ui <- function(id) {
         bslib::card_header("Sample Stats"),
         DT::DTOutput(ns("sample_stats"))
       ),
-      col_widths = c(12, 6, 6, 6, 6)
+      bslib::card(
+        bslib::card_header("Magnified Subgraph"),
+        shiny::plotOutput(ns("magnified"), height = 500)
+      ),
+      col_widths = c(12, 6, 6, 6, 6, 12)
     )
   )
 }
@@ -99,6 +104,7 @@ mod_graph_explorer_server <- function(id, registry) {
     status <- shiny::reactiveVal("No subgraph registered yet.")
     module_result <- shiny::reactiveVal(NULL)
     sample_result <- shiny::reactiveVal(NULL)
+    magnified_plot <- shiny::reactiveVal(NULL)
 
     shiny::observe({
       shiny::updateSelectInput(session, "graph_id", choices = registry_choices(registry, type = "graph"))
@@ -188,6 +194,34 @@ mod_graph_explorer_server <- function(id, registry) {
       )
       status(paste("Registered module subgraph:", sub_item$name))
       shiny::showNotification(paste("Registered module subgraph:", sub_item$name), type = "message")
+    })
+
+    shiny::observeEvent(input$render_magnified, {
+      item <- selected_graph()
+      shiny::req(item, input$module)
+      ig <- tryCatch(coerce_tbl_graph(item$data), error = function(e) NULL)
+      if (is.null(ig)) {
+        status("Could not coerce the selected object to a graph.")
+        shiny::showNotification("Could not coerce the selected object to a graph.", type = "error")
+        return()
+      }
+      result <- safe_magnified_subgraph(ig, select_module = input$module)
+      if (!result$ok) {
+        detail <- if (!is.null(result$trace)) paste(result$message, result$trace, sep = "\n") else result$message
+        status(detail)
+        shiny::showNotification(result$message, type = "error")
+        return()
+      }
+      magnified_plot(result$value)
+      registry_add(
+        registry,
+        name = paste0(item$name, "_magnified_", input$module),
+        type = "plot",
+        data = result$value,
+        source = item$id,
+        params = list(action = "ggnetview_subgraph", select_module = input$module)
+      )
+      status(paste0("Rendered magnified subgraph for module ", input$module, "."))
     })
 
     shiny::observeEvent(input$register_sample_subgraph, {
@@ -288,6 +322,11 @@ mod_graph_explorer_server <- function(id, registry) {
     output$sample_stats <- DT::renderDT({
       subgraph_stat_table(sample_result(), "stat_sample")
     }, rownames = FALSE)
+
+    output$magnified <- shiny::renderPlot({
+      shiny::req(magnified_plot())
+      magnified_plot()
+    })
 
     output$status <- shiny::renderText(status())
   })

@@ -157,7 +157,7 @@ test_that("Graph Explorer keeps parameter-heavy subgraph controls in the sidebar
   expect_match(ui_text, "accordion_panel", fixed = TRUE)
   expect_match(ui_text, "\"Module subgraph\"", fixed = TRUE)
   expect_match(ui_text, "\"Sample subgraph\"", fixed = TRUE)
-  expect_match(ui_text, "col_widths = c(12, 6, 6, 6, 6)", fixed = TRUE)
+  expect_match(ui_text, "col_widths = c(12, 6, 6, 6, 6, 12)", fixed = TRUE)
   expect_false(grepl("bslib::card_header(\"Subgraph\")", ui_text, fixed = TRUE))
   expect_false(grepl("col_widths = c(4, 8, 4, 4, 4, 4, 4)", ui_text, fixed = TRUE))
 })
@@ -362,4 +362,17 @@ test_that("Zi-Pi registry naming is deterministic (no RNG)", {
   txt <- paste(readLines(test_path("../../inst/app/modules/mod_zipi_results.R"), warn = FALSE), collapse = "\n")
   expect_false(grepl("sample.int", txt, fixed = TRUE))
   expect_match(txt, "unique_registry_name(registry", fixed = TRUE)
+})
+
+test_that("graph explorer wires the magnified subgraph function", {
+  txt <- paste(readLines(test_path("../../inst/app/modules/mod_graph_explorer.R"), warn = FALSE), collapse = "\n")
+  expect_match(txt, "safe_magnified_subgraph", fixed = TRUE)
+  expect_match(txt, "render_magnified", fixed = TRUE)
+})
+
+test_that("environment links wires the adaptive heatmap variant", {
+  ui_txt <- paste(readLines(test_path("../../inst/app/modules/mod_environment_links.R"), warn = FALSE), collapse = "\n")
+  srv_txt <- paste(readLines(test_path("../../inst/app/modules/mod_compare_environment.R"), warn = FALSE), collapse = "\n")
+  expect_match(ui_txt, "plot_adaptive", fixed = TRUE)
+  expect_match(srv_txt, "safe_link_heatmap_adaptive", fixed = TRUE)
 })
