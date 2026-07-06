@@ -1205,7 +1205,6 @@ safe_environment_heatmap <- function(env, spec, env_select = NULL, spec_select =
   call_args <- utils::modifyList(defaults, params, keep.null = TRUE)
   call_args <- filter_function_call_args(fn, call_args)
 
-  call_args <- call_args[names(call_args) %in% names(formals(fn))]
   result <- safe_call(
     do.call(fn, call_args),
     "Failed to calculate manual environment heatmap."
